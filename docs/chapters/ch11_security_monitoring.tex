@@ -1,0 +1,133 @@
+%% Chapter 11: Security & Monitoring
+\chapter{Security \& System Monitoring}
+\label{ch:security}
+
+\section{Security Architecture}
+
+ALAMS implements a layered security model:
+
+\begin{enumerate}[leftmargin=*, label=\textbf{Layer \arabic*:}]
+  \item \textbf{Physical Binding} — Dynamic QR code proves the student is physically present at the specific workstation. The JWT token contains the computer ID; the server cross-verifies it against the registered machine.
+  \item \textbf{Identity Verification} — Student password (BCrypt, salt-factor 12) on mobile login prevents credential sharing.
+  \item \textbf{Shell Replacement} — Windows Winlogon loads ALAMS instead of Explorer, preventing unauthenticated desktop access.
+  \item \textbf{Watchdog Enforcement} — NT SYSTEM service monitors process state every 2 seconds. Any bypass triggers immediate forced logoff.
+  \item \textbf{Encrypted Transport} — All server communication uses HTTPS/WSS in production; Neon database uses TLS 1.3.
+\end{enumerate}
+
+\section{JWT Token Security}
+
+\begin{table}[h!]
+\centering
+\caption{JWT Token Configuration}
+\label{tab:jwt}
+\begin{tabularx}{\textwidth}{lXl}
+\toprule
+\textbf{Token Type} & \textbf{Purpose} & \textbf{Expiry}\\
+\midrule
+\rowcolor{aurxonlightgray}
+Admin JWT & Dashboard session authentication & 8 hours\\
+Student JWT & Mobile QR verification session & 8 hours\\
+\rowcolor{aurxonlightgray}
+QR Token & QR code cryptographic binding & 60 seconds\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Watchdog Security Events}
+
+The watchdog generates these security events under various conditions:
+
+\begin{table}[h!]
+\centering
+\caption{Watchdog Security Event Triggers}
+\label{tab:watchdog-events}
+\begin{tabularx}{\textwidth}{lXl}
+\toprule
+\textbf{Trigger} & \textbf{Condition} & \textbf{Response}\\
+\midrule
+\rowcolor{aurxonlightgray}
+Explorer without ALAMS & explorer.exe running, AlamsClient.exe not running & Force logoff + CRITICAL alert\\
+Client process missing & AlamsClient.exe exits unexpectedly while desktop open & Force logoff + alert\\
+\rowcolor{aurxonlightgray}
+Normal operation & AlamsClient.exe running & Send heartbeat every 10 seconds\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Password \& PIN Security Policy}
+
+\begin{tcolorbox}[alamsbox, title={\faShieldAlt\quad Recommended Password Policy}]
+\begin{itemize}[label={\faCheckCircle}]
+  \item Minimum 8 characters, maximum 64
+  \item Must contain uppercase, lowercase, digit, and symbol
+  \item Passwords stored as BCrypt hash (salt factor 12)
+  \item PINs are 6-digit numeric, also BCrypt-hashed
+  \item No plaintext storage at any layer
+\end{itemize}
+\end{tcolorbox}
+
+\section{Neon Database Security}
+
+\begin{itemize}[label={\textcolor{aurxongreen}{\faLock}}]
+  \item All connections use \textbf{TLS 1.3} (enforced via \texttt{sslmode=require})
+  \item Neon's PgBouncer connection pooler limits connection surface
+  \item Database credentials are stored only in \texttt{server/.env} (never in code)
+  \item Neon provides automatic daily backups
+  \item IP allowlisting available via Neon dashboard (for additional hardening)
+\end{itemize}
+
+\section{Heartbeat Monitoring}
+
+The admin dashboard continuously monitors workstation health:
+
+\begin{table}[h!]
+\centering
+\caption{Heartbeat Thresholds}
+\label{tab:heartbeats}
+\begin{tabularx}{\textwidth}{lllX}
+\toprule
+\textbf{Source} & \textbf{Frequency} & \textbf{Timeout} & \textbf{Dashboard Indicator}\\
+\midrule
+\rowcolor{aurxonlightgray}
+WPF Client & Every 30s via WebSocket & 15 seconds & Client Agent: GREEN/RED\\
+Watchdog Service & Every 10s via HTTP POST & 20 seconds & Watchdog: ACTIVE/MISSING\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Pilot Security Validation Tests}
+
+Perform these security tests before production deployment:
+
+\subsection{TEST-SEC-01: Shell Bypass Attempt}
+\begin{enumerate}[leftmargin=*]
+  \item Log in as student user (ALAMS lock screen visible)
+  \item Open Task Manager as administrator
+  \item Kill \texttt{AlamsClient.exe}
+  \item \textbf{Expected:} Windows immediately logs off the user (force logoff)
+  \item \textbf{Expected:} Critical \texttt{watchdog\_kill} alert appears in Security Audits
+  \item \textbf{Expected:} After logging back in, lock screen reappears
+\end{enumerate}
+
+\subsection{TEST-SEC-02: QR Replay Attack}
+\begin{enumerate}[leftmargin=*]
+  \item Generate a QR code on PC-A01
+  \item Wait 61+ seconds for it to expire
+  \item Try to scan and submit the expired QR token
+  \item \textbf{Expected:} Server rejects with ``QR Code expired or invalid''
+  \item \textbf{Expected:} No session created
+\end{enumerate}
+
+\subsection{TEST-SEC-03: Cross-Machine QR Attack}
+\begin{enumerate}[leftmargin=*]
+  \item Generate a QR code on PC-A01 and save the token
+  \item Try to submit this token while on PC-A02's mobile verification page
+  \item \textbf{Expected:} Server rejects; token was signed for PC-A01's computerId
+\end{enumerate}
+
+\subsection{TEST-SEC-04: Concurrent Session Prevention}
+\begin{enumerate}[leftmargin=*]
+  \item Log in on PC-A01 as ENR2026001
+  \item Try to log in on PC-A02 as ENR2026001 (same student)
+  \item \textbf{Expected:} Server rejects with ``Active session detected on another workstation''
+\end{enumerate}

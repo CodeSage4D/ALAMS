@@ -1,0 +1,200 @@
+%% Chapter 6: Windows Client & Watchdog Service
+\chapter{Windows Client \& Watchdog Service}
+\label{ch:client}
+
+This chapter covers the installation and configuration of the two C\# components deployed on every lab workstation: the \textbf{WPF Lock Screen Client} and the \textbf{Watchdog System Service}.
+
+\section{Building the Binaries}
+
+Both C\# projects must be compiled on a machine with the .NET 8 SDK installed. The resulting binaries are then deployed to each lab workstation.
+
+\subsection{Build the WPF Lock Client}
+
+\begin{tcolorbox}[codebox, title={Publish AlamsClient.exe}]
+\begin{lstlisting}[language=PowerShell]
+# Navigate to client directory
+cd "d:\Project Data Aurxon\ALAMS\client"
+
+# Publish self-contained, single-file executable
+dotnet publish AlamsClient.csproj `
+  -c Release `
+  -r win-x64 `
+  --self-contained true `
+  -p:PublishSingleFile=true `
+  -p:IncludeNativeLibrariesForSelfExtract=true `
+  -o ".\publish\client"
+
+# Output: .\publish\client\AlamsClient.exe
+\end{lstlisting}
+\end{tcolorbox}
+
+\subsection{Build the Watchdog Service}
+
+\begin{tcolorbox}[codebox, title={Publish AlamsWatchdog.exe}]
+\begin{lstlisting}[language=PowerShell]
+cd "d:\Project Data Aurxon\ALAMS\watchdog"
+
+dotnet publish AlamsWatchdog.csproj `
+  -c Release `
+  -r win-x64 `
+  --self-contained true `
+  -p:PublishSingleFile=true `
+  -o ".\publish\watchdog"
+
+# Output: .\publish\watchdog\AlamsWatchdog.exe
+\end{lstlisting}
+\end{tcolorbox}
+
+\section{Deploying to Workstations}
+
+Copy the published binaries to each lab workstation:
+
+\begin{tcolorbox}[codebox, title={Copy Binaries to Workstation (PowerShell or Robocopy)}]
+\begin{lstlisting}[language=PowerShell]
+# Create the installation directory on the target PC
+New-Item -ItemType Directory -Path "C:\Program Files\ALAMS" -Force
+
+# Copy client binary
+Copy-Item ".\publish\client\AlamsClient.exe" `
+  "C:\Program Files\ALAMS\AlamsClient.exe" -Force
+
+# Copy watchdog binary
+Copy-Item ".\publish\watchdog\AlamsWatchdog.exe" `
+  "C:\Program Files\ALAMS\AlamsWatchdog.exe" -Force
+
+# Create ProgramData directory for config
+New-Item -ItemType Directory -Path "C:\ProgramData\ALAMS" -Force
+\end{lstlisting}
+\end{tcolorbox}
+
+\section{Registering the Watchdog Service}
+
+The Watchdog must be installed as a Windows Service running as \texttt{NT AUTHORITY\textbackslash SYSTEM}:
+
+\begin{tcolorbox}[codebox, title={Install Watchdog Windows Service (Run as Administrator)}]
+\begin{lstlisting}[language=PowerShell]
+# Install the service using sc.exe
+sc.exe create AlamsWatchdog `
+  binpath= "C:\Program Files\ALAMS\AlamsWatchdog.exe" `
+  start= auto `
+  displayname= "ALAMS Client Watchdog Service" `
+  obj= LocalSystem
+
+# Set failure recovery — restart on failure
+sc.exe failure AlamsWatchdog reset= 0 actions= restart/5000
+
+# Start the service immediately
+Start-Service AlamsWatchdog
+
+# Verify it is running
+Get-Service AlamsWatchdog
+# Expected: Status = Running, StartType = Automatic
+\end{lstlisting}
+\end{tcolorbox}
+
+\section{Configuration File}
+
+The client and watchdog share a configuration file at \texttt{C:\textbackslash ProgramData\textbackslash ALAMS\textbackslash config.json}. This file is created automatically by the WPF client after successful server registration. Its structure:
+
+\begin{tcolorbox}[codebox, title={C:\textbackslash ProgramData\textbackslash ALAMS\textbackslash config.json}]
+\begin{lstlisting}[language=bash]
+{
+  "serverUrl":   "http://192.168.1.100:5000",
+  "computerId":  "uuid-assigned-by-server-after-approval",
+  "pcNumber":    "PC-A01",
+  "deviceName":  "ALAMS-TURING-01"
+}
+\end{lstlisting}
+\end{tcolorbox}
+
+\begin{tcolorbox}[alamsbox, title={\faInfoCircle\quad Pre-Registration State}]
+Before admin approval, \texttt{computerId} is empty and the WPF client shows a \textbf{PENDING REGISTRATION} message. The watchdog reads this file on every 2-second cycle to pick up the computer ID after approval.
+\end{tcolorbox}
+
+\section{Enrolling the Custom Shell}
+
+After the binaries are in place and the watchdog service is running, configure the student user account to load ALAMS instead of Windows Explorer:
+
+\begin{tcolorbox}[codebox, title={Run EnrollShell.ps1 as Administrator}]
+\begin{lstlisting}[language=PowerShell]
+# Must run while logged in as (or impersonating) the student user
+Set-ExecutionPolicy Bypass -Scope Process -Force
+& "d:\Project Data Aurxon\ALAMS\EnrollShell.ps1"
+
+# The script will:
+# 1. Verify AlamsClient.exe exists
+# 2. Verify the Watchdog is running
+# 3. Set HKCU\...\Winlogon\Shell = C:\Program Files\ALAMS\AlamsClient.exe
+# 4. Back up original shell value to C:\ProgramData\ALAMS\shell_backup.txt
+\end{lstlisting}
+\end{tcolorbox}
+
+\section{WPF Client Operation}
+
+\subsection{Lock Screen States}
+
+\begin{table}[h!]
+\centering
+\caption{WPF Lock Client Screen States}
+\label{tab:client-states}
+\begin{tabularx}{\textwidth}{lXl}
+\toprule
+\textbf{State} & \textbf{Display} & \textbf{Action}\\
+\midrule
+\rowcolor{aurxonlightgray}
+PENDING & ``Pending Registration — Fingerprint: [16 chars]'' & Waits for admin approval\\
+LOCKED & Enrollment input + QR button + PIN button & Ready for student auth\\
+\rowcolor{aurxonlightgray}
+QR Active & Dynamic QR code + 60s countdown & Student scans with phone\\
+UNLOCKED & Desktop launches (explorer.exe spawned) & Student works\\
+\rowcolor{aurxonlightgray}
+Session Toolbar & Floating bar with student name + Logout button & Active session indicator\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{How the Dynamic QR Works}
+
+\begin{enumerate}[leftmargin=*, label=\textbf{\arabic*.}]
+  \item Student clicks \textbf{Get QR Code} on the lock screen.
+  \item Client calls \apipath{GET /api/v1/client/qr-token?computerId=\{id\}}.
+  \item Server signs a JWT with the computer identity and a 60-second expiration.
+  \item Client encodes the mobile verification URL as a QR code:
+    \begin{center}
+    \texttt{http://SERVER\_IP:3000/unlock?token=\{jwt\}}
+    \end{center}
+  \item Student scans with their phone — the token proves the computer identity cryptographically.
+  \item QR refreshes automatically every 55 seconds.
+\end{enumerate}
+
+\section{Watchdog Enforcement Logic}
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[
+  decision/.style={diamond, draw=aurxonamber, fill=aurxonamber!20, text width=3.5cm, text centered, minimum height=1.2cm, font=\small},
+  action/.style={rectangle, rounded corners=6pt, draw=aurxonblue, fill=aurxonlightgray, minimum width=3.5cm, minimum height=0.8cm, text centered, font=\small},
+  danger/.style={rectangle, rounded corners=6pt, draw=aurxonred, fill=red!10, minimum width=3.5cm, minimum height=0.8cm, text centered, font=\small},
+  arrow/.style={-{Stealth[length=5pt]}, line width=0.9pt}
+]
+\node[action] (start) at (0,0) {Wait 2 seconds};
+\node[decision] (check) at (0,-1.8) {explorer.exe running?};
+\node[decision] (alams) at (0,-3.8) {AlamsClient.exe running?};
+\node[danger] (bypass) at (4,-3.8) {BYPASS DETECTED};
+\node[danger] (alert) at (4,-5.2) {POST /watchdog-alert};
+\node[danger] (logoff) at (4,-6.6) {shutdown.exe /l /f};
+\node[action] (hb) at (0,-5.2) {Watchdog Heartbeat (every 10s)};
+
+\draw[arrow] (start) -- (check);
+\draw[arrow] (check) -- node[left,font=\tiny]{Yes} (alams);
+\draw[arrow] (check.east) to[bend left=20] node[right,font=\tiny]{No} (start.east);
+\draw[arrow] (alams) -- node[above,font=\tiny]{No} (bypass);
+\draw[arrow] (alams.south) to[bend right] node[right,font=\tiny]{Yes} (hb.south);
+\draw[arrow] (hb) -- (start);
+\draw[arrow] (bypass) -- (alert);
+\draw[arrow] (alert) -- (logoff);
+\draw[arrow] (logoff.south) to[bend left=40] node[right,font=\tiny]{User Logged Off} (start.east);
+\end{tikzpicture}
+\caption{Watchdog Service Decision Tree (2-second polling cycle)}
+\label{fig:watchdog-flow}
+\end{figure}

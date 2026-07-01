@@ -1,0 +1,187 @@
+%% Chapter 2: Prerequisites & Environment Setup
+\chapter{Prerequisites \& Environment Setup}
+\label{ch:prerequisites}
+
+This chapter covers all software that must be installed on the \textbf{server machine} before deploying ALAMS.
+
+\begin{tcolorbox}[warningbox, title={\faExclamationTriangle\quad Server Machine Requirements}]
+The ALAMS server must be a dedicated Windows or Linux machine reachable by all lab workstations on the LAN. Do \emph{not} run the server on a student workstation.
+\end{tcolorbox}
+
+\section{Hardware Requirements}
+
+\begin{table}[h!]
+\centering
+\caption{Minimum and Recommended Server Hardware}
+\label{tab:hardware}
+\begin{tabularx}{\textwidth}{lXX}
+\toprule
+\textbf{Component} & \textbf{Minimum} & \textbf{Recommended (Pilot)}\\
+\midrule
+\rowcolor{aurxonlightgray}
+CPU & 2 cores, 2.0 GHz & 4 cores, 2.5 GHz\\
+RAM & 4 GB & 8 GB\\
+\rowcolor{aurxonlightgray}
+Storage & 20 GB SSD & 50 GB SSD\\
+Network & 100 Mbps LAN & Gigabit LAN\\
+\rowcolor{aurxonlightgray}
+OS & Windows 10 / Ubuntu 22.04 & Windows Server 2022\\
+Internet & Required for Neon DB & Required\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Software Prerequisites}
+
+\subsection{Step 1: Install Node.js v20 LTS}
+
+Node.js powers the Express API server and the Next.js dashboard.
+
+\begin{tcolorbox}[codebox, title={Download \& Install Node.js}]
+\begin{lstlisting}[language=bash]
+# Option A: Download installer from:
+https://nodejs.org/en/download
+
+# Option B: Using winget (Windows)
+winget install OpenJS.NodeJS.LTS
+
+# Option C: Using nvm (recommended for version management)
+nvm install 20
+nvm use 20
+
+# Verify installation
+node --version    # Expected: v20.x.x
+npm --version     # Expected: 10.x.x
+\end{lstlisting}
+\end{tcolorbox}
+
+\subsection{Step 2: Install Git}
+
+\begin{tcolorbox}[codebox, title={Install Git}]
+\begin{lstlisting}[language=bash]
+# Download from: https://git-scm.com/downloads
+
+# Or using winget
+winget install Git.Git
+
+# Verify
+git --version
+\end{lstlisting}
+\end{tcolorbox}
+
+\subsection{Step 3: Install .NET 8 SDK (Workstation Machines Only)}
+
+The .NET 8 SDK is required to \emph{compile} the WPF Client and Watchdog Service. This is only needed on the \textbf{developer/build machine}, not on student workstations.
+
+\begin{tcolorbox}[codebox, title={Install .NET 8 SDK}]
+\begin{lstlisting}[language=bash]
+# Download from: https://dotnet.microsoft.com/download/dotnet/8.0
+# Select: SDK 8.0.x for Windows x64
+
+# Or using winget
+winget install Microsoft.DotNet.SDK.8
+
+# Verify
+dotnet --version    # Expected: 8.0.x
+\end{lstlisting}
+\end{tcolorbox}
+
+\subsection{Step 4: Install a LaTeX Distribution (Documentation Only)}
+
+To compile this manual, install MiKTeX or TeX Live:
+
+\begin{tcolorbox}[codebox, title={Install MiKTeX for Windows}]
+\begin{lstlisting}[language=bash]
+# Download MiKTeX from: https://miktex.org/download
+# Or using winget:
+winget install MiKTeX.MiKTeX
+
+# Required packages (auto-installed on first compile):
+# tcolorbox, pgfplots, fontawesome5, sourcecodepro,
+# listings, geometry, fancyhdr, titlesec, booktabs
+\end{lstlisting}
+\end{tcolorbox}
+
+\section{Network Configuration}
+
+Configure the server machine's firewall to allow the following ports:
+
+\begin{table}[h!]
+\centering
+\caption{Required Firewall Port Rules}
+\label{tab:ports}
+\begin{tabularx}{\textwidth}{lllX}
+\toprule
+\textbf{Port} & \textbf{Protocol} & \textbf{Direction} & \textbf{Purpose}\\
+\midrule
+\rowcolor{aurxonlightgray}
+5000 & TCP & Inbound & Express API Server (REST + WebSocket)\\
+3000 & TCP & Inbound & Next.js Admin Dashboard \& Mobile Gateway\\
+\rowcolor{aurxonlightgray}
+443  & TCP & Outbound & Neon PostgreSQL cloud connection (TLS)\\
+80   & TCP & Outbound & npm package registry (first-time setup only)\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{tcolorbox}[codebox, title={Windows Firewall Rules (PowerShell — Run as Administrator)}]
+\begin{lstlisting}[language=PowerShell]
+# Allow ALAMS API Server (port 5000)
+New-NetFirewallRule -DisplayName "ALAMS API Server" `
+  -Direction Inbound -Protocol TCP -LocalPort 5000 `
+  -Action Allow -Profile Domain,Private
+
+# Allow ALAMS Dashboard (port 3000)
+New-NetFirewallRule -DisplayName "ALAMS Dashboard" `
+  -Direction Inbound -Protocol TCP -LocalPort 3000 `
+  -Action Allow -Profile Domain,Private
+
+# Verify rules applied
+Get-NetFirewallRule -DisplayName "ALAMS*" | 
+  Select-Object DisplayName, Enabled, Direction
+\end{lstlisting}
+\end{tcolorbox}
+
+\section{Project Folder Structure}
+
+After cloning or setting up the project, the directory structure should look like this:
+
+\begin{tcolorbox}[codebox, title={ALAMS Project Directory Tree}]
+\begin{lstlisting}
+d:\Project Data Aurxon\ALAMS\
+|-- server\                    <- Node.js Express API
+|   |-- src\
+|   |   |-- controllers\       <- Route handlers
+|   |   |-- middleware\        <- JWT auth middleware
+|   |   |-- utils\             <- Crypto helpers
+|   |   |-- websocket.ts       <- WebSocket server
+|   |   `-- index.ts           <- Entry point
+|   |-- prisma\
+|   |   |-- schema.prisma      <- Database schema
+|   |   `-- seed.ts            <- Demo data seed
+|   `-- .env                   <- Environment variables
+|
+|-- web\                       <- Next.js Web Application
+|   |-- src\app\
+|   |   |-- admin\             <- Admin dashboard
+|   |   |-- login\             <- Student mobile login
+|   |   `-- unlock\            <- QR verification page
+|   `-- .env.local
+|
+|-- client\                    <- C# WPF Lock Screen
+|   |-- AlamsClient.csproj
+|   |-- MainWindow.xaml(.cs)
+|   `-- SessionWidget.xaml(.cs)
+|
+|-- watchdog\                  <- C# Windows Service
+|   |-- AlamsWatchdog.csproj
+|   `-- WatchdogWorker.cs
+|
+|-- docs\                      <- LaTeX Documentation
+|   |-- main.tex               <- This manual
+|   |-- chapters\
+|   `-- appendix\
+|
+`-- EnrollShell.ps1            <- Student shell enrollment
+\end{lstlisting}
+\end{tcolorbox}

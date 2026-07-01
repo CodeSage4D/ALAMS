@@ -1,0 +1,271 @@
+%% ============================================================
+%% ALAMS — Aurxon Lab Access Management System
+%% User Manual & Technical Documentation
+%% Main Compilation File
+%%
+%% Compile: pdflatex -interaction=nonstopmode main.tex
+%%          (run twice to resolve cross-references)
+%% ============================================================
+
+\documentclass[12pt, a4paper, twoside]{report}
+
+%% ── Packages ─────────────────────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=2.5cm, inner=3cm, outer=2cm]{geometry}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{setspace}
+\usepackage{parskip}
+
+%% Colors & Graphics
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, decorations.pathmorphing, shadows, fit, backgrounds}
+
+%% Typography
+\usepackage{fontawesome5}
+\usepackage{helvet}
+\usepackage{sourcecodepro}
+\renewcommand{\familydefault}{\sfdefault}
+
+%% Headers & Footers
+\usepackage{fancyhdr}
+\usepackage{emptypage}
+
+%% Tables
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{colortbl}
+
+%% Code Listings
+\usepackage{listings}
+\usepackage{minted}
+
+%% Boxes and Callouts
+\usepackage{tcolorbox}
+\tcbuselibrary{skins, breakable, listingsutf8}
+
+%% Links & References
+\usepackage[hidelinks, colorlinks=true, linkcolor=aurxonblue, urlcolor=aurxonblue, citecolor=aurxongreen]{hyperref}
+\usepackage{cleveref}
+
+%% TOC customization
+\usepackage{titletoc}
+\usepackage{titlesec}
+
+%% Enumeration
+\usepackage{enumitem}
+
+%% Footnotes
+\usepackage{footmisc}
+
+%% ── Color Palette (Aurxon Branding) ──────────────────────────────────────────
+\definecolor{aurxonblue}{HTML}{0EA5E9}
+\definecolor{aurxongreen}{HTML}{10B981}
+\definecolor{aurxonamber}{HTML}{F59E0B}
+\definecolor{aurxonred}{HTML}{EF4444}
+\definecolor{aurxondark}{HTML}{0F172A}
+\definecolor{aurxoncard}{HTML}{1E293B}
+\definecolor{aurxongray}{HTML}{64748B}
+\definecolor{aurxonlightgray}{HTML}{F1F5F9}
+\definecolor{codebg}{HTML}{1E293B}
+\definecolor{codefg}{HTML}{E2E8F0}
+
+%% ── Code Listing Style ───────────────────────────────────────────────────────
+\lstdefinestyle{alamsCode}{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\footnotesize\color{codefg},
+  keywordstyle=\color{aurxonblue}\bfseries,
+  stringstyle=\color{aurxongreen},
+  commentstyle=\color{aurxongray}\itshape,
+  numberstyle=\tiny\color{aurxongray},
+  numbers=left,
+  numbersep=8pt,
+  stepnumber=1,
+  breaklines=true,
+  breakatwhitespace=false,
+  captionpos=b,
+  frame=none,
+  xleftmargin=15pt,
+  xrightmargin=5pt,
+  aboveskip=10pt,
+  belowskip=10pt,
+  tabsize=2,
+  showstringspaces=false,
+  keepspaces=true,
+}
+\lstset{style=alamsCode}
+
+%% ── tcolorbox Styles ─────────────────────────────────────────────────────────
+\tcbset{
+  alamsbox/.style={
+    enhanced, breakable,
+    colback=aurxonlightgray, colframe=aurxonblue,
+    fonttitle=\bfseries\sffamily,
+    left=6pt, right=6pt, top=6pt, bottom=6pt,
+    arc=4pt, boxrule=1pt,
+  },
+  warningbox/.style={
+    enhanced, breakable,
+    colback=yellow!10, colframe=aurxonamber,
+    fonttitle=\bfseries\sffamily,
+    left=6pt, right=6pt, top=6pt, bottom=6pt,
+    arc=4pt, boxrule=1pt,
+  },
+  dangerbox/.style={
+    enhanced, breakable,
+    colback=red!8, colframe=aurxonred,
+    fonttitle=\bfseries\sffamily,
+    left=6pt, right=6pt, top=6pt, bottom=6pt,
+    arc=4pt, boxrule=1pt,
+  },
+  successbox/.style={
+    enhanced, breakable,
+    colback=green!8, colframe=aurxongreen,
+    fonttitle=\bfseries\sffamily,
+    left=6pt, right=6pt, top=6pt, bottom=6pt,
+    arc=4pt, boxrule=1pt,
+  },
+  codebox/.style={
+    enhanced, breakable,
+    colback=codebg, colframe=aurxondark,
+    fonttitle=\bfseries\sffamily\color{white},
+    coltitle=white,
+    attach boxed title to top left={yshift=-2mm, xshift=4mm},
+    boxed title style={colback=aurxonblue, arc=3pt},
+    left=6pt, right=6pt, top=10pt, bottom=6pt,
+    arc=4pt, boxrule=0.5pt,
+  },
+}
+
+%% ── Chapter & Section Formatting ─────────────────────────────────────────────
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries\color{aurxondark}}
+  {\color{aurxonblue}\chaptertitlename\ \thechapter}
+  {10pt}
+  {\Huge}
+  [\vspace{-0.5em}\rule{\textwidth}{2pt}]
+
+\titleformat{\section}
+  {\normalfont\Large\bfseries\color{aurxondark}}
+  {\color{aurxonblue}\thesection}
+  {0.8em}{}
+
+\titleformat{\subsection}
+  {\normalfont\large\bfseries\color{aurxoncard}}
+  {\color{aurxongray}\thesubsection}
+  {0.8em}{}
+
+\titleformat{\subsubsection}
+  {\normalfont\normalsize\bfseries\color{aurxongray}}
+  {\thesubsubsection}
+  {0.8em}{}
+
+%% ── Header/Footer ─────────────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE,RO]{\small\textbf{ALAMS v1.0 — Pilot Manual}}
+\fancyhead[RE,LO]{\small\nouppercase{\leftmark}}
+\fancyfoot[C]{\small\thepage}
+\fancyfoot[LE]{\small Aurxon Systems — Confidential}
+\fancyfoot[RO]{\small \copyright\ 2026 Aurxon Lab Systems}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.2pt}
+
+%% ── Custom Commands ──────────────────────────────────────────────────────────
+\newcommand{\credential}[2]{\texttt{\textbf{#1}} / \texttt{#2}}
+\newcommand{\apipath}[1]{\texttt{\textcolor{aurxonblue}{#1}}}
+\newcommand{\envvar}[1]{\texttt{\textcolor{aurxonamber}{#1}}}
+\newcommand{\pcname}[1]{\texttt{\textcolor{aurxongreen}{#1}}}
+\newcommand{\step}[1]{\vspace{4pt}\noindent\textcolor{aurxonblue}{\faCircle[regular]}\quad\textbf{#1}}
+\newcommand{\checkitem}{\item[\textcolor{aurxongreen}{\faCheckCircle}]}
+\newcommand{\warnitem}{\item[\textcolor{aurxonamber}{\faExclamationTriangle}]}
+\newcommand{\alamsversion}{1.0.0-pilot}
+
+%% ── Spacing ──────────────────────────────────────────────────────────────────
+\setstretch{1.15}
+\setlength{\parskip}{6pt}
+
+%% ═══════════════════════════════════════════════════════════════════════════════
+\begin{document}
+
+%% ── Title Page ───────────────────────────────────────────────────────────────
+\begin{titlepage}
+\pagecolor{aurxondark}
+\color{white}
+\begin{center}
+\vspace*{3cm}
+
+\begin{tikzpicture}
+  \fill[aurxongreen, rounded corners=12pt] (-2.5,-1.2) rectangle (2.5,1.2);
+  \node at (0,0) {\color{aurxondark}\fontsize{36}{36}\selectfont\textbf{ALAMS}};
+\end{tikzpicture}
+
+\vspace{1.5cm}
+{\fontsize{26}{30}\selectfont\textbf{Aurxon Lab Access Management System}}\\[0.5cm]
+{\large\color{aurxongray} Version \alamsversion\ — Pilot Edition}\\[2cm]
+
+\begin{tikzpicture}
+  \draw[aurxonblue, line width=2pt] (0,0) -- (\textwidth - 4cm, 0);
+\end{tikzpicture}
+
+\vspace{1cm}
+{\LARGE\textbf{User Manual \& Technical Reference}}\\[0.4cm]
+{\normalsize\color{aurxongray} Installation · Configuration · Operations · Troubleshooting}
+
+\vfill
+
+\begin{tabular}{rl}
+  \textbf{Organization:} & Aurxon Systems Pvt. Ltd.\\
+  \textbf{Document Type:} & Pilot Deployment Manual\\
+  \textbf{Classification:} & \textcolor{aurxonamber}{Confidential — Internal Use Only}\\
+  \textbf{Version:} & \alamsversion\\
+  \textbf{Date:} & June 2026\\
+\end{tabular}
+
+\vspace{1.5cm}
+\small\color{aurxongray}
+This document contains confidential and proprietary information of Aurxon Systems.\\
+Unauthorized distribution or reproduction is strictly prohibited.
+\end{center}
+\end{titlepage}
+
+\nopagecolor
+\color{black}
+
+%% ── Front Matter ─────────────────────────────────────────────────────────────
+\frontmatter
+\tableofcontents
+\listoffigures
+\listoftables
+
+%% ── Main Content ─────────────────────────────────────────────────────────────
+\mainmatter
+
+\include{chapters/ch01_overview}
+\include{chapters/ch02_prerequisites}
+\include{chapters/ch03_neon_database}
+\include{chapters/ch04_server}
+\include{chapters/ch05_dashboard}
+\include{chapters/ch06_client_watchdog}
+\include{chapters/ch07_student_management}
+\include{chapters/ch08_registration}
+\include{chapters/ch09_authentication}
+\include{chapters/ch10_admin_operations}
+\include{chapters/ch11_security_monitoring}
+\include{chapters/ch12_troubleshooting}
+
+%% ── Appendices ───────────────────────────────────────────────────────────────
+\appendix
+\include{appendix/app_a_credentials}
+\include{appendix/app_b_api_reference}
+\include{appendix/app_c_security_checklist}
+
+\end{document}

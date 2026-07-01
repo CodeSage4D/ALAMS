@@ -1,0 +1,131 @@
+%% Chapter 9: Authentication Flows (Student Guide)
+\chapter{Authentication Flows — Student Guide}
+\label{ch:authentication}
+
+This chapter explains what students must do to access a lab workstation, covering all three available authentication methods.
+
+\section{Primary Method: Dynamic QR Scan}
+
+This is the standard and most secure authentication method. Students must have their mobile phone or any device with a camera and browser.
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[
+  actor/.style={rectangle, draw=aurxondark, fill=aurxondark!90, text=white, rounded corners=6pt, minimum width=2.8cm, minimum height=0.8cm, text centered, font=\small\bfseries},
+  msg/.style={font=\tiny, text=aurxongray},
+  arrow/.style={-{Stealth[length=5pt]}, line width=0.8pt}
+]
+
+%% Actors
+\node[actor] (student) at (0,0) {\faUser\\ Student};
+\node[actor] (client) at (4,0) {\faLock\\ WPF Client};
+\node[actor] (server) at (8,0) {\faServer\\ API Server};
+\node[actor] (mobile) at (12,0) {\faMobileAlt\\ Mobile};
+
+%% Timelines
+\draw[aurxongray, dashed] (0,-0.5) -- (0,-9.5);
+\draw[aurxongray, dashed] (4,-0.5) -- (4,-9.5);
+\draw[aurxongray, dashed] (8,-0.5) -- (8,-9.5);
+\draw[aurxongray, dashed] (12,-0.5) -- (12,-9.5);
+
+%% Messages
+\draw[arrow] (0,-1.2) -- node[above,msg]{Enter Enrollment Number} (4,-1.2);
+\draw[arrow] (4,-2.0) -- node[above,msg]{GET /qr-token?computerId} (8,-2.0);
+\draw[arrow] (8,-2.6) -- node[above,msg]{Signed JWT (60s expiry)} (4,-2.6);
+\draw[arrow] (4,-3.4) -- node[above,msg]{Render QR Code} (0,-3.4);
+\draw[arrow] (12,-4.2) -- node[above,msg]{Scan QR with camera} (4,-4.2);
+\draw[arrow] (12,-5.0) -- node[above,msg]{Open verification URL} (8,-5.0);
+\draw[arrow] (12,-5.8) -- node[above,msg]{Login (Enrollment + Password)} (8,-5.8);
+\draw[arrow] (12,-6.6) -- node[above,msg]{POST /mobile/verify-unlock} (8,-6.6);
+\draw[arrow] (8,-7.4) -- node[above,msg]{WebSocket: UNLOCK signal} (4,-7.4);
+\draw[arrow] (4,-8.2) -- node[above,msg]{Desktop Unlocks (explorer.exe)} (0,-8.2);
+\draw[arrow] (8,-9.0) -- node[above,msg]{Session \& Attendance created} (12,-9.0);
+
+\end{tikzpicture}
+\caption{Dynamic QR Authentication Sequence Diagram}
+\label{fig:qr-auth-flow}
+\end{figure}
+
+\subsection{Student QR Login — Step by Step}
+
+\begin{enumerate}[leftmargin=*, label=\textbf{Step \arabic*.}]
+
+\item \textbf{Sit at the workstation.}\\
+The ALAMS lock screen is displayed instead of the Windows desktop.
+
+\item \textbf{Enter your Enrollment Number} in the text field shown on the lock screen.\\
+Example: \texttt{ENR2026001}
+
+\item \textbf{Click "Get QR Code"} (or press Enter).\\
+A dynamic QR code appears on screen with a 60-second countdown timer.
+
+\item \textbf{Open your phone's camera} and point it at the QR code on screen.
+
+\item Your phone browser opens the ALAMS verification page automatically.
+
+\item \textbf{Log in with your ALAMS credentials} on the mobile page:
+\begin{itemize}
+  \item \textbf{Enrollment Number:} Your enrollment ID
+  \item \textbf{Password:} Your ALAMS password (e.g. \texttt{Student@2026!})
+\end{itemize}
+
+\item \textbf{Tap "Authorize Access"} on the verification page.
+
+\item The desktop unlocks within seconds. A session toolbar appears at the top of the screen showing your name and a Logout button.
+
+\end{enumerate}
+
+\begin{tcolorbox}[warningbox, title={\faExclamationTriangle\quad QR Code Expiry}]
+The QR code expires after \textbf{60 seconds}. If it expires, click ``Refresh QR'' on the lock screen to generate a new one. Expired tokens are rejected by the server.
+\end{tcolorbox}
+
+\section{Fallback Method: Enrollment + PIN}
+
+Use this method if you do not have your phone, or the server is temporarily offline.
+
+\begin{enumerate}[leftmargin=*, label=\textbf{Step \arabic*.}]
+  \item Enter your \textbf{Enrollment Number} on the lock screen.
+  \item Click \textbf{Use PIN Instead}.
+  \item Enter your \textbf{6-digit PIN}.
+  \item Click \textbf{Authenticate}.
+  \item Desktop unlocks if credentials are valid.
+\end{enumerate}
+
+\begin{tcolorbox}[alamsbox, title={\faInfoCircle\quad Offline Mode}]
+PIN fallback works even when the ALAMS server is unreachable, as long as the workstation has a cached computer ID from a previous registration. Authentication is processed locally and synced to the server when connectivity returns.
+\end{tcolorbox}
+
+\section{Ending Your Session (Logout)}
+
+\begin{tcolorbox}[dangerbox, title={\faExclamationCircle\quad Always Log Out Properly}]
+Never simply walk away from the workstation. The session will remain active and attendance will not be recorded correctly. Always use the ALAMS Logout button.
+\end{tcolorbox}
+
+\begin{enumerate}[leftmargin=*, label=\textbf{Step \arabic*.}]
+  \item Find the \textbf{ALAMS Session Toolbar} floating at the top of the screen.
+  \item Click the \textbf{Logout} button (or the lock icon).
+  \item ALAMS closes the desktop, terminates explorer.exe, records the session end time, and returns to the lock screen.
+\end{enumerate}
+
+\section{Common Student Errors}
+
+\begin{table}[h!]
+\centering
+\caption{Student Authentication Errors \& Resolutions}
+\label{tab:student-errors}
+\begin{tabularx}{\textwidth}{lXX}
+\toprule
+\textbf{Error Message} & \textbf{Cause} & \textbf{Resolution}\\
+\midrule
+\rowcolor{aurxonlightgray}
+``QR Code expired'' & 60-second window elapsed & Click Refresh QR, scan again quickly\\
+``Student not found'' & Wrong enrollment number & Verify enrollment number spelling\\
+\rowcolor{aurxonlightgray}
+``Invalid PIN'' & Incorrect 6-digit PIN & Contact admin for PIN reset\\
+``Active session detected'' & Already logged in on another PC & Log out from the other PC first\\
+\rowcolor{aurxonlightgray}
+``Workstation offline'' & PC not connected to server & Notify admin; use PIN fallback\\
+``Account inactive'' & Account suspended & Contact administrator\\
+\bottomrule
+\end{tabularx}
+\end{table}

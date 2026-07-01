@@ -1,0 +1,148 @@
+%% Chapter 8: Computer Registration & Enrollment
+\chapter{Computer Registration \& Enrollment}
+\label{ch:registration}
+
+Every lab workstation must go through a one-time registration process before it can be used by students. This chapter describes the full registration workflow.
+
+\section{Registration Workflow Overview}
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[
+  step/.style={rectangle, rounded corners=6pt, draw=aurxonblue, fill=aurxonlightgray, minimum width=4cm, minimum height=0.9cm, text centered, font=\small\bfseries},
+  admin/.style={rectangle, rounded corners=6pt, draw=aurxongreen, fill=green!10, minimum width=4cm, minimum height=0.9cm, text centered, font=\small\bfseries},
+  arrow/.style={-{Stealth[length=6pt]}, line width=1pt, aurxongray}
+]
+\node[step] (s1) at (0,0) {1. MSI Installer Runs};
+\node[step] (s2) at (0,-1.6) {2. First Boot — Auto-Register};
+\node[step] (s3) at (0,-3.2) {3. PENDING State Displayed};
+\node[admin] (s4) at (0,-4.8) {4. Admin Approves on Dashboard};
+\node[step] (s5) at (0,-6.4) {5. QR Seed Provisioned via WebSocket};
+\node[step] (s6) at (0,-8.0) {6. Client Enters QR LOCKED State};
+
+\draw[arrow] (s1) -- (s2);
+\draw[arrow] (s2) -- (s3);
+\draw[arrow] (s3) -- (s4);
+\draw[arrow] (s4) -- (s5);
+\draw[arrow] (s5) -- (s6);
+
+% Labels
+\node[right=0.3cm of s2, font=\tiny, text=aurxongray] {SHA-256 fingerprint sent to server};
+\node[right=0.3cm of s4, font=\tiny, text=aurxongreen] {Admin enters PC\# and Lab zone};
+\node[right=0.3cm of s5, font=\tiny, text=aurxongray] {config.json updated on workstation};
+\end{tikzpicture}
+\caption{Workstation Registration Sequence}
+\label{fig:registration-flow}
+\end{figure}
+
+\section{Step-by-Step Registration Process}
+
+\subsection{Step 1: Run the MSI Installer}
+
+\begin{tcolorbox}[codebox, title={Install ALAMS on Each Workstation}]
+\begin{lstlisting}[language=PowerShell]
+# Run as Administrator on each lab workstation
+msiexec /i AlamsInstaller.msi /quiet /norestart
+
+# The installer:
+# - Copies AlamsClient.exe to C:\Program Files\ALAMS\
+# - Copies AlamsWatchdog.exe to C:\Program Files\ALAMS\
+# - Creates C:\ProgramData\ALAMS\ directory
+# - Registers and starts the AlamsWatchdog service
+\end{lstlisting}
+\end{tcolorbox}
+
+\subsection{Step 2: Log In as Student User}
+
+Log out of the administrator account and log in as the dedicated student user. The ALAMS lock screen appears instead of the Windows desktop.
+
+\subsection{Step 3: Automatic Hardware Fingerprint Registration}
+
+When the client first runs:
+\begin{enumerate}[leftmargin=*, label={\textcolor{aurxonblue}{\faCircle[regular]}}]
+  \item Reads \texttt{MachineGuid} from \texttt{HKLM\textbackslash SOFTWARE\textbackslash Microsoft\textbackslash Cryptography}
+  \item Reads the primary network adapter MAC address
+  \item Computes \textbf{SHA-256 hash} of (MachineGuid + MAC)
+  \item Posts registration request to \apipath{POST /api/v1/client/register} with:
+    \begin{itemize}[label={-}]
+      \item \texttt{fingerprint} — unique hardware identifier
+      \item \texttt{deviceName} — Windows computer name
+      \item \texttt{macAddress} — physical network address
+      \item \texttt{ipAddress} — current LAN IP
+    \end{itemize}
+  \item Server creates a \texttt{PENDING} computer record
+\end{enumerate}
+
+The lock screen displays:
+\begin{center}
+\fbox{\texttt{PENDING REGISTRATION\\Fingerprint: a3f8bc12d5e7...}}
+\end{center}
+
+\subsection{Step 4: Admin Approves via Dashboard}
+
+\begin{enumerate}[leftmargin=*, label=\textbf{\arabic*.}]
+  \item On the admin machine, go to \textbf{Live Monitor} tab.
+  \item An amber warning banner at the top shows: \textit{``Pending Workstation Enrollments (N)''}
+  \item Click the pending workstation card.
+  \item Enter:
+    \begin{itemize}
+      \item \textbf{PC Number} — e.g. \texttt{PC-A01}
+      \item \textbf{Lab Zone} — Select from the dropdown (e.g. Turing Computing Lab)
+    \end{itemize}
+  \item Click \textbf{Approve \& Lock}.
+\end{enumerate}
+
+\subsection{Step 5: WebSocket Provisioning}
+
+Immediately after admin approval:
+\begin{enumerate}[leftmargin=*, label={\textcolor{aurxongreen}{\faCheckCircle}}]
+  \item Server generates a unique cryptographic \texttt{qr\_seed} for this workstation.
+  \item Updates database: status → \texttt{LOCKED}, saves \texttt{qr\_seed}.
+  \item Pushes a WebSocket message to the connected workstation client:
+    \begin{tcolorbox}[codebox, title={WebSocket Approval Payload}]
+    \begin{lstlisting}[language=bash]
+    {
+      "type": "approved",
+      "computerId": "uuid-here",
+      "pcNumber": "PC-A01",
+      "qrSeed": "randomsecretstring",
+      "fallbackEnabled": true,
+      "deviceName": "ALAMS-TURING-01"
+    }
+    \end{lstlisting}
+    \end{tcolorbox}
+  \item Client saves \texttt{computerId} and \texttt{serverUrl} to \texttt{config.json}.
+  \item Lock screen transitions to active QR mode.
+\end{enumerate}
+
+\section{Physical QR Label}
+
+After registration, place a physical label on each workstation:
+
+\begin{tcolorbox}[alamsbox, title={\faTag\quad Physical Label Format (Per PC)}]
+\begin{center}
+\begin{tabular}{|c|}
+\hline\\
+\textbf{ALAMS Registered Workstation}\\[4pt]
+PC Number: \textbf{PC-A01}\\
+Lab: \textbf{Turing Computing Lab}\\
+Device: \textbf{ALAMS-TURING-01}\\\\
+\textit{Scan the on-screen QR code with your phone}\\[4pt]
+\hline
+\end{tabular}
+\end{center}
+\end{tcolorbox}
+
+\begin{tcolorbox}[warningbox, title={\faExclamationTriangle\quad Important}]
+Do \emph{not} print the dynamic QR code onto a label. The dynamic QR changes every 60 seconds and is cryptographically bound to a time window. Only the static identification label goes on the physical machine.
+\end{tcolorbox}
+
+\section{Verifying Registration Success}
+
+On the Admin Dashboard → Live Monitor, the workstation card should show:
+\begin{itemize}[label={\textcolor{aurxongreen}{\faCheckCircle}}]
+  \item Status: \textbf{LOCKED} (amber badge)
+  \item Client Agent: \textbf{ONLINE} (green)
+  \item Watchdog Service: \textbf{ACTIVE} (green)
+  \item Last Contact: within the last 15 seconds
+\end{itemize}

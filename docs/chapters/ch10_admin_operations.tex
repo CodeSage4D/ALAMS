@@ -1,0 +1,155 @@
+%% Chapter 10: Admin Daily Operations
+\chapter{Admin Daily Operations}
+\label{ch:operations}
+
+\section{Starting the ALAMS System (Daily Startup)}
+
+Follow this sequence each morning before the lab session begins:
+
+\begin{enumerate}[leftmargin=*, label=\textbf{\arabic*.}, itemsep=6pt]
+  \item \textbf{Start the API Server}
+  \begin{tcolorbox}[codebox, title={Terminal 1 — API Server}]
+  \begin{lstlisting}[language=bash]
+  cd "d:\Project Data Aurxon\ALAMS\server"
+  npm run dev
+  # Or for production: pm2 start alams-server
+  \end{lstlisting}
+  \end{tcolorbox}
+
+  \item \textbf{Start the Web Dashboard}
+  \begin{tcolorbox}[codebox, title={Terminal 2 — Web Dashboard}]
+  \begin{lstlisting}[language=bash]
+  cd "d:\Project Data Aurxon\ALAMS\web"
+  npm run dev
+  # Or for production: npm start
+  \end{lstlisting}
+  \end{tcolorbox}
+
+  \item \textbf{Log in to Admin Dashboard}\\
+  Navigate to \texttt{http://SERVER\_IP:3000/admin/login}\\
+  Enter: \credential{ADMIN01}{Admin@ALAMS2026!}
+
+  \item \textbf{Verify all workstations are ONLINE}\\
+  Check the Live Monitor tab — all registered PCs should show green ONLINE status within 30 seconds of the server starting.
+
+  \item \textbf{Check for pending registrations}\\
+  If any new workstations show as PENDING, approve them before the session starts.
+\end{enumerate}
+
+\section{Monitoring Live Sessions}
+
+The \textbf{Live Monitor} tab auto-refreshes every 8 seconds. During a class session:
+
+\begin{itemize}[label={\textcolor{aurxonblue}{\faEye}}]
+  \item PCs in use show the \textcolor{aurxongreen}{\textbf{ACTIVE}} badge
+  \item Locked but online PCs show \textcolor{aurxonamber}{\textbf{LOCKED}}
+  \item Click \textbf{Refresh Deck} for an immediate status update
+\end{itemize}
+
+\subsection{Remote Lock (Kicking a Session)}
+
+To forcibly terminate a student session from the dashboard:
+
+\begin{enumerate}[leftmargin=*, label=\textbf{\arabic*.}]
+  \item Find the workstation card in Live Monitor.
+  \item Click the red \textbf{Force Lock} button.
+  \item The student's desktop closes immediately; the lock screen returns.
+  \item The session is recorded as TERMINATED in the audit log.
+\end{enumerate}
+
+\subsection{Admin Override (Emergency Unlock)}
+
+To unlock a workstation without student authentication:
+
+\begin{enumerate}[leftmargin=*, label=\textbf{\arabic*.}]
+  \item Find the target workstation card.
+  \item Click the green \textbf{Admin Override} button.
+  \item The desktop unlocks under an ADMIN\_OVERRIDE session.
+  \item This event is logged with the admin's identity and timestamp.
+\end{enumerate}
+
+\section{Faculty Attendance View}
+
+Faculty can view real-time class attendance without admin credentials (using the Supervisor account):
+
+\begin{enumerate}[leftmargin=*, label=\textbf{\arabic*.}]
+  \item Log in with: \credential{FAC001}{Faculty@2026!}
+  \item Click \textbf{Faculty Attendance} in the sidebar.
+  \item See the live roster of all authenticated students.
+  \item Use the search box to find specific students.
+  \item Filter by lab zone if managing multiple rooms.
+\end{enumerate}
+
+\section{Generating Attendance Reports}
+
+\subsection{Attendance Ledger Tab}
+
+\begin{enumerate}[leftmargin=*, label=\textbf{\arabic*.}]
+  \item Click \textbf{Attendance Ledger} in the sidebar.
+  \item View all check-in/check-out records for today.
+  \item Each row shows: Student Name, Enrollment Number, Lab, PC, Check-in time, Check-out time, Status.
+\end{enumerate}
+
+\subsection{Session Audit Tab}
+
+Full audit trail including verification methods:
+\begin{enumerate}[leftmargin=*, label=\textbf{\arabic*.}]
+  \item Click \textbf{Session Audits} in the sidebar.
+  \item View all sessions in reverse chronological order.
+  \item Color-coded badges indicate authentication method.
+  \item Terminated sessions are flagged for review.
+\end{enumerate}
+
+\section{Pilot Analytics Review}
+
+After a lab session, review performance metrics:
+
+\begin{enumerate}[leftmargin=*, label=\textbf{\arabic*.}]
+  \item Click \textbf{Pilot Analytics} in the sidebar.
+  \item Review:
+    \begin{itemize}[label={--}]
+      \item \textbf{Login Success Rate} — Should be $\geq 95\%$
+      \item \textbf{Avg QR Unlock Time} — Target $\leq 10$ seconds
+      \item \textbf{Bypasses Blocked} — Should be 0 in normal operation
+    \end{itemize}
+  \item The hourly chart shows peak usage periods.
+\end{enumerate}
+
+\section{End of Session Checklist}
+
+At the end of each lab session:
+
+\begin{itemize}[label={\textcolor{aurxongreen}{\faCheckSquare[regular]}}]
+  \checkitem Verify all sessions have ended (no active students in Live Monitor)
+  \checkitem Check Security Audits for any unresolved alerts
+  \checkitem Export or screenshot the Attendance Ledger for records
+  \checkitem Confirm all PCs have returned to LOCKED status
+  \warnitem If a PC shows IN\_USE with no student present, use Remote Lock
+\end{itemize}
+
+\section{Resolving Security Alerts}
+
+\begin{enumerate}[leftmargin=*, label=\textbf{\arabic*.}]
+  \item Click \textbf{Security Audits} in the sidebar.
+  \item Unresolved alerts show a yellow \textbf{Resolve} button.
+  \item Investigate the alert (check the PC, talk to the student).
+  \item Click \textbf{Resolve} to mark it as handled.
+  \item All resolutions are logged with the admin ID and timestamp.
+\end{enumerate}
+
+\begin{table}[h!]
+\centering
+\caption{Security Alert Types}
+\label{tab:alert-types}
+\begin{tabularx}{\textwidth}{llXl}
+\toprule
+\textbf{Alert Type} & \textbf{Severity} & \textbf{Meaning} & \textbf{Action}\\
+\midrule
+\rowcolor{aurxonlightgray}
+\texttt{failed\_login} & WARNING & Wrong PIN/credentials attempted & Check for unauthorized access\\
+\texttt{watchdog\_kill} & CRITICAL & Student tried to bypass lock screen & Interview student; escalate\\
+\rowcolor{aurxonlightgray}
+\texttt{watchdog\_offline} & WARNING & Watchdog not reporting & Check service on that PC\\
+\bottomrule
+\end{tabularx}
+\end{table}

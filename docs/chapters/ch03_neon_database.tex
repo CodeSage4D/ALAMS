@@ -1,0 +1,185 @@
+%% Chapter 3: Neon PostgreSQL Database Setup
+\chapter{Neon PostgreSQL — Database Setup}
+\label{ch:database}
+
+ALAMS uses \textbf{Neon} as its cloud-hosted PostgreSQL provider. Neon offers a generous free tier, serverless scaling, and automatic SSL — making it ideal for a pilot deployment without maintaining a local database server.
+
+\section{Creating a Neon Account \& Project}
+
+\begin{enumerate}[leftmargin=*, label=\textbf{Step \arabic*.}]
+
+\item Open your browser and navigate to:
+\begin{center}
+\texttt{\textcolor{aurxonblue}{https://neon.tech}}
+\end{center}
+Click \textbf{Sign Up} (use GitHub or Google for fastest setup).
+
+\item After signing in, click \textbf{Create Project}.
+
+\begin{tcolorbox}[alamsbox, title={\faFill\quad Project Settings}]
+\begin{tabular}{rl}
+\textbf{Project Name:} & \texttt{alams-pilot}\\
+\textbf{Database Name:} & \texttt{alams}\\
+\textbf{Region:} & Select nearest to your institution\\
+\textbf{PostgreSQL Version:} & 16 (recommended)\\
+\end{tabular}
+\end{tcolorbox}
+
+\item After the project is created, click on \textbf{Connection Details} in the dashboard.
+
+\item In the \textbf{Connect to your database} panel, select \textbf{Prisma} from the framework dropdown.
+
+\item Neon will display two connection strings:
+
+\begin{tcolorbox}[codebox, title={Connection Strings from Neon Dashboard}]
+\begin{lstlisting}[language=bash]
+# Pooled connection (for DATABASE_URL in .env)
+postgresql://alams_admin:YOUR_PASSWORD@ep-XXXX.REGION.aws.neon.tech/alams?sslmode=require&pgbouncer=true
+
+# Direct connection (for DIRECT_URL in .env)
+postgresql://alams_admin:YOUR_PASSWORD@ep-XXXX.REGION.aws.neon.tech/alams?sslmode=require
+\end{lstlisting}
+\end{tcolorbox}
+
+\end{enumerate}
+
+\section{Configuring ALAMS to Use Neon}
+
+\subsection{Update the Environment File}
+
+Edit \texttt{server/.env} and paste your Neon connection strings:
+
+\begin{tcolorbox}[codebox, title={server/.env — Neon Configuration}]
+\begin{lstlisting}[language=bash]
+# Replace with your actual Neon URLs:
+DATABASE_URL="postgresql://alams_admin:YOUR_PASS@ep-XXX.REGION.aws.neon.tech/alams?sslmode=require&pgbouncer=true&connect_timeout=15"
+DIRECT_URL="postgresql://alams_admin:YOUR_PASS@ep-XXX.REGION.aws.neon.tech/alams?sslmode=require"
+
+# Keep these as-is (already set):
+JWT_SECRET="aurxon-alams-jwt-secret-2026-pilot-v1"
+QR_SIGNING_KEY="alams-qr-hmac-signing-key-2026-pilot"
+PORT=5000
+\end{lstlisting}
+\end{tcolorbox}
+
+\begin{tcolorbox}[warningbox, title={\faExclamationTriangle\quad Important}]
+Never commit \texttt{.env} to Git. The \texttt{.gitignore} file must include \texttt{.env}. Your Neon password is a database secret — treat it like a private key.
+\end{tcolorbox}
+
+\section{Pushing the Database Schema}
+
+Once the environment is configured, push the Prisma schema to create all tables in Neon:
+
+\begin{tcolorbox}[codebox, title={Schema Migration — Terminal Commands}]
+\begin{lstlisting}[language=bash]
+# Navigate to the server directory
+cd "d:\Project Data Aurxon\ALAMS\server"
+
+# Step 1: Generate the Prisma Client from schema
+npx prisma generate
+
+# Step 2: Push schema to Neon (creates all tables)
+npx prisma db push
+
+# Expected output:
+# Environment variables loaded from .env
+# Prisma schema loaded from prisma\schema.prisma
+# The database is now in sync with your Prisma schema.
+# Generated Prisma Client to .\node_modules\@prisma\client
+\end{lstlisting}
+\end{tcolorbox}
+
+\section{Seeding the Database}
+
+Run the seed script to populate the database with all pilot accounts, labs, workstations, and demo data:
+
+\begin{tcolorbox}[codebox, title={Run Database Seed}]
+\begin{lstlisting}[language=bash]
+cd "d:\Project Data Aurxon\ALAMS\server"
+npm run prisma:seed
+\end{lstlisting}
+\end{tcolorbox}
+
+After the seed completes, you will see a full credential summary printed in the terminal. The following accounts are created:
+
+\begin{table}[h!]
+\centering
+\caption{Seeded User Accounts — Pilot Deployment}
+\label{tab:credentials}
+\begin{tabularx}{\textwidth}{llXll}
+\toprule
+\textbf{Role} & \textbf{Enrollment ID} & \textbf{Full Name} & \textbf{Password} & \textbf{PIN}\\
+\midrule
+\rowcolor{aurxonlightgray}
+Admin & \texttt{ADMIN01} & Prof. Alan Turing & \texttt{Admin@ALAMS2026!} & \texttt{112233}\\
+Supervisor & \texttt{SUPER01} & Dr. Grace Hopper & \texttt{Super@ALAMS2026!} & \texttt{223344}\\
+\rowcolor{aurxonlightgray}
+Faculty & \texttt{FAC001} & Dr. Ada Lovelace & \texttt{Faculty@2026!} & \texttt{334455}\\
+\midrule
+Student & \texttt{ENR2026001} & Arjun Sharma & \texttt{Student@2026!} & \texttt{123456}\\
+\rowcolor{aurxonlightgray}
+Student & \texttt{ENR2026002} & Priya Mehta & \texttt{Student@2026!} & \texttt{123456}\\
+Student & \texttt{ENR2026003} & Rohan Verma & \texttt{Student@2026!} & \texttt{123456}\\
+\rowcolor{aurxonlightgray}
+Student & \texttt{ENR2026004} & Sneha Patel & \texttt{Student@2026!} & \texttt{123456}\\
+Student & \texttt{ENR2026005} & Karan Singh & \texttt{Student@2026!} & \texttt{123456}\\
+\rowcolor{aurxonlightgray}
+Student & \texttt{ENR2026006} & Ananya Nair & \texttt{Student@2026!} & \texttt{123456}\\
+Student & \texttt{ENR2026007} & Devraj Gupta & \texttt{Student@2026!} & \texttt{123456}\\
+\rowcolor{aurxonlightgray}
+Student & \texttt{ENR2026008} & Meera Rao & \texttt{Student@2026!} & \texttt{123456}\\
+Student & \texttt{ENR2026009} & Vikram Joshi & \texttt{Student@2026!} & \texttt{123456}\\
+\rowcolor{aurxonlightgray}
+Student & \texttt{ENR2026010} & Tanvi Desai & \texttt{Student@2026!} & \texttt{123456}\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{tcolorbox}[dangerbox, title={\faExclamationCircle\quad Security Requirement}]
+Change all default passwords \textbf{before} any real students use the system. Default credentials are for pilot testing only.
+\end{tcolorbox}
+
+\section{Verifying the Database Connection}
+
+After seeding, verify the database is reachable using Prisma Studio:
+
+\begin{tcolorbox}[codebox, title={Open Prisma Studio — Database Browser}]
+\begin{lstlisting}[language=bash]
+cd "d:\Project Data Aurxon\ALAMS\server"
+npx prisma studio
+# Opens browser at http://localhost:5555
+# Browse all tables: users, labs, computers, sessions, attendance
+\end{lstlisting}
+\end{tcolorbox}
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}
+  \fill[aurxondark, rounded corners=8pt] (0,0) rectangle (12,3.5);
+  \node[text=aurxonblue, font=\small\bfseries] at (6,3) {Prisma Studio — \texttt{http://localhost:5555}};
+  \fill[aurxoncard, rounded corners=4pt] (0.3,0.3) rectangle (3.5,2.7);
+  \node[text=white, font=\tiny\bfseries] at (1.9,2.4) {Tables};
+  \foreach \t [count=\i] in {users, labs, computers, sessions, attendance, security\_alerts} {
+    \node[text=aurxongreen!80, font=\tiny] at (1.9, 2.1 - \i*0.3) {\t};
+  }
+  \fill[aurxondark!60, rounded corners=4pt] (3.7,0.3) rectangle (11.7,2.7);
+  \node[text=aurxongray, font=\tiny] at (7.7,1.5) {Select a table to view its records $\longrightarrow$};
+\end{tikzpicture}
+\caption{Prisma Studio Interface — Table Browser}
+\label{fig:prisma-studio}
+\end{figure}
+
+\section{Neon Dashboard Monitoring}
+
+Neon provides built-in monitoring. Access via \texttt{https://console.neon.tech}:
+
+\begin{itemize}[label={\textcolor{aurxonblue}{\faCheckCircle}}]
+  \item \textbf{Metrics} — Query count, connection count, data transfer
+  \item \textbf{Branches} — Create dev/staging branches without duplicating data
+  \item \textbf{Compute Auto-suspend} — Neon scales to zero when idle; first query wakes it in $\sim$500ms
+  \item \textbf{Connection pooling} — PgBouncer is built-in (use \texttt{pgbouncer=true} parameter)
+\end{itemize}
+
+\begin{tcolorbox}[alamsbox, title={\faLightbulb\quad Free Tier Limits}]
+Neon's free tier includes: 512 MB storage, 190 compute hours/month, 1 project. For pilot deployment of 10 PCs with 200 daily sessions, this is well within the free tier limits.
+\end{tcolorbox}

@@ -1,0 +1,132 @@
+%% Chapter 7: Student Account Management
+\chapter{Student Account Management}
+\label{ch:student-mgmt}
+
+\section{Creating Student Accounts}
+
+ALAMS stores all student accounts in the cloud database. Each student needs one account to log in from any lab.
+
+\subsection{Method A: Admin Dashboard (Recommended for Bulk Setup)}
+
+\begin{enumerate}[leftmargin=*, label=\textbf{Step \arabic*.}]
+  \item Log in to the Admin Dashboard at \texttt{http://SERVER\_IP:3000/admin/login}.
+  \item Click \textbf{Student Directory} in the left sidebar.
+  \item Scroll to the \textbf{Add New Student} form.
+  \item Fill in all fields:
+    \begin{tcolorbox}[alamsbox, title={Student Registration Form Fields}]
+    \begin{tabular}{ll}
+    \textbf{Field} & \textbf{Value}\\
+    Enrollment Number & Institution-assigned ID (e.g. \texttt{ENR2026001})\\
+    Full Name & Student's full legal name\\
+    Password & Minimum 8 characters (shared with mobile login)\\
+    PIN & 6-digit numeric PIN (for offline/PIN fallback login)\\
+    \end{tabular}
+    \end{tcolorbox}
+  \item Click \textbf{Add Student}.
+  \item The student account is active immediately.
+\end{enumerate}
+
+\subsection{Method B: API (Bulk Import via Script)}
+
+\begin{tcolorbox}[codebox, title={Bulk Student Creation via API}]
+\begin{lstlisting}[language=bash]
+# Create one student account
+curl -X POST http://SERVER_IP:5000/api/v1/auth/signup \
+  -H "Content-Type: application/json" \
+  -d '{
+    "enrollmentNumber": "ENR2026011",
+    "fullName": "Riya Kapoor",
+    "password": "Student@2026!",
+    "pin": "123456",
+    "role": "STUDENT"
+  }'
+
+# Expected: {"token":"...","user":{"id":"...","enrollmentNumber":"ENR2026011"}}
+\end{lstlisting}
+\end{tcolorbox}
+
+\subsection{Method C: Modify the Seed File}
+
+For a fresh deployment, add student objects to \texttt{server/prisma/seed.ts} in the \texttt{studentData} array and re-run the seed:
+
+\begin{tcolorbox}[codebox, title={Add Students to Seed Data}]
+\begin{lstlisting}[language=TypeScript]
+const studentData = [
+  // Existing students...
+  { enrollmentNumber: "ENR2026011", fullName: "Riya Kapoor" },
+  { enrollmentNumber: "ENR2026012", fullName: "Amit Kumar" },
+  // Add as many as needed
+];
+\end{lstlisting}
+\end{tcolorbox}
+
+\section{Default Student Credentials}
+
+All seeded pilot student accounts share these credentials:
+
+\begin{tcolorbox}[successbox, title={\faKey\quad Pilot Student Credentials}]
+\begin{center}
+\begin{tabular}{rl}
+\textbf{Enrollment Numbers:} & \texttt{ENR2026001} through \texttt{ENR2026010}\\
+\textbf{Password (Mobile Login):} & \texttt{Student@2026!}\\
+\textbf{PIN (Lock Screen Fallback):} & \texttt{123456}\\
+\end{tabular}
+\end{center}
+\end{tcolorbox}
+
+\begin{tcolorbox}[dangerbox, title={\faExclamationCircle\quad Before Real Deployment}]
+\begin{itemize}[label={\faTimesCircle}]
+  \item Change all student PINs to unique values per student.
+  \item Change all passwords to institution-generated secure passwords.
+  \item Communicate credentials to students individually (not publicly displayed).
+\end{itemize}
+\end{tcolorbox}
+
+\section{Managing Student Status}
+
+\subsection{Disable a Student Account}
+
+If a student is suspended or should not have lab access:
+
+\begin{enumerate}[leftmargin=*, label=\textbf{\arabic*.}]
+  \item Dashboard → Student Directory
+  \item Find the student row
+  \item Toggle the \textbf{Status} switch to \textcolor{aurxonred}{\textbf{Inactive}}
+  \item The student cannot authenticate (any method) until reactivated.
+\end{enumerate}
+
+\subsection{Student Password Reset}
+
+Currently, password reset is done by creating a new account or using the API:
+
+\begin{tcolorbox}[codebox, title={Simulate Password Reset (API)}]
+\begin{lstlisting}[language=bash]
+# With admin authorization, create a new account with updated password
+# (Note: full reset endpoint is planned for v2.0)
+curl -X POST http://SERVER_IP:5000/api/v1/auth/signup \
+  -H "Content-Type: application/json" \
+  -d '{"enrollmentNumber":"ENR2026001","fullName":"Arjun Sharma","password":"NewPass@2026!","pin":"654321","role":"STUDENT"}'
+\end{lstlisting}
+\end{tcolorbox}
+
+\section{Student Enrollment Number Standards}
+
+It is recommended to adopt a consistent naming convention for enrollment numbers:
+
+\begin{table}[h!]
+\centering
+\caption{Recommended Enrollment Number Format}
+\label{tab:enrollment-format}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Format} & \textbf{Description}\\
+\midrule
+\texttt{ENR\{YEAR\}\{3-digit-seq\}} & E.g. \texttt{ENR2026001}, \texttt{ENR2026099}\\
+\rowcolor{aurxonlightgray}
+\texttt{ADMIN\{2-digit\}} & E.g. \texttt{ADMIN01}, \texttt{ADMIN02}\\
+\texttt{SUPER\{2-digit\}} & E.g. \texttt{SUPER01}\\
+\rowcolor{aurxonlightgray}
+\texttt{FAC\{3-digit\}} & E.g. \texttt{FAC001}, \texttt{FAC002}\\
+\bottomrule
+\end{tabularx}
+\end{table}

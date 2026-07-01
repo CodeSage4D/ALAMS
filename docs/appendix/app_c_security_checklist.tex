@@ -1,0 +1,110 @@
+%% Appendix C: Security Checklist
+\chapter{Pilot Deployment Security Checklist}
+\label{app:security}
+
+Complete every item in this checklist before running a real student session. Sign off on each section.
+
+\section{Pre-Deployment Infrastructure Checks}
+
+\begin{itemize}[label={\faSquare[regular]}, itemsep=6pt]
+  \item[$\square$] Server machine is dedicated (not a student workstation)
+  \item[$\square$] Server has a static LAN IP address
+  \item[$\square$] Firewall rules applied for ports 5000 and 3000
+  \item[$\square$] Neon database is reachable: \texttt{npx prisma db push} succeeds
+  \item[$\square$] Database seeded successfully: \texttt{npm run prisma:seed}
+  \item[$\square$] Server health check passes: \texttt{GET /health} returns 200
+  \item[$\square$] Admin login works via dashboard at \texttt{http://SERVER\_IP:3000/admin/login}
+\end{itemize}
+
+\textbf{Signed off by:} \underline{\hspace{6cm}} \quad \textbf{Date:} \underline{\hspace{3cm}}
+
+\section{Workstation Enrollment Checks (Repeat per PC)}
+
+\noindent\begin{tabular}{|l|c|c|c|c|c|c|c|c|c|c|}
+\hline
+\textbf{Check} & \textbf{A01} & \textbf{A02} & \textbf{A03} & \textbf{A04} & \textbf{A05} & \textbf{B01} & \textbf{B02} & \textbf{B03} & \textbf{C01} & \textbf{C02}\\
+\hline
+MSI installed & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$\\
+\hline
+Watchdog running & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$\\
+\hline
+Shell enrolled & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$\\
+\hline
+Admin approved & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$\\
+\hline
+QR lock active & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$\\
+\hline
+Dashboard: ONLINE & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$\\
+\hline
+Watchdog: ACTIVE & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$\\
+\hline
+\end{tabular}
+
+\vspace{1em}
+\textbf{Enrolled by:} \underline{\hspace{6cm}} \quad \textbf{Date:} \underline{\hspace{3cm}}
+
+\section{Security Validation Tests}
+
+\begin{itemize}[label={\faSquare[regular]}, itemsep=6pt]
+  \item[$\square$] \textbf{TEST-SEC-01:} Shell bypass — kill AlamsClient → immediate logoff \\
+    \textit{PC tested:} \underline{\hspace{3cm}} \quad \textit{Result:} \underline{\hspace{5cm}}
+  \item[$\square$] \textbf{TEST-SEC-02:} QR replay — expired token rejected \\
+    \textit{PC tested:} \underline{\hspace{3cm}} \quad \textit{Result:} \underline{\hspace{5cm}}
+  \item[$\square$] \textbf{TEST-SEC-03:} Cross-machine QR — token from PC-A01 rejected on PC-A02 \\
+    \textit{Result:} \underline{\hspace{8cm}}
+  \item[$\square$] \textbf{TEST-SEC-04:} Concurrent session prevention verified \\
+    \textit{Result:} \underline{\hspace{8cm}}
+  \item[$\square$] \textbf{TEST-SEC-05:} Offline PIN fallback — disconnect LAN, PIN works \\
+    \textit{PC tested:} \underline{\hspace{3cm}} \quad \textit{Result:} \underline{\hspace{5cm}}
+  \item[$\square$] \textbf{TEST-SEC-06:} Admin remote lock/unlock verified \\
+    \textit{Result:} \underline{\hspace{8cm}}
+\end{itemize}
+
+\textbf{Tested by:} \underline{\hspace{6cm}} \quad \textbf{Date:} \underline{\hspace{3cm}}
+
+\section{Credential Management Checklist}
+
+\begin{itemize}[label={\faSquare[regular]}, itemsep=6pt]
+  \item[$\square$] Default admin password changed from \texttt{Admin@ALAMS2026!}
+  \item[$\square$] Default supervisor password changed from \texttt{Super@ALAMS2026!}
+  \item[$\square$] All student PINs changed to unique values per student
+  \item[$\square$] JWT\_SECRET regenerated (not using default pilot value)
+  \item[$\square$] QR\_SIGNING\_KEY regenerated
+  \item[$\square$] Neon database user password changed from default
+  \item[$\square$] This credential document stored securely (not in shared folders)
+\end{itemize}
+
+\textbf{Verified by:} \underline{\hspace{6cm}} \quad \textbf{Date:} \underline{\hspace{3cm}}
+
+\section{Pilot Performance Targets}
+
+Record measured values during the pilot session:
+
+\begin{table}[h!]
+\centering
+\caption{Pilot KPI Record Sheet}
+\begin{tabularx}{\textwidth}{lllX}
+\toprule
+\textbf{Metric} & \textbf{Target} & \textbf{Measured} & \textbf{Pass/Fail}\\
+\midrule
+Login Success Rate & $\geq$ 95\% & \underline{\hspace{2cm}} & \underline{\hspace{2cm}}\\
+\rowcolor{aurxonlightgray}
+QR Unlock Time (avg) & $\leq$ 10 seconds & \underline{\hspace{2cm}} & \underline{\hspace{2cm}}\\
+PIN Fallback Time (avg) & $\leq$ 5 seconds & \underline{\hspace{2cm}} & \underline{\hspace{2cm}}\\
+\rowcolor{aurxonlightgray}
+Watchdog Response & $\leq$ 3 seconds & \underline{\hspace{2cm}} & \underline{\hspace{2cm}}\\
+PCs Online (steady) & 10/10 & \underline{\hspace{2cm}} & \underline{\hspace{2cm}}\\
+\rowcolor{aurxonlightgray}
+Watchdog Active & 10/10 & \underline{\hspace{2cm}} & \underline{\hspace{2cm}}\\
+Undetected Bypasses & 0 & \underline{\hspace{2cm}} & \underline{\hspace{2cm}}\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Overall Pilot Result:} \quad $\square$ \textbf{PASS} \quad $\square$ \textbf{FAIL — Remediation Required}
+
+\textbf{Pilot Officer:} \underline{\hspace{6cm}} \quad \textbf{Date:} \underline{\hspace{3cm}}
+
+\noindent\rule{\textwidth}{1pt}
+
+\textit{This checklist must be retained as part of the ALAMS deployment audit record.}

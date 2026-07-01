@@ -1,0 +1,160 @@
+%% Chapter 4: Express API Server — Installation & Startup
+\chapter{Express API Server}
+\label{ch:server}
+
+The ALAMS server is a Node.js application that serves as the central intelligence of the system. All workstations, the dashboard, and the mobile gateway connect to this server.
+
+\section{Installing Dependencies}
+
+\begin{tcolorbox}[codebox, title={Install Server Dependencies}]
+\begin{lstlisting}[language=bash]
+# Navigate to the server directory
+cd "d:\Project Data Aurxon\ALAMS\server"
+
+# Install all npm packages
+npm install
+
+# Expected packages installed:
+# express, cors, dotenv, @prisma/client,
+# bcryptjs, jsonwebtoken, ws
+\end{lstlisting}
+\end{tcolorbox}
+
+\section{Environment Variables Reference}
+
+\begin{table}[h!]
+\centering
+\caption{Server Environment Variables (\texttt{server/.env})}
+\label{tab:env-vars}
+\begin{tabularx}{\textwidth}{llX}
+\toprule
+\textbf{Variable} & \textbf{Required} & \textbf{Description}\\
+\midrule
+\rowcolor{aurxonlightgray}
+\texttt{PORT} & Yes & HTTP server port (default: 5000)\\
+\texttt{DATABASE\_URL} & Yes & Neon pooled connection string\\
+\rowcolor{aurxonlightgray}
+\texttt{DIRECT\_URL} & Yes & Neon direct connection (for migrations)\\
+\texttt{JWT\_SECRET} & Yes & Signs admin/student JWT tokens\\
+\rowcolor{aurxonlightgray}
+\texttt{QR\_SIGNING\_KEY} & Yes & HMAC key for dynamic QR tokens\\
+\texttt{NODE\_ENV} & No & \texttt{production} or \texttt{development}\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Starting the Development Server}
+
+\begin{tcolorbox}[codebox, title={Start the API Server (Development Mode)}]
+\begin{lstlisting}[language=bash]
+cd "d:\Project Data Aurxon\ALAMS\server"
+
+# Development mode (hot reload via ts-node-dev)
+npm run dev
+
+# Expected output:
+# ====================================================
+# [ALAMS SERVER] Operating at http://localhost:5000
+# ====================================================
+# WebSocket server initialized on same port.
+\end{lstlisting}
+\end{tcolorbox}
+
+\section{Verifying the Server}
+
+After startup, verify each endpoint responds correctly:
+
+\begin{tcolorbox}[codebox, title={Health Check — Verify Server is Running}]
+\begin{lstlisting}[language=bash]
+# From any machine on the LAN (replace SERVER_IP):
+
+# 1. Health check
+curl http://SERVER_IP:5000/health
+# Expected: {"status":"healthy","timestamp":1718000000000}
+
+# 2. Test admin login
+curl -X POST http://SERVER_IP:5000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d "{\"enrollmentNumber\":\"ADMIN01\",\"password\":\"Admin@ALAMS2026!\"}"
+# Expected: {"token":"eyJhbGciOiJ...","user":{...}}
+\end{lstlisting}
+\end{tcolorbox}
+
+\section{Running as a Production Service (Windows)}
+
+For pilot deployment, run the server as a Windows background service using \texttt{pm2} or \texttt{node-windows}:
+
+\begin{tcolorbox}[codebox, title={Production Deployment with PM2}]
+\begin{lstlisting}[language=bash]
+# Install PM2 process manager
+npm install -g pm2
+
+# Build TypeScript to JavaScript
+cd "d:\Project Data Aurxon\ALAMS\server"
+npx tsc
+
+# Start the compiled server
+pm2 start dist/index.js --name "alams-server"
+
+# Auto-start on Windows reboot
+pm2 startup
+pm2 save
+
+# Monitor live logs
+pm2 logs alams-server
+
+# Check status
+pm2 status
+\end{lstlisting}
+\end{tcolorbox}
+
+\section{API Routes Summary}
+
+\begin{table}[h!]
+\centering
+\caption{ALAMS REST API Endpoints}
+\label{tab:api-routes}
+\begin{tabularx}{\textwidth}{llX}
+\toprule
+\textbf{Method} & \textbf{Endpoint} & \textbf{Purpose}\\
+\midrule
+\multicolumn{3}{l}{\textbf{\textcolor{aurxongray}{Authentication}}}\\
+\midrule
+POST & \apipath{/api/v1/auth/signup} & Create student account\\
+\rowcolor{aurxonlightgray}
+POST & \apipath{/api/v1/auth/login} & Student/admin login\\
+\midrule
+\multicolumn{3}{l}{\textbf{\textcolor{aurxongray}{Admin (JWT Required)}}}\\
+\midrule
+GET  & \apipath{/api/v1/admin/students} & List all students\\
+\rowcolor{aurxonlightgray}
+GET  & \apipath{/api/v1/admin/computers} & List workstations\\
+GET  & \apipath{/api/v1/admin/computers/pending} & Pending registrations\\
+\rowcolor{aurxonlightgray}
+POST & \apipath{/api/v1/admin/computers/approve} & Approve workstation\\
+POST & \apipath{/api/v1/admin/computers/remote-unlock} & Remote unlock\\
+\rowcolor{aurxonlightgray}
+POST & \apipath{/api/v1/admin/computers/remote-lock} & Remote lock\\
+GET  & \apipath{/api/v1/admin/analytics/pilot} & Pilot KPI metrics\\
+\rowcolor{aurxonlightgray}
+GET  & \apipath{/api/v1/admin/reports/attendance} & Attendance report\\
+GET  & \apipath{/api/v1/admin/logs/security} & Security audit log\\
+\midrule
+\multicolumn{3}{l}{\textbf{\textcolor{aurxongray}{Workstation Client}}}\\
+\midrule
+GET  & \apipath{/api/v1/client/qr-token} & Generate QR token\\
+\rowcolor{aurxonlightgray}
+POST & \apipath{/api/v1/client/fallback-auth} & PIN authentication\\
+POST & \apipath{/api/v1/client/logout} & End session\\
+\rowcolor{aurxonlightgray}
+POST & \apipath{/api/v1/client/watchdog-heartbeat} & Watchdog health ping\\
+POST & \apipath{/api/v1/client/watchdog-alert} & Security event report\\
+\rowcolor{aurxonlightgray}
+POST & \apipath{/api/v1/client/failed-login} & Record auth failure\\
+\midrule
+\multicolumn{3}{l}{\textbf{\textcolor{aurxongray}{Mobile Gateway}}}\\
+\midrule
+POST & \apipath{/api/v1/mobile/verify-unlock} & QR scan verification\\
+\bottomrule
+\end{tabularx}
+\end{table}

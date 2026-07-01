@@ -1,0 +1,183 @@
+%% Chapter 12: Troubleshooting & Recovery
+\chapter{Troubleshooting \& Recovery}
+\label{ch:troubleshooting}
+
+\section{Server Issues}
+
+\subsection{Server Fails to Start}
+
+\begin{tcolorbox}[codebox, title={Diagnose Startup Errors}]
+\begin{lstlisting}[language=bash]
+cd "d:\Project Data Aurxon\ALAMS\server"
+npm run dev
+
+# If error: "Can't reach database server"
+# -> Check your Neon DATABASE_URL in .env
+# -> Test the connection: npx prisma db pull
+
+# If error: "Port 5000 already in use"
+netstat -ano | findstr :5000
+taskkill /PID <pid> /F
+
+# If error: "Cannot find module '@prisma/client'"
+npx prisma generate
+npm install
+\end{lstlisting}
+\end{tcolorbox}
+
+\subsection{Neon Connection Timeout}
+
+\begin{itemize}[label={\textcolor{aurxonamber}{\faExclamationTriangle}}]
+  \item Neon free tier computes auto-suspend after 5 minutes of inactivity
+  \item The first query after suspension takes up to 500ms (cold start)
+  \item Add \texttt{\&connect\_timeout=15} to your \texttt{DATABASE\_URL}
+  \item If timeouts persist, check Neon dashboard for project status
+\end{itemize}
+
+\section{Workstation Issues}
+
+\subsection{ALAMS Client Not Appearing on Login}
+
+\begin{tcolorbox}[codebox, title={Diagnose Shell Override}]
+\begin{lstlisting}[language=PowerShell]
+# Check if the shell override is set for the student user
+reg query "HKCU\Software\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Shell
+
+# Expected: Shell = C:\Program Files\ALAMS\AlamsClient.exe
+
+# If not set, re-run the enrollment script:
+.\EnrollShell.ps1
+\end{lstlisting}
+\end{tcolorbox}
+
+\subsection{Workstation Shows OFFLINE in Dashboard}
+
+\begin{enumerate}[leftmargin=*, label=\textbf{\arabic*.}]
+  \item Check if the server is running at \texttt{http://SERVER\_IP:5000/health}
+  \item Check if \texttt{config.json} has the correct server URL:
+  \begin{tcolorbox}[codebox, title={Check config.json}]
+  \begin{lstlisting}[language=bash]
+  type "C:\ProgramData\ALAMS\config.json"
+  # serverUrl must match the actual server IP
+  \end{lstlisting}
+  \end{tcolorbox}
+  \item Verify LAN connectivity: \texttt{ping SERVER\_IP}
+  \item Restart the ALAMS Client (the lock screen process)
+\end{enumerate}
+
+\subsection{Watchdog Shows MISSING}
+
+\begin{tcolorbox}[codebox, title={Diagnose Watchdog Service}]
+\begin{lstlisting}[language=PowerShell]
+# Check watchdog service status
+Get-Service AlamsWatchdog
+
+# Restart the service
+Restart-Service AlamsWatchdog -Force
+
+# Check Windows Event Log for errors
+Get-EventLog -LogName Application -Source AlamsWatchdog -Newest 10
+
+# Manual service check
+sc.exe query AlamsWatchdog
+\end{lstlisting}
+\end{tcolorbox}
+
+\subsection{Workstation Stuck in PENDING State}
+
+\begin{enumerate}[leftmargin=*, label=\textbf{\arabic*.}]
+  \item Ensure the server is running and reachable from the workstation.
+  \item Check that the workstation appears in the Dashboard → Live Monitor → Pending Enrollments banner.
+  \item If the banner is not visible, check the server logs for registration POST errors.
+  \item The pending record may need to be manually deleted from the database and the client restarted:
+  \begin{tcolorbox}[codebox, title={Reset Stuck Registration (Prisma Studio)}]
+  \begin{lstlisting}[language=bash]
+  npx prisma studio
+  # Open "computers" table
+  # Find the PENDING record by fingerprint
+  # Delete it, then restart AlamsClient on the workstation
+  \end{lstlisting}
+  \end{tcolorbox}
+\end{enumerate}
+
+\section{Authentication Issues}
+
+\subsection{QR Code Not Scanning}
+
+\begin{itemize}[label={--}]
+  \item Ensure the phone camera is 20–40 cm from the screen
+  \item Reduce screen glare by adjusting monitor brightness
+  \item Clean the phone camera lens
+  \item Ensure the phone is connected to the same WiFi/LAN network that can reach the server
+\end{itemize}
+
+\subsection{``Workstation is offline. Unlock signal failed.''}
+
+\begin{itemize}[label={--}]
+  \item The student submitted a valid QR scan, but the workstation's WebSocket was disconnected.
+  \item Go to Dashboard → Live Monitor and confirm the workstation shows ONLINE.
+  \item Have the student refresh the lock screen (click \textbf{Retry Connection}).
+  \item If the workstation is genuinely offline, use PIN fallback or Admin Override.
+\end{itemize}
+
+\section{Rollback / Emergency Recovery}
+
+\subsection{Restore Windows Shell (Remove ALAMS from a PC)}
+
+\begin{tcolorbox}[codebox, title={Shell Rollback — Run as Administrator}]
+\begin{lstlisting}[language=PowerShell]
+# Option A: Remove the custom shell key (restores to Explorer default)
+$regPath = "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon"
+Remove-ItemProperty -Path $regPath -Name "Shell" -ErrorAction SilentlyContinue
+
+# Option B: Restore from backup
+$backup = Get-Content "C:\ProgramData\ALAMS\shell_backup.txt" -ErrorAction SilentlyContinue
+if ($backup) {
+    Set-ItemProperty -Path $regPath -Name "Shell" -Value $backup
+}
+
+Write-Host "Shell restored. Log out and back in to apply."
+\end{lstlisting}
+\end{tcolorbox}
+
+\subsection{Disable Watchdog Temporarily}
+
+\begin{tcolorbox}[codebox, title={Stop/Disable Watchdog Service}]
+\begin{lstlisting}[language=PowerShell]
+# Stop immediately (without uninstalling)
+Stop-Service AlamsWatchdog -Force
+
+# Disable auto-start
+Set-Service AlamsWatchdog -StartupType Disabled
+
+# To re-enable later:
+Set-Service AlamsWatchdog -StartupType Automatic
+Start-Service AlamsWatchdog
+\end{lstlisting}
+\end{tcolorbox}
+
+\section{Diagnostic Quick Reference}
+
+\begin{table}[h!]
+\centering
+\caption{Common Problems — Quick Diagnosis}
+\label{tab:quick-diag}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Symptom} & \textbf{Most Likely Cause and Fix}\\
+\midrule
+\rowcolor{aurxonlightgray}
+Server won't start & Check .env DATABASE\_URL is correct\\
+PC shows OFFLINE & Server IP in config.json is wrong or server not running\\
+\rowcolor{aurxonlightgray}
+Watchdog MISSING & Run \texttt{Start-Service AlamsWatchdog}\\
+Lock screen not showing on login & Run \texttt{EnrollShell.ps1} again\\
+\rowcolor{aurxonlightgray}
+QR not working & Phone not on same network as server\\
+PIN rejected & Wrong PIN or account deactivated\\
+\rowcolor{aurxonlightgray}
+Can't approve PC & No labs created yet — create a lab first\\
+Analytics tab empty & No sessions recorded yet (seed or run first session)\\
+\bottomrule
+\end{tabularx}
+\end{table}

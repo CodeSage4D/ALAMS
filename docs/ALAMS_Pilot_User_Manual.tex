@@ -1,0 +1,451 @@
+%% ============================================================
+%% ALAMS — Aurxon Lab Access Management System
+%% Consolidated Pilot User Manual & Technical Reference
+%% ============================================================
+
+\documentclass[12pt, a4paper]{report}
+
+%% ── Packages ─────────────────────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{setspace}
+\usepackage{parskip}
+
+%% Colors & Graphics
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, shadows, fit, backgrounds}
+
+%% Typography
+\usepackage{fontawesome5}
+\usepackage{helvet}
+\usepackage{sourcecodepro}
+\renewcommand{\familydefault}{\sfdefault}
+
+%% Headers & Footers
+\usepackage{fancyhdr}
+\usepackage{emptypage}
+
+%% Tables
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{colortbl}
+
+%% Code Listings
+\usepackage{listings}
+
+%% Boxes and Callouts
+\usepackage{tcolorbox}
+\tcbuselibrary{skins, breakable, listingsutf8}
+
+%% Links & References
+\usepackage[hidelinks, colorlinks=true, linkcolor=aurxonblue, urlcolor=aurxonblue]{hyperref}
+
+%% TOC customization
+\usepackage{titlesec}
+\usepackage{enumitem}
+
+%% ── Color Palette (Aurxon Branding) ──────────────────────────────────────────
+\definecolor{aurxonblue}{HTML}{0EA5E9}
+\definecolor{aurxongreen}{HTML}{10B981}
+\definecolor{aurxonamber}{HTML}{F59E0B}
+\definecolor{aurxonred}{HTML}{EF4444}
+\definecolor{aurxondark}{HTML}{0F172A}
+\definecolor{aurxoncard}{HTML}{1E293B}
+\definecolor{aurxongray}{HTML}{64748B}
+\definecolor{aurxonlightgray}{HTML}{F1F5F9}
+\definecolor{codebg}{HTML}{1E293B}
+\definecolor{codefg}{HTML}{E2E8F0}
+
+%% ── Code Listing Style ───────────────────────────────────────────────────────
+\lstdefinestyle{alamsCode}{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\footnotesize\color{codefg},
+  keywordstyle=\color{aurxonblue}\bfseries,
+  stringstyle=\color{aurxongreen},
+  commentstyle=\color{aurxongray}\itshape,
+  numberstyle=\tiny\color{aurxongray},
+  numbers=left,
+  numbersep=8pt,
+  stepnumber=1,
+  breaklines=true,
+  breakatwhitespace=false,
+  captionpos=b,
+  frame=none,
+  xleftmargin=15pt,
+  xrightmargin=5pt,
+  aboveskip=10pt,
+  belowskip=10pt,
+  tabsize=2,
+  showstringspaces=false,
+  keepspaces=true,
+}
+\lstset{style=alamsCode}
+
+%% ── tcolorbox Styles ─────────────────────────────────────────────────────────
+\tcbset{
+  alamsbox/.style={
+    enhanced, breakable,
+    colback=aurxonlightgray, colframe=aurxonblue,
+    fonttitle=\bfseries\sffamily,
+    left=6pt, right=6pt, top=6pt, bottom=6pt,
+    arc=4pt, boxrule=1pt,
+  },
+  warningbox/.style={
+    enhanced, breakable,
+    colback=yellow!10, colframe=aurxonamber,
+    fonttitle=\bfseries\sffamily,
+    left=6pt, right=6pt, top=6pt, bottom=6pt,
+    arc=4pt, boxrule=1pt,
+  },
+  dangerbox/.style={
+    enhanced, breakable,
+    colback=red!8, colframe=aurxonred,
+    fonttitle=\bfseries\sffamily,
+    left=6pt, right=6pt, top=6pt, bottom=6pt,
+    arc=4pt, boxrule=1pt,
+  },
+  codebox/.style={
+    enhanced, breakable,
+    colback=codebg, colframe=aurxondark,
+    fonttitle=\bfseries\sffamily\color{white},
+    coltitle=white,
+    attach boxed title to top left={yshift=-2mm, xshift=4mm},
+    boxed title style={colback=aurxonblue, arc=3pt},
+    left=6pt, right=6pt, top=10pt, bottom=6pt,
+    arc=4pt, boxrule=0.5pt,
+  },
+}
+
+%% ── Chapter & Section Formatting ─────────────────────────────────────────────
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries\color{aurxondark}}
+  {\color{aurxonblue}\chaptertitlename\ \thechapter}
+  {10pt}
+  {\Huge}
+  [\vspace{-0.5em}\rule{\textwidth}{2pt}]
+
+\titleformat{\section}
+  {\normalfont\Large\bfseries\color{aurxondark}}
+  {\color{aurxonblue}\thesection}
+  {0.8em}{}
+
+\titleformat{\subsection}
+  {\normalfont\large\bfseries\color{aurxoncard}}
+  {\color{aurxongray}\thesubsection}
+  {0.8em}{}
+
+%% ── Header/Footer ─────────────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textbf{ALAMS Pilot Manual (6-System Setup)}}
+\fancyhead[R]{\small\nouppercase{\leftmark}}
+\fancyfoot[C]{\small\thepage}
+\fancyfoot[L]{\small Aurxon Systems — Internal Use}
+\fancyfoot[R]{\small \copyright\ 2026 Aurxon Lab Systems}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.2pt}
+
+%% ── Custom Commands ──────────────────────────────────────────────────────────
+\newcommand{\credential}[2]{\texttt{\textbf{#1}} / \texttt{#2}}
+\newcommand{\apipath}[1]{\texttt{\textcolor{aurxonblue}{#1}}}
+\newcommand{\envvar}[1]{\texttt{\textcolor{aurxonamber}{#1}}}
+\newcommand{\step}[1]{\vspace{4pt}\noindent\textcolor{aurxonblue}{\faCircle[regular]}\quad\textbf{#1}}
+\newcommand{\alamsversion}{1.0.0-pilot}
+
+%% ── Spacing ──────────────────────────────────────────────────────────────────
+\setstretch{1.15}
+\setlength{\parskip}{6pt}
+
+%% ═══════════════════════════════════════════════════════════════════════════════
+\begin{document}
+
+%% ── Title Page ───────────────────────────────────────────────────────────────
+\begin{titlepage}
+\pagecolor{aurxondark}
+\color{white}
+\begin{center}
+\vspace*{3cm}
+
+\begin{tikzpicture}
+  \fill[aurxongreen, rounded corners=12pt] (-2.5,-1.2) rectangle (2.5,1.2);
+  \node at (0,0) {\color{aurxondark}\fontsize{36}{36}\selectfont\textbf{ALAMS}};
+\end{tikzpicture}
+
+\vspace{1.5cm}
+{\fontsize{26}{30}\selectfont\textbf{Aurxon Lab Access Management System}}\\[0.5cm]
+{\large\color{aurxongray} Version \alamsversion\ — 6-System Pilot Edition}\\[2cm]
+
+\begin{tikzpicture}
+  \draw[aurxonblue, line width=2pt] (0,0) -- (\textwidth - 4cm, 0);
+\end{tikzpicture}
+
+\vspace{1cm}
+{\LARGE\textbf{Setup \& Installation Manual}}\\[0.4cm]
+{\normalsize\color{aurxongray} Central Server (1 PC) \& Client Workstation (5 PCs) Deployment}
+
+\vfill
+
+\begin{tabular}{rl}
+  \textbf{Organization:} & Aurxon Systems Pvt. Ltd.\\
+  \textbf{Document Type:} & Installation \& Operational Manual\\
+  \textbf{Classification:} & \textcolor{aurxonamber}{Confidential — Internal Use Only}\\
+  \textbf{Date:} & July 2026\\
+\end{tabular}
+
+\vspace{1.5cm}
+\small\color{aurxongray}
+This document contains configuration, installation commands, and operational procedures for ALAMS.\\
+Unauthorized distribution or reproduction is strictly prohibited.
+\end{center}
+\end{titlepage}
+
+\nopagecolor
+\color{black}
+
+%% ── Front Matter ─────────────────────────────────────────────────────────────
+\tableofcontents
+\newpage
+
+%% ── Chapter 1: System Overview ───────────────────────────────────────────────
+\chapter{System Overview \& Pilot Architecture}
+\label{ch:overview}
+
+The \textbf{Aurxon Lab Access Management System (ALAMS)} is a security-focused access control platform designed for academic computer labs. ALAMS replaces the default Windows Explorer desktop shell for students with a locked visual agent, forcing them to authenticate via double-factor verification before gaining system access.
+
+\section{Pilot Deployment Scale}
+The target pilot run involves a **6-system layout** distributed as:
+\begin{enumerate}
+  \item **1 Central Server**: Hosts the Node.js API Service, WebSocket gateway, and Next.js Admin web dashboard.
+  \item **5 Client Workstations** (named \texttt{PC-A01} through \texttt{PC-A05}): Dedicated student machines running the C# visual overlay client and the background monitoring Windows service.
+\end{enumerate}
+
+\section{System Architecture Diagram}
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[
+  node distance=1.8cm and 2.5cm,
+  box/.style={rectangle, rounded corners=8pt, minimum width=3.2cm, minimum height=1.2cm, text centered, font=\small\bfseries, draw, line width=1.2pt},
+  arrow/.style={-{Stealth[length=6pt]}, line width=1.2pt}
+]
+
+\node[box, fill=aurxondark, text=white, draw=aurxonblue] (server) at (0,0) {\faServer\\[2pt] Express Server\\{\tiny Node.js + WebSocket}};
+\node[box, fill=aurxondark, text=white, draw=aurxongreen, below=1.8cm of server] (db) {\faDatabase\\[2pt] Neon PostgreSQL\\{\tiny Cloud DB}};
+\node[box, fill=aurxondark, text=white, draw=aurxonamber, right=3.5cm of server] (dashboard) {\faDesktop\\[2pt] Admin Dashboard\\{\tiny Next.js Web App}};
+\node[box, fill=aurxondark, text=white, draw=aurxonred, left=3.5cm of server] (client) {\faLock\\[2pt] WPF Lock Client\\{\tiny C\# Workstation}};
+
+\draw[arrow, aurxonblue] (client) -- node[above, font=\tiny, text=aurxonblue]{WebSocket} (server);
+\draw[arrow, aurxonamber] (dashboard) -- node[above, font=\tiny, text=aurxonamber]{REST + WS} (server);
+\draw[arrow, aurxongreen] (server) -- node[right, font=\tiny, text=aurxongreen]{Prisma ORM} (db);
+
+\end{tikzpicture}
+\caption{ALAMS Pilot Topology Architecture}
+\label{fig:pilot_architecture}
+\end{figure}
+
+\section{Folder Map & Deploy Files}
+\begin{itemize}
+  \item \textbf{Server API Service}: Located in \texttt{server/}. Main installer script is \texttt{scripts/install\_server.bat}.
+  \item \textbf{Next.js Admin Console}: Located in \texttt{web/}.
+  \item \textbf{C\# Workstation Client}: Located in \texttt{client/}. Installer script is \texttt{scripts/install\_client.bat}.
+  \item \textbf{Anti-Bypass Watchdog Service}: Located in \texttt{watchdog/}. Registers as a Windows Service.
+  \item \textbf{Windows User Shell Enrollment}: Script \texttt{EnrollShell.ps1} creates the registry hook.
+\end{itemize}
+
+\newpage
+
+%% ── Chapter 2: Central Server Installation ────────────────────────────────────
+\chapter{Central Server Installation \& Configuration}
+\label{ch:server_install}
+
+This chapter details the deployment steps on the dedicated **Central Server Machine**.
+
+\section{Prerequisites}
+Ensure the following packages are pre-installed on the server:
+\begin{itemize}
+  \item **Node.js (v20 LTS)** and **npm** package manager.
+  \item **Git** (for version control and repository synchronization).
+\end{itemize}
+
+\section{Neon Database Setup}
+ALAMS uses a cloud-hosted PostgreSQL database powered by Neon.
+\begin{enumerate}
+  \item Create an account at \texttt{https://neon.tech} and create a project named \texttt{alams-pilot}.
+  \item Copy the connection string. You need the **Pooled** URL (with \texttt{pgbouncer=true}) and the **Direct** URL.
+\end{enumerate}
+
+\section{Environment File Configuration}
+Create the \texttt{.env} file inside the \texttt{server/} directory:
+\begin{tcolorbox}[codebox, title={server/.env Configuration}]
+\begin{lstlisting}[language=bash]
+DATABASE_URL="postgresql://alams_admin:YOUR_PASSWORD@ep-pooler.region.aws.neon.tech/alams?sslmode=require&pgbouncer=true"
+DIRECT_URL="postgresql://alams_admin:YOUR_PASSWORD@ep-direct.region.aws.neon.tech/alams?sslmode=require"
+PORT=5000
+JWT_SECRET="MyAlamsJwtSecretKey2026!6SystemPilot"
+QR_SIGNING_KEY="MyAlamsQrSigningKey2026!6SystemPilot"
+WATCHDOG_SECRET="WatchdogServiceSecretToken2026"
+\end{lstlisting}
+\end{tcolorbox}
+
+\section{Deploy and Seed}
+Open PowerShell as an Administrator and execute:
+\begin{tcolorbox}[codebox, title={Server Execution Commands}]
+\begin{lstlisting}[language=PowerShell]
+cd "d:\Project Data Aurxon\ALAMS"
+# Install dependencies, compile schema, and seed default database values
+.\scripts\install_server.bat
+\end{lstlisting}
+\end{tcolorbox}
+
+Start the Express API server:
+\begin{tcolorbox}[codebox, title={Start Server}]
+\begin{lstlisting}[language=PowerShell]
+.\scripts\start_server.bat
+\end{lstlisting}
+\end{tcolorbox}
+
+Verify the server state by checking the health endpoint:
+\begin{lstlisting}[language=bash]
+curl http://localhost:5000/health
+\end{lstlisting}
+
+\newpage
+
+%% ── Chapter 3: Next.js Web Console Setup ─────────────────────────────────────
+\chapter{Next.js Web Console Setup}
+\label{ch:web_console}
+
+The Next.js application acts as the student mobile gateway and the administrator control panel.
+
+\section{Deploying Web Dependencies}
+From the workspace root directory:
+\begin{tcolorbox}[codebox, title={Install Web Dependencies}]
+\begin{lstlisting}[language=PowerShell]
+cd "d:\Project Data Aurxon\ALAMS\web"
+npm install
+\end{lstlisting}
+\end{tcolorbox}
+
+\section{Environment Variables}
+Copy the template variables file:
+\begin{lstlisting}[language=PowerShell]
+copy .env.local.example .env.local
+\end{lstlisting}
+
+Edit \texttt{.env.local} and map the server LAN endpoint (e.g., if server runs at IP \texttt{10.0.3.5}):
+\begin{tcolorbox}[codebox, title={web/.env.local}]
+\begin{lstlisting}[language=bash]
+NEXT_PUBLIC_API_URL="http://10.0.3.5:5000"
+\end{lstlisting}
+\tcolorbox}
+
+\section{Running the Web App}
+Build and start the web server in production mode:
+\begin{tcolorbox}[codebox, title={Next.js Production Build}]
+\begin{lstlisting}[language=PowerShell]
+npm run build
+npm run start
+\end{lstlisting}
+\end{tcolorbox}
+The console will start running on port 3000. You can access it at \texttt{http://10.0.3.5:3000}.
+
+\newpage
+
+%% ── Chapter 4: Client Workstation Deployment ─────────────────────────────────
+\chapter{Client Workstation Deployment}
+\label{ch:client_deploy}
+
+This chapter details the deployment workflow on the **5 student workstations** (\texttt{PC-A01} through \texttt{PC-A05}).
+
+\section{Compile the C\# Client and Watchdog}
+Perform the compilation on your development machine using .NET 8 SDK:
+\begin{tcolorbox}[codebox, title={Compile client and watchdog binaries}]
+\begin{lstlisting}[language=PowerShell]
+# 1. Compile WPF Client Overlay
+cd "d:\Project Data Aurxon\ALAMS\client"
+dotnet publish AlamsClient.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o ".\publish\client"
+
+# 2. Compile Windows service watchdog
+cd "d:\Project Data Aurxon\ALAMS\watchdog"
+dotnet publish AlamsWatchdog.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o ".\publish\watchdog"
+\end{lstlisting}
+\end{tcolorbox}
+
+\section{Execute Client Installer Script}
+Copy the published binaries folder to the workstation, open PowerShell as an **Administrator**, and run:
+\begin{tcolorbox}[codebox, title={Install Client script}]
+\begin{lstlisting}[language=PowerShell]
+# Provide the Server API URL as an argument
+.\scripts\install_client.bat "http://10.0.3.5:5000"
+\end{lstlisting}
+\end{tcolorbox}
+This script registers the `AlamsWatchdog` background service, provisions the `config.json` configuration file, and moves execution binaries into \texttt{C:\textbackslash Program Files\textbackslash ALAMS}.
+
+\section{Authorize Workstation on Dashboard}
+On the workstation, the lock screen displays a **PENDING REGISTRATION** message.
+\begin{enumerate}
+  \item Navigate to the admin web console: \texttt{http://10.0.3.5:3000}.
+  \item Log in using admin credentials: ID \texttt{ADMIN01} and Password \texttt{Pilot@2026!}.
+  \item Go to **Asset Inventory** -> **Pending Workstations**.
+  \item Approve the workstation, mapping it to a workstation ID (e.g. \texttt{PC-A01}).
+  \item The client screen will automatically refresh into active lock state showing a QR code login panel.
+\end{enumerate}
+
+\section{Lock Windows Student Shell}
+To restrict students from bypassing the visual block:
+\begin{enumerate}
+  \item Create a local standard account named \texttt{Student} on the workstation.
+  \item Log in to the workstation *as the Student user*.
+  \item Open PowerShell as an administrator and execute the shell registry lock script:
+  \begin{lstlisting}[language=PowerShell]
+  powershell -ExecutionPolicy Bypass -File .\EnrollShell.ps1
+  \end{lstlisting}
+\end{enumerate}
+Upon logging out and logging back in, the student profile will automatically boot into the ALAMS lock screen client instead of loading Windows Explorer.
+
+\newpage
+
+%% ── Chapter 5: Operations & Troubleshooting ──────────────────────────────────
+\chapter{System Operations \& Troubleshooting}
+\label{ch:operations}
+
+\section{Git Version Control Operations}
+To initialize and push the repository to GitHub, run the following commands:
+\begin{tcolorbox}[codebox, title={Git Setup Commands}]
+\begin{lstlisting}[language=PowerShell]
+cd "d:\Project Data Aurxon\ALAMS"
+git init
+git add .
+git commit -m "Initial commit of ALAMS - 6 System Pilot Configuration"
+git branch -M main
+git remote add origin git@github.com:CodeSage4D/ALAMS.git
+git push -u origin main
+\end{lstlisting}
+\end{tcolorbox}
+
+\section{Control Console Operations}
+Administrators can run the custom CLI Control Console script to check backend health or run database backup operations:
+\begin{lstlisting}[language=PowerShell]
+powershell -ExecutionPolicy Bypass -File .\scripts\ControlCenter.ps1
+\end{lstlisting}
+
+\section{Troubleshooting & Recovery}
+\begin{itemize}
+  \item **Client shows Offline**: Check firewall settings. Run these rules on the server:
+  \begin{lstlisting}[language=PowerShell]
+  New-NetFirewallRule -DisplayName "ALAMS Port 5000" -Direction Inbound -Protocol TCP -LocalPort 5000 -Action Allow
+  New-NetFirewallRule -DisplayName "ALAMS Port 3000" -Direction Inbound -Protocol TCP -LocalPort 3000 -Action Allow
+  \end{lstlisting}
+  \item **Maintenance Override (Explorer Bypass)**: Press \texttt{Ctrl+Shift+Esc} on the client workstation to load Task Manager. Select **File -> Run New Task**, check "Create this task with administrative privileges", type \texttt{explorer.exe}, and click OK.
+  \item **Remove Client Overlay**: Run \texttt{.\textbackslash scripts\textbackslash uninstall\_client.bat} as administrator.
+\end{itemize}
+
+\end{document}

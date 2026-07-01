@@ -1,0 +1,150 @@
+%% Chapter 1: System Overview & Architecture
+\chapter{System Overview \& Architecture}
+\label{ch:overview}
+
+\section{Introduction}
+
+The \textbf{Aurxon Lab Access Management System (ALAMS)} is a production-grade, security-focused access control platform designed for educational computer laboratories. ALAMS replaces anonymous Windows desktop access with a verified, two-factor authentication system that proves \emph{who} a student is and \emph{which physical machine} they are sitting at.
+
+\begin{tcolorbox}[alamsbox, title={\faInfoCircle\quad System Purpose}]
+Every student who uses a lab computer is identified, authenticated, and tracked from the moment they sit down until they log out. No student may access the Windows desktop without completing the ALAMS authentication flow.
+\end{tcolorbox}
+
+\section{Core Objectives}
+
+\begin{itemize}[leftmargin=*, label={\textcolor{aurxonblue}{\faArrowRight}}]
+  \item \textbf{Identity Verification} — Know exactly who is using each machine at all times.
+  \item \textbf{Physical Binding} — Prove a student is sitting at the specific computer they are unlocking.
+  \item \textbf{Session Logging} — Record login time, logout time, and duration for every session.
+  \item \textbf{Attendance Automation} — Generate classroom attendance records automatically.
+  \item \textbf{Anonymous Access Prevention} — No student can access the desktop without authentication.
+  \item \textbf{Security Enforcement} — Detect and respond to bypass attempts within 2 seconds.
+  \item \textbf{Centralized Control} — Manage all lab computers from one dashboard.
+\end{itemize}
+
+\section{System Architecture}
+
+ALAMS is composed of four main components that work together:
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[
+  node distance=1.8cm and 2.5cm,
+  box/.style={rectangle, rounded corners=8pt, minimum width=3cm, minimum height=1.2cm, text centered, font=\small\bfseries, draw, line width=1.2pt},
+  arrow/.style={-{Stealth[length=6pt]}, line width=1.2pt}
+]
+
+%% Nodes
+\node[box, fill=aurxondark!90, text=white, draw=aurxonblue] (server) at (0,0) {\faServer\\[2pt] Express Server\\{\tiny Node.js + WebSocket}};
+
+\node[box, fill=aurxondark!90, text=white, draw=aurxongreen, below=of server] (db) {\faDatabase\\[2pt] Neon PostgreSQL\\{\tiny Cloud Database}};
+
+\node[box, fill=aurxondark!90, text=white, draw=aurxonamber, right=3cm of server] (dashboard) {\faDesktop\\[2pt] Admin Dashboard\\{\tiny Next.js Web App}};
+
+\node[box, fill=aurxondark!90, text=white, draw=aurxonred, left=3cm of server] (client) {\faLock\\[2pt] WPF Lock Client\\{\tiny C\# .NET 8}};
+
+\node[box, fill=aurxondark!90, text=white, draw=aurxonblue!60, below=1.4cm of client] (watchdog) {\faShield*\\[2pt] Watchdog Service\\{\tiny NT SYSTEM}};
+
+\node[box, fill=aurxondark!90, text=white, draw=aurxongreen!60, right=3cm of db] (mobile) {\faMobileAlt\\[2pt] Mobile Gateway\\{\tiny Student Browser}};
+
+%% Arrows
+\draw[arrow, aurxonblue] (client) -- node[above, font=\tiny, text=aurxonblue]{WebSocket} (server);
+\draw[arrow, aurxonamber] (dashboard) -- node[above, font=\tiny, text=aurxonamber]{REST + WS} (server);
+\draw[arrow, aurxongreen] (server) -- node[right, font=\tiny, text=aurxongreen]{Prisma ORM} (db);
+\draw[arrow, aurxonred] (watchdog) -- node[right, font=\tiny, text=aurxonred]{HTTP POST} (client);
+\draw[arrow, aurxonblue!60] (watchdog.east) to[bend right=30] node[below, font=\tiny, text=aurxonblue!60]{Heartbeat} (server.south);
+\draw[arrow, aurxongreen!60] (mobile) -- node[above, font=\tiny, text=aurxongreen!60]{REST API} (server);
+
+\end{tikzpicture}
+\caption{ALAMS System Architecture — Component Interaction Diagram}
+\label{fig:architecture}
+\end{figure}
+
+\subsection{Component 1: Express API Server}
+
+The central backbone of ALAMS. Built with \textbf{Node.js}, \textbf{Express}, and \textbf{WebSocket (ws)}. Handles:
+\begin{itemize}
+  \item REST API endpoints for authentication, session management, reporting
+  \item Real-time WebSocket connections from WPF client workstations
+  \item Dynamic QR token generation and verification
+  \item Admin control commands (remote lock/unlock)
+  \item Watchdog heartbeat collection
+\end{itemize}
+
+\subsection{Component 2: Neon PostgreSQL Database}
+
+Cloud-hosted relational database powered by \textbf{Neon}. Stores:
+\begin{itemize}
+  \item User accounts (students, admins, supervisors)
+  \item Lab and computer registry
+  \item Session and attendance records
+  \item Security alerts and audit log
+\end{itemize}
+
+\subsection{Component 3: Admin Dashboard (Next.js)}
+
+Web-based control center accessible from any browser. Features:
+\begin{itemize}
+  \item Live Monitor Grid with real-time workstation status
+  \item Pending Computer Enrollment approval workflow
+  \item Student directory management
+  \item Faculty Attendance roster
+  \item Pilot Analytics with live charts
+  \item Security Audit log
+\end{itemize}
+
+\subsection{Component 4: WPF Lock Client + Watchdog Service}
+
+Installed on every lab workstation:
+\begin{itemize}
+  \item \textbf{AlamsClient.exe} — Fullscreen WPF lock screen replacing the Windows shell (explorer.exe). Displays dynamic QR codes, accepts enrollment input, handles offline PIN login.
+  \item \textbf{AlamsWatchdog.exe} — Windows service running as \texttt{NT AUTHORITY\textbackslash SYSTEM}. Monitors the lock client every 2 seconds. If the desktop shell runs without the ALAMS client, it immediately forces user logoff and logs a critical security alert.
+\end{itemize}
+
+\section{Authentication Flows}
+
+ALAMS supports three authentication methods, each providing progressively lower security assurance:
+
+\begin{table}[h!]
+\centering
+\caption{Authentication Method Comparison}
+\label{tab:auth-methods}
+\begin{tabularx}{\textwidth}{lXXl}
+\toprule
+\textbf{Method} & \textbf{How It Works} & \textbf{Use Case} & \textbf{Security Level}\\
+\midrule
+\rowcolor{aurxonlightgray}
+QR Scan & Student scans dynamic QR on mobile, confirms on phone & Primary method & \textcolor{aurxongreen}{\textbf{HIGH}}\\
+PIN Fallback & Student enters enrollment + 6-digit PIN locally & No smartphone available & \textcolor{aurxonamber}{\textbf{MEDIUM}}\\
+\rowcolor{aurxonlightgray}
+Admin Override & Administrator unlocks from dashboard & Emergency/demo & \textcolor{aurxonred}{\textbf{ADMIN ONLY}}\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Data Model Overview}
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[
+  entity/.style={rectangle, rounded corners=4pt, draw=aurxonblue, fill=aurxonlightgray, minimum width=2.8cm, minimum height=0.8cm, font=\small\bfseries, text centered},
+  rel/.style={-{Stealth[length=5pt]}, aurxongray, line width=0.8pt}
+]
+\node[entity] (user) at (0,0) {users};
+\node[entity] (session) at (4,0) {sessions};
+\node[entity] (attendance) at (8,0) {attendance};
+\node[entity] (computer) at (4,-2.5) {computers};
+\node[entity] (lab) at (0,-2.5) {labs};
+\node[entity] (alert) at (8,-2.5) {security\_alerts};
+
+\draw[rel] (user) -- node[above,font=\tiny]{1:N} (session);
+\draw[rel] (session) -- node[above,font=\tiny]{1:N} (attendance);
+\draw[rel] (computer) -- node[right,font=\tiny]{1:N} (session);
+\draw[rel] (lab) -- node[above,font=\tiny]{1:N} (computer);
+\draw[rel] (session) -- node[right,font=\tiny]{1:N} (alert);
+\draw[rel] (computer) -- node[below,font=\tiny]{1:N} (alert);
+\draw[rel] (user) -- node[right,font=\tiny]{1:N} (attendance);
+\end{tikzpicture}
+\caption{ALAMS Entity Relationship Diagram}
+\label{fig:erd}
+\end{figure}

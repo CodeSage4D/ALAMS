@@ -1,0 +1,141 @@
+%% Chapter 5: Admin Dashboard & Mobile Gateway
+\chapter{Web Dashboard \& Mobile Gateway}
+\label{ch:dashboard}
+
+The ALAMS web application serves two distinct interfaces from the same Next.js deployment: the \textbf{Admin Control Deck} for administrators/faculty, and the \textbf{Student Mobile Gateway} for QR-based authentication.
+
+\section{Installing the Web Application}
+
+\begin{tcolorbox}[codebox, title={Install Web App Dependencies}]
+\begin{lstlisting}[language=bash]
+cd "d:\Project Data Aurxon\ALAMS\web"
+npm install
+\end{lstlisting}
+\end{tcolorbox}
+
+\section{Configuring the Web Application}
+
+Edit \texttt{web/.env.local} to point to your server:
+
+\begin{tcolorbox}[codebox, title={web/.env.local}]
+\begin{lstlisting}[language=bash]
+# Replace SERVER_LAN_IP with the actual IP of the server machine
+# Example: NEXT_PUBLIC_API_URL="http://192.168.1.100:5000"
+NEXT_PUBLIC_API_URL="http://SERVER_LAN_IP:5000"
+\end{lstlisting}
+\end{tcolorbox}
+
+\begin{tcolorbox}[warningbox, title={\faExclamationTriangle\quad Critical}]
+The \envvar{NEXT\_PUBLIC\_API\_URL} must be the LAN IP of the server, not \texttt{localhost}. Student mobiles accessing the QR verification page cannot reach \texttt{localhost}; they need the network IP.
+\end{tcolorbox}
+
+\section{Starting the Dashboard}
+
+\begin{tcolorbox}[codebox, title={Start the Next.js Web Application}]
+\begin{lstlisting}[language=bash]
+cd "d:\Project Data Aurxon\ALAMS\web"
+npm run dev
+
+# Accessible at:
+# Admin Dashboard : http://SERVER_IP:3000/admin/login
+# Student Mobile  : http://SERVER_IP:3000/login
+# QR Unlock Page  : http://SERVER_IP:3000/unlock
+\end{lstlisting}
+\end{tcolorbox}
+
+\section{Admin Login}
+
+\begin{enumerate}[leftmargin=*, label=\textbf{\arabic*.}]
+  \item Open a browser on the admin/faculty machine.
+  \item Navigate to: \texttt{http://SERVER\_IP:3000/admin/login}
+  \item Enter credentials:
+    \begin{itemize}
+      \item \textbf{Enrollment Number:} \texttt{ADMIN01}
+      \item \textbf{Password:} \texttt{Admin@ALAMS2026!}
+    \end{itemize}
+  \item Click \textbf{Authenticate Access}.
+  \item You are redirected to the Admin Control Deck.
+\end{enumerate}
+
+\section{Admin Dashboard Tabs}
+
+\subsection{Live Monitor}
+Real-time grid of all registered workstations. Each card shows:
+\begin{itemize}[label={\textcolor{aurxonblue}{\faCircle[regular]}}]
+  \item PC Number and Device Name
+  \item Current Status (LOCKED / IN\_USE / PENDING / OFFLINE)
+  \item Client Agent heartbeat status (ONLINE/OFFLINE — 15-second window)
+  \item Watchdog Service status (ACTIVE/MISSING — 20-second window)
+  \item Last contact timestamp
+  \item Remote Lock / Remote Unlock buttons
+\end{itemize}
+
+\subsection{Pilot Analytics}
+Computed KPIs from live server data:
+\begin{itemize}[label={\textcolor{aurxongreen}{\faChartBar}}]
+  \item \textbf{Login Success Rate} — Successful sessions vs. failed attempts (\%)
+  \item \textbf{Average QR Unlock Time} — Computed from recorded \texttt{unlockLatencyMs}
+  \item \textbf{Bypasses Blocked} — Watchdog enforcement events
+  \item \textbf{Hourly Session Distribution} — Bar chart, last 24 hours (7:00–20:00)
+  \item \textbf{Verification Method Breakdown} — QR / PIN / Admin ratios
+\end{itemize}
+
+\subsection{Faculty Attendance}
+Live classroom roster for faculty:
+\begin{itemize}[label={\textcolor{aurxonblue}{\faUserCheck}}]
+  \item Search by student name or enrollment number
+  \item Filter by lab zone
+  \item Status: PRESENT (active) or DISCONNECTED (logged out)
+\end{itemize}
+
+\subsection{Session Audit}
+Chronological audit trail of all sessions:
+\begin{itemize}[label={\textcolor{aurxongray}{\faHistory}}]
+  \item Session UUID, student identity, PC assignment
+  \item Verification method badge: \textcolor{aurxonblue}{DYNAMIC QR} / \textcolor{aurxonamber}{PIN FALLBACK} / \textcolor{aurxonred}{ADMIN OVERRIDE}
+  \item Login time, logout time, session status
+\end{itemize}
+
+\subsection{Labs \& Hardware}
+\begin{itemize}[label={\textcolor{aurxonamber}{\faCog}}]
+  \item Create new lab zones (name + location)
+  \item Register workstations manually (PC number, device name, IP, MAC)
+  \item Toggle PIN fallback per workstation
+  \item Approve pending workstations (self-registered via WPF client)
+\end{itemize}
+
+\section{Student Mobile Gateway}
+
+When a student scans the QR code on the lock screen, their mobile browser opens the ALAMS student gateway.
+
+\subsection{Student Login Flow}
+
+\begin{enumerate}[leftmargin=*, label=\textbf{Step \arabic*.}]
+  \item Student mobile browser opens: \texttt{http://SERVER\_IP:3000/login}
+  \item Student enters:
+    \begin{itemize}
+      \item \textbf{Enrollment Number:} e.g. \texttt{ENR2026001}
+      \item \textbf{Password:} \texttt{Student@2026!}
+    \end{itemize}
+  \item After login, student is redirected to the QR verification page.
+  \item The QR token from the lock screen URL is passed automatically.
+  \item Student taps \textbf{Authorize Access}.
+  \item Server verifies student identity + QR token + computer registration.
+  \item Unlock signal is pushed via WebSocket to the workstation.
+  \item Desktop unlocks within seconds.
+\end{enumerate}
+
+\section{Building for Production}
+
+\begin{tcolorbox}[codebox, title={Production Build}]
+\begin{lstlisting}[language=bash]
+cd "d:\Project Data Aurxon\ALAMS\web"
+
+# Build optimized production bundle
+npm run build
+
+# Start production server
+npm start
+# Serves at port 3000 (or set PORT env variable)
+\end{lstlisting}
+\end{tcolorbox}

@@ -1,0 +1,232 @@
+%% Appendix B: API Reference
+\chapter{API Reference}
+\label{app:api}
+
+All API endpoints use JSON request/response bodies. Base URL: \texttt{http://SERVER\_IP:5000}
+
+\section{Authentication Endpoints}
+
+\subsection{POST /api/v1/auth/signup}
+Creates a new user account.
+
+\textbf{Request Body:}
+\begin{tcolorbox}[codebox, title={Request}]
+\begin{lstlisting}[language=bash]
+{
+  "enrollmentNumber": "ENR2026011",  // Unique student ID
+  "fullName": "Riya Kapoor",
+  "password": "Student@2026!",       // Min 8 chars
+  "pin": "123456",                   // 6-digit numeric
+  "role": "STUDENT"                  // STUDENT | ADMIN | SUPERVISOR
+}
+\end{lstlisting}
+\end{tcolorbox}
+
+\textbf{Response (201):}
+\begin{tcolorbox}[codebox, title={Response}]
+\begin{lstlisting}[language=bash]
+{
+  "token": "eyJhbGciOiJIUzI1NiJ9...",
+  "user": {
+    "id": "uuid",
+    "enrollmentNumber": "ENR2026011",
+    "fullName": "Riya Kapoor",
+    "role": "STUDENT"
+  }
+}
+\end{lstlisting}
+\end{tcolorbox}
+
+\subsection{POST /api/v1/auth/login}
+Authenticates a user and returns a JWT token.
+
+\textbf{Request Body:}
+\begin{tcolorbox}[codebox, title={Request}]
+\begin{lstlisting}[language=bash]
+{
+  "enrollmentNumber": "ADMIN01",
+  "password": "Admin@ALAMS2026!"
+}
+\end{lstlisting}
+\end{tcolorbox}
+
+\section{Admin Endpoints (JWT Required)}
+
+All admin endpoints require the header:
+\begin{tcolorbox}[codebox, title={Authorization Header}]
+\begin{lstlisting}[language=bash]
+Authorization: Bearer <jwt_token>
+\end{lstlisting}
+\end{tcolorbox}
+
+\subsection{GET /api/v1/admin/analytics/pilot}
+Returns computed pilot KPI metrics.
+
+\textbf{Response (200):}
+\begin{tcolorbox}[codebox, title={Response}]
+\begin{lstlisting}[language=bash]
+{
+  "loginSuccessRate": 97.5,
+  "successfulLogins": 39,
+  "failedLoginAlerts": 1,
+  "totalAttempts": 40,
+  "avgQrLatencyMs": 3821,
+  "avgPinLatencyMs": 1450,
+  "qrSampleCount": 30,
+  "pinSampleCount": 9,
+  "hourlyDistribution": [
+    {"hour": 9, "count": 5},
+    {"hour": 10, "count": 12},
+    ...
+  ],
+  "verificationBreakdown": {
+    "QR_CODE": 30,
+    "PIN_FALLBACK": 9,
+    "ADMIN_OVERRIDE": 0,
+    "total": 39
+  },
+  "watchdogEnforcementCount": 0,
+  "watchdogActiveCount": 8,
+  "clientOnlineCount": 10,
+  "totalComputers": 10,
+  "pilotTarget": 10,
+  "deploymentProgress": 10
+}
+\end{lstlisting}
+\end{tcolorbox}
+
+\subsection{POST /api/v1/admin/computers/approve}
+Approves a pending workstation registration.
+
+\textbf{Request Body:}
+\begin{tcolorbox}[codebox, title={Request}]
+\begin{lstlisting}[language=bash]
+{
+  "computerId": "uuid-of-pending-computer",
+  "pcNumber": "PC-A01",
+  "labId": "uuid-of-lab",
+  "fallbackEnabled": true
+}
+\end{lstlisting}
+\end{tcolorbox}
+
+\subsection{POST /api/v1/admin/computers/remote-unlock}
+\textbf{Request:} \verb|{ "computerId": "uuid" }|
+
+\subsection{POST /api/v1/admin/computers/remote-lock}
+\textbf{Request:} \verb|{ "computerId": "uuid" }|
+
+\section{Client (Workstation) Endpoints}
+
+\subsection{GET /api/v1/client/qr-token}
+Generates a signed QR token for the given computer.
+
+\textbf{Query Parameter:} \verb|?computerId=uuid|
+
+\textbf{Response:}
+\begin{tcolorbox}[codebox, title={Response}]
+\begin{lstlisting}[language=bash]
+{
+  "token": "eyJhbGciOiJIUzI1NiJ9..."  // 60-second JWT
+}
+\end{lstlisting}
+\end{tcolorbox}
+
+\subsection{POST /api/v1/client/fallback-auth}
+Authenticates a student with enrollment number and PIN.
+
+\textbf{Request:}
+\begin{tcolorbox}[codebox, title={Request}]
+\begin{lstlisting}[language=bash]
+{
+  "enrollmentNumber": "ENR2026001",
+  "pin": "123456",
+  "computerId": "uuid"
+}
+\end{lstlisting}
+\end{tcolorbox}
+
+\subsection{POST /api/v1/client/watchdog-heartbeat}
+Reports watchdog liveness. Called every 10 seconds.
+
+\textbf{Request:} \verb|{ "computerId": "uuid" }|
+
+\subsection{POST /api/v1/client/watchdog-alert}
+Reports a security bypass event.
+
+\textbf{Request:}
+\begin{tcolorbox}[codebox, title={Request}]
+\begin{lstlisting}[language=bash]
+{
+  "computerId": "uuid",
+  "alertType": "watchdog_kill",
+  "severity": "CRITICAL",
+  "details": "AlamsClient.exe was terminated while desktop was active."
+}
+\end{lstlisting}
+\end{tcolorbox}
+
+\section{Mobile Gateway Endpoint}
+
+\subsection{POST /api/v1/mobile/verify-unlock}
+Verifies a QR token and unlocks the workstation. Requires JWT.
+
+\textbf{Request:}
+\begin{tcolorbox}[codebox, title={Request}]
+\begin{lstlisting}[language=bash]
+{
+  "qrToken": "eyJhbGciOiJIUzI1NiJ9..."
+}
+\end{lstlisting}
+\end{tcolorbox}
+
+\textbf{Response (200):}
+\begin{tcolorbox}[codebox, title={Response}]
+\begin{lstlisting}[language=bash]
+{
+  "message": "Workstation unlocked successfully",
+  "computer": {
+    "pcNumber": "PC-A01",
+    "deviceName": "ALAMS-TURING-01"
+  },
+  "sessionId": "uuid"
+}
+\end{lstlisting}
+\end{tcolorbox}
+
+\section{WebSocket Protocol}
+
+Connection URL: \texttt{ws://SERVER\_IP:5000}
+
+\subsection{Client → Server Messages}
+
+\begin{table}[h!]
+\centering
+\caption{WebSocket Messages: Client to Server}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Message Type} & \textbf{Payload}\\
+\midrule
+\texttt{register} & \verb|{type, fingerprint, deviceName, macAddress, ipAddress}|\\
+\rowcolor{aurxonlightgray}
+\texttt{heartbeat} & \verb|{type, status: "locked"|"in_use"}|\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Server → Client Messages}
+
+\begin{table}[h!]
+\centering
+\caption{WebSocket Messages: Server to Client}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Message Type} & \textbf{Payload}\\
+\midrule
+\texttt{approved} & \verb|{type, computerId, pcNumber, qrSeed, fallbackEnabled}|\\
+\rowcolor{aurxonlightgray}
+\texttt{unlock} & \verb|{type, enrollmentNumber, sessionId}|\\
+\texttt{lock} & \verb|{type}|\\
+\bottomrule
+\end{tabularx}
+\end{table}
