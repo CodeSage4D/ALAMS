@@ -1,0 +1,185 @@
+# ALAMS Pilot Deployment Guide
+## 10-Machine Lab Rollout — Operational Runbook
+
+> **Target:** Deploy ALAMS to 10 physical Windows lab computers and validate a full classroom session.
+> **Goal:** ≥95% login success rate · QR unlock ≤10s · Zero undetected bypasses
+
+---
+
+## Pre-Deployment Checklist
+
+### Server Environment
+
+| Task | Command | Status |
+|---|---|---|
+| PostgreSQL running | `Get-Service postgresql*` | `[ ]` |
+| Database schema synced | `cd server && npx prisma db push` | `[ ]` |
+| Seed admin account | `npm run prisma:seed` | `[ ]` |
+| Server reachable | `curl http://localhost:5000/health` | `[ ]` |
+| Web dashboard accessible | Open `http://SERVER_IP:3000/admin/login` | `[ ]` |
+| Admin login works | `ADMIN01` / `admin123` | `[ ]` |
+
+> [!IMPORTANT]
+> Replace `localhost` with the server machine's actual LAN IP in all workstation `config.json` files and in `web/.env.local` (`NEXT_PUBLIC_API_URL=http://SERVER_LAN_IP:5000`).
+
+### Software Ready on Each PC
+
+| File | Location |
+|---|---|
+| `AlamsClient.exe` | `C:\Program Files\ALAMS\` |
+| `AlamsWatchdog.exe` | `C:\Program Files\ALAMS\` |
+| `AlamsInstaller.msi` | Run before enrollment |
+
+---
+
+## Per-Workstation Enrollment (Repeat × 10)
+
+### Step 1: Run MSI Installer
+```powershell
+# On each lab PC — run as Administrator
+msiexec /i AlamsInstaller.msi /quiet
+```
+This installs binaries to `C:\Program Files\ALAMS\` and registers + starts `AlamsWatchdog` service.
+
+### Step 2: Verify Watchdog Service
+```powershell
+Get-Service AlamsWatchdog
+# Expected: Status = Running, StartType = Automatic
+```
+
+### Step 3: Run Shell Enrollment
+```powershell
+# Run as Administrator, while logged in as the STUDENT user account
+Set-ExecutionPolicy Bypass -Scope Process -Force
+.\EnrollShell.ps1
+```
+
+### Step 4: First-Launch Registration
+1. Log out of admin account.
+2. Log in as the student user — ALAMS lock screen appears instead of desktop.
+3. Client auto-registers with server (PENDING state shown on screen).
+4. On Admin Dashboard → Live Monitor → Pending Enrollments section:
+   - Enter PC Number: `PC-01` through `PC-10`
+   - Select Lab Zone: e.g. "Turing Computing Lab"
+   - Click **Approve & Lock**
+5. Client screen should transition from PENDING → QR lock screen within seconds.
+
+### Step 5: Stick Physical QR Label
+- After approval, print a static label with the **PC Number** and stick it visibly on the monitor bezel.
+- The dynamic QR displayed on-screen is what students scan — do **not** print or laminate the dynamic QR.
+
+---
+
+## Validation Tests (Per Machine)
+
+### TEST-01: QR Authentication Flow
+
+| Step | Action | Expected Result | Pass? |
+|---|---|---|---|
+| 1 | Student enters Enrollment Number | Name is displayed on lock screen | `[ ]` |
+| 2 | Student clicks "Get QR Code" | Dynamic QR renders with 60s countdown | `[ ]` |
+| 3 | Student scans QR on mobile | Mobile verification page opens | `[ ]` |
+| 4 | Student taps "Authorize Access" | Desktop unlocks within 10 seconds | `[ ]` |
+| 5 | Session appears in Admin Dashboard | Correct student, PC, time shown | `[ ]` |
+| 6 | Faculty Attendance tab shows student | Name + enrollment visible | `[ ]` |
+
+### TEST-02: Watchdog Bypass Enforcement
+
+> [!CAUTION]
+> Perform this test ONLY with admin credentials. Do not perform on machines during class.
+
+| Step | Action | Expected Result | Pass? |
+|---|---|---|---|
+| 1 | Open Task Manager as admin | - | `[ ]` |
+| 2 | Kill `AlamsClient.exe` | Windows should immediately log off the user | `[ ]` |
+| 3 | Check Admin Dashboard → Security Audits | Critical alert: `watchdog_kill` should appear | `[ ]` |
+| 4 | Log back in | ALAMS lock screen loads (not desktop) | `[ ]` |
+
+### TEST-03: Shell Replacement Verification
+
+| Step | Action | Expected Result | Pass? |
+|---|---|---|---|
+| 1 | Log in as student user | ALAMS Client loads, NOT desktop | `[ ]` |
+| 2 | Press `Ctrl+Alt+Del` | Windows Security screen (normal) | `[ ]` |
+| 3 | Press `Win`, `Win+D`, `Win+E` | No response — desktop locked | `[ ]` |
+| 4 | Unlock with QR | Explorer.exe starts, desktop accessible | `[ ]` |
+| 5 | Log out from session toolbar | Lock screen returns | `[ ]` |
+
+### TEST-04: Offline Recovery (PIN Fallback)
+
+| Step | Action | Expected Result | Pass? |
+|---|---|---|---|
+| 1 | Disconnect LAN cable | Status indicator goes OFFLINE (red) | `[ ]` |
+| 2 | Student enters Enrollment + PIN | Offline PIN validation succeeds | `[ ]` |
+| 3 | Reconnect LAN cable | WebSocket reconnects, session syncs | `[ ]` |
+| 4 | Session appears in audit log | Method: `PIN_FALLBACK` recorded | `[ ]` |
+
+### TEST-05: Admin Remote Lock/Unlock
+
+| Step | Action | Expected Result | Pass? |
+|---|---|---|---|
+| 1 | Identify active session in dashboard | Student shown as IN_USE | `[ ]` |
+| 2 | Click Remote Lock on PC card | Session terminates, PC locks instantly | `[ ]` |
+| 3 | Click Remote Unlock on a locked PC | Admin OVERRIDE session opens | `[ ]` |
+
+---
+
+## Network Requirements
+
+```
+Lab PCs     ─── LAN ───> Server (TCP 5000 + WS)
+Mobile       ─── WiFi ──> Server (TCP 3000 / public URL)
+Admin Browser ─── LAN ──> Server (TCP 3000)
+
+Firewall: Allow inbound TCP 5000 and 3000 on server machine.
+```
+
+---
+
+## Performance Targets
+
+Record these metrics after running the validation session:
+
+| Metric | Target | Measured |
+|---|---|---|
+| Login Success Rate | ≥ 95% | `_____` |
+| QR Unlock Time (avg) | ≤ 10 seconds | `_____` |
+| PIN Fallback Time (avg) | ≤ 5 seconds | `_____` |
+| Watchdog Response Time | ≤ 3 seconds to logoff | `_____` |
+| PCs Online (steady state) | 10/10 | `_____` |
+| Watchdog Active (ratio) | 10/10 | `_____` |
+| Bypasses Blocked | 0 undetected | `_____` |
+
+---
+
+## Rollback Procedure
+
+If any workstation needs to be restored to normal Windows shell:
+
+```powershell
+# Run as Administrator on affected workstation
+$regPath = "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon"
+Remove-ItemProperty -Path $regPath -Name "Shell" -ErrorAction SilentlyContinue
+# OR restore backup:
+$backup = Get-Content "C:\ProgramData\ALAMS\shell_backup.txt"
+Set-ItemProperty -Path $regPath -Name "Shell" -Value $backup
+Write-Host "Shell restored to: $backup"
+```
+
+```powershell
+# Stop and disable Watchdog service
+Stop-Service AlamsWatchdog -Force
+Set-Service AlamsWatchdog -StartupType Disabled
+```
+
+---
+
+## Post-Pilot Report
+
+After completing validation, capture screenshots of:
+1. **Pilot Analytics tab** — login success %, avg unlock time, hourly distribution
+2. **Session Audit tab** — full list of test sessions with verification methods
+3. **Security Audits tab** — watchdog_kill entries from bypass tests
+4. **Faculty Attendance tab** — roster from the test session
+
+Submit the captured data with this runbook as the pilot feedback report.
