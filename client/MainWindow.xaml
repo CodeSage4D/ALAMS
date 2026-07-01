@@ -1,0 +1,148 @@
+<Window x:Class="AlamsClient.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Aurxon Lab Access Management" 
+        Height="1080" Width="1920"
+        WindowStyle="None" 
+        WindowState="Maximized" 
+        Topmost="True" 
+        ResizeMode="NoResize" 
+        ShowInTaskbar="False"
+        Background="#0B0F19"
+        Loaded="Window_Loaded"
+        Closing="Window_Closing">
+    
+    <Grid>
+        <!-- Background decorative glows -->
+        <Canvas>
+            <Ellipse Width="600" Height="600" Fill="#1E1B4B" Opacity="0.3" Canvas.Left="-100" Canvas.Top="-100" Margin="0">
+                <Ellipse.Effect>
+                    <BlurEffect Radius="150"/>
+                </Ellipse.Effect>
+            </Ellipse>
+            <Ellipse Width="500" Height="500" Fill="#065F46" Opacity="0.15" Canvas.Right="-50" Canvas.Bottom="-50" Margin="0">
+                <Ellipse.Effect>
+                    <BlurEffect Radius="150"/>
+                </Ellipse.Effect>
+            </Ellipse>
+        </Canvas>
+
+        <Grid Margin="60">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                <Border Width="16" Height="16" CornerRadius="4" Background="#10B981" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                <TextBlock Text="AURXON LABS" Foreground="#FFFFFF" FontSize="20" FontWeight="Bold" LetterSpacing="2"/>
+                <TextBlock Text="|" Foreground="#374151" FontSize="20" Margin="15,0" VerticalAlignment="Center"/>
+                <TextBlock Text="ACCESS PORTAL" Foreground="#9CA3AF" FontSize="18" FontWeight="Medium" VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Main Work Area Split -->
+            <Grid Grid.Row="1" Margin="0,40">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.1*"/>
+                    <ColumnDefinition Width="0.9*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Left Pane: Dynamic QR Authentication -->
+                <Border Grid.Column="0" Background="#111827" CornerRadius="16" BorderBrush="#1F2937" BorderThickness="1" Margin="0,0,30,0">
+                    <Grid Margin="40">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- PC Metadata -->
+                        <StackPanel Grid.Row="0">
+                            <TextBlock x:Name="PcNumberText" Text="PC-00" Foreground="#10B981" FontSize="36" FontWeight="Black"/>
+                            <TextBlock x:Name="DeviceNameText" Text="Loading workstation configurations..." Foreground="#9CA3AF" FontSize="16" Margin="0,5,0,0"/>
+                        </StackPanel>
+
+                        <!-- QR Code Area -->
+                        <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Border Background="#1F2937" Padding="20" CornerRadius="12" BorderBrush="#374151" BorderThickness="1">
+                                <Grid Width="260" Height="260">
+                                    <Image x:Name="QrCodeImage" Stretch="Uniform" />
+                                    <!-- Fallback Loader while offline or syncing -->
+                                    <TextBlock x:Name="QrLoaderText" Text="Connecting to central server..." Foreground="#9CA3AF" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"/>
+                                </Grid>
+                            </Border>
+
+                            <TextBlock Text="Scan QR to Unlock with Phone" Foreground="#FFFFFF" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,20,0,5"/>
+                            <TextBlock Text="Use your standard mobile camera application" Foreground="#6B7280" FontSize="14" HorizontalAlignment="Center"/>
+
+                            <StackPanel x:Name="OneTimePinPanel" Margin="0,20,0,0" Orientation="Horizontal" HorizontalAlignment="Center">
+                                <PasswordBox x:Name="OneTimePinInput" Width="140" Height="40" Background="#1F2937" Foreground="#FFFFFF" BorderBrush="#374151" BorderThickness="1" FontSize="20" VerticalAlignment="Center" HorizontalContentAlignment="Center" MaxLength="6" Margin="0,0,10,0" VerticalContentAlignment="Center"/>
+                                <Button x:Name="VerifyOneTimePinButton" Content="Verify PIN" Width="100" Height="40" Background="#10B981" Foreground="#0B0F19" FontWeight="Bold" FontSize="14" Click="VerifyOneTimePinButton_Click">
+                                    <Button.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="6" />
+                                        </Style>
+                                    </Button.Resources>
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Refresh countdown -->
+                        <StackPanel Grid.Row="2">
+                            <Grid Margin="0,0,0,8">
+                                <TextBlock Text="QR Code security lifecycle" Foreground="#9CA3AF" FontSize="13"/>
+                                <TextBlock x:Name="TimerText" Text="30s" Foreground="#10B981" FontSize="13" HorizontalAlignment="Right" FontWeight="Bold"/>
+                            </Grid>
+                            <ProgressBar x:Name="QrProgressBar" Height="4" Background="#1F2937" Foreground="#10B981" BorderThickness="0" Value="100" Maximum="100"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Right Pane: Enrollment + PIN Login Fallback -->
+                <Border Grid.Column="1" Background="#111827" CornerRadius="16" BorderBrush="#1F2937" BorderThickness="1" Margin="30,0,0,0">
+                    <Grid Margin="40" VerticalAlignment="Center">
+                        <StackPanel>
+                            <TextBlock Text="Workstation Fallback" Foreground="#FFFFFF" FontSize="26" FontWeight="Bold"/>
+                            <TextBlock Text="Access computer via local account PIN credentials" Foreground="#9CA3AF" FontSize="15" Margin="0,5,0,30"/>
+
+                            <!-- Enrollment Number Input -->
+                            <TextBlock Text="ENROLLMENT NUMBER" Foreground="#9CA3AF" FontSize="12" FontWeight="Bold" LetterSpacing="1" Margin="0,0,0,8"/>
+                            <Border Background="#1F2937" CornerRadius="8" Padding="12,4" BorderBrush="#374151" BorderThickness="1" Margin="0,0,0,20">
+                                <TextBox x:Name="EnrollmentInput" Background="Transparent" Foreground="#FFFFFF" BorderThickness="0" FontSize="18" VerticalAlignment="Center"/>
+                            </Border>
+
+                            <!-- PIN Input -->
+                            <TextBlock Text="6-DIGIT PASSCODE / PIN" Foreground="#9CA3AF" FontSize="12" FontWeight="Bold" LetterSpacing="1" Margin="0,0,0,8"/>
+                            <Border Background="#1F2937" CornerRadius="8" Padding="12,4" BorderBrush="#374151" BorderThickness="1" Margin="0,0,0,30">
+                                <PasswordBox x:Name="PinInput" Background="Transparent" Foreground="#FFFFFF" BorderThickness="0" FontSize="18" VerticalAlignment="Center" MaxLength="6"/>
+                            </Border>
+
+                            <!-- Login Action -->
+                            <Button x:Name="UnlockButton" Content="Unlock Workstation" Background="#10B981" Foreground="#0B0F19" FontSize="16" FontWeight="Bold" Height="50" BorderThickness="0" Cursor="Hand" Click="UnlockButton_Click">
+                                <Button.Resources>
+                                    <Style TargetType="Border">
+                                        <Setter Property="CornerRadius" Value="8" />
+                                    </Style>
+                                </Button.Resources>
+                            </Button>
+
+                            <!-- Dynamic Status/Errors display -->
+                            <TextBlock x:Name="StatusMessageText" Text="" Foreground="#EF4444" FontSize="14" Margin="0,20,0,0" TextAlignment="Center" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- Footer / Net status -->
+            <Grid Grid.Row="2">
+                <TextBlock Text="Aurxon Lab Access Management System © 2026. Authorized users only." Foreground="#4B5563" FontSize="12" VerticalAlignment="Center"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Ellipse x:Name="NetworkIndicator" Width="8" Height="8" Fill="#EF4444" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="NetworkStatusText" Text="OFFLINE" Foreground="#9CA3AF" FontSize="12" FontWeight="Bold" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>
