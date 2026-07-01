@@ -1,0 +1,264 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  STUDENT
+  ADMIN
+  SUPERVISOR
+  FACULTY
+}
+
+enum SessionStatus {
+  ACTIVE
+  COMPLETED
+  TERMINATED
+  PENDING
+}
+
+enum ComputerStatus {
+  PENDING
+  APPROVED
+  ACTIVE
+  MAINTENANCE
+  BLOCKED
+  RETIRED
+}
+
+enum VerificationMethod {
+  QR_CODE
+  PIN_FALLBACK
+  ADMIN_OVERRIDE
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum AttendanceStatus {
+  PRESENT
+  LATE
+  PARTIAL
+  ABSENT
+  EXCUSED
+  MANUAL_OVERRIDE
+}
+
+model User {
+  id                   String    @id @default(uuid())
+  enrollmentNumber     String    @unique @map("enrollment_number")
+  passwordHash         String    @map("password_hash")
+  pinHash              String    @map("pin_hash") // Encrypted/hashed 6-digit PIN for local fallback login
+  fullName             String    @map("full_name")
+  role                 Role      @default(STUDENT)
+  isActive             Boolean   @default(true) @map("is_active")
+  mustChangePassword   Boolean   @default(true) @map("must_change_password")
+  passwordChangedAt    DateTime? @map("password_changed_at")
+  lastLogin            DateTime? @map("last_login")
+  passwordResetToken   String?   @map("password_reset_token")
+  passwordResetExpires DateTime? @map("password_reset_expires")
+  passwordExpiresAt    DateTime? @map("password_expires_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+
+  // Student relations
+  sessions   Session[]    @relation("StudentSessions")
+  attendance Attendance[] @relation("StudentAttendance")
+
+  // Faculty relations
+  facultySlots      TimetableSlot[] @relation("FacultySlots")
+  facultySessions   Session[]       @relation("FacultySessions")
+  facultyAttendance Attendance[]    @relation("FacultyAttendance")
+
+  @@map("users")
+}
+
+model Profile {
+  id                String   @id @default(uuid())
+  name              String   @unique
+  qrLifetime        Int      @default(60) @map("qr_lifetime")
+  heartbeatInterval Int      @default(30) @map("heartbeat_interval")
+  offlinePinEnabled Boolean  @default(true) @map("offline_pin_enabled")
+  sessionTimeout    Int      @default(120) @map("session_timeout")
+  idleTimeout       Int      @default(15) @map("idle_timeout")
+  createdAt         DateTime @default(now()) @map("created_at")
+  labs              Lab[]
+
+  @@map("profiles")
+}
+
+model Lab {
+  id             String          @id @default(uuid())
+  name           String          @unique
+  location       String?
+  subnet         String? // e.g. "10.0.3.0/24"
+  semester       String?
+  branch         String?
+  section        String?
+  batch          String?
+  createdAt      DateTime        @default(now()) @map("created_at")
+  profileId      String?         @map("profile_id")
+  profile        Profile?        @relation(fields: [profileId], references: [id], onDelete: SetNull)
+  computers      Computer[]
+  timetableSlots TimetableSlot[]
+
+  @@map("labs")
+}
+
+model Computer {
+  id                String         @id @default(uuid())
+  labId             String         @map("lab_id")
+  lab               Lab            @relation(fields: [labId], references: [id], onDelete: Cascade)
+  pcNumber          String         @map("pc_number")
+  deviceName        String         @unique @map("device_name")
+  ipAddress         String         @map("ip_address")
+  macAddress        String         @unique @map("mac_address")
+  fingerprint       String?        @unique @map("fingerprint")
+  qrSeed            String         @map("qr_seed")
+  fallbackEnabled   Boolean        @default(true) @map("fallback_enabled")
+  status            ComputerStatus @default(PENDING)
+  lastSeen          DateTime       @default(now()) @map("last_seen")
+  watchdogHeartbeat DateTime?      @map("watchdog_heartbeat")
+  trustStatus       String         @default("TRUSTED") @map("trust_status")
+
+  // Hardware specifications (Phase 4)
+  computerUuid      String? @map("computer_uuid")
+  machineGuid       String? @map("machine_guid")
+  motherboardSerial String? @map("motherboard_serial")
+  cpuId             String? @map("cpu_id")
+  biosSerial        String? @map("bios_serial")
+  ram               String? @map("ram")
+  storage           String? @map("storage")
+  osVersion         String? @map("os_version")
+  clientVersion     String? @map("client_version")
+
+  // Network specifications (Phase 4)
+  ipv6Address     String? @map("ipv6_address")
+  gateway         String? @map("gateway")
+  dnsServers      String? @map("dns_servers")
+  networkAdapter  String? @map("network_adapter")
+  domainWorkgroup String? @map("domain_workgroup")
+  deviceGroup     String  @default("General") @map("device_group")
+
+  sessions       Session[]
+  securityAlerts SecurityAlert[]
+
+  @@map("computers")
+}
+
+model Subject {
+  id             String          @id @default(uuid())
+  name           String
+  code           String          @unique
+  timetableSlots TimetableSlot[]
+  sessions       Session[]
+  attendance     Attendance[]
+
+  @@map("subjects")
+}
+
+model TimetableSlot {
+  id        String    @id @default(uuid())
+  labId     String    @map("lab_id")
+  lab       Lab       @relation(fields: [labId], references: [id], onDelete: Cascade)
+  subjectId String    @map("subject_id")
+  subject   Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  facultyId String    @map("faculty_id")
+  faculty   User      @relation("FacultySlots", fields: [facultyId], references: [id], onDelete: Cascade)
+  dayOfWeek Int       @map("day_of_week")
+  startTime String    @map("start_time")
+  endTime   String    @map("end_time")
+  semester  String
+  branch    String
+  section   String
+  batch     String
+  sessions  Session[]
+
+  @@map("timetable_slots")
+}
+
+model Session {
+  id                 String             @id @default(uuid())
+  userId             String             @map("user_id")
+  user               User               @relation("StudentSessions", fields: [userId], references: [id], onDelete: Cascade)
+  computerId         String             @map("computer_id")
+  computer           Computer           @relation(fields: [computerId], references: [id], onDelete: Cascade)
+  loginTime          DateTime           @default(now()) @map("login_time")
+  logoutTime         DateTime?          @map("logout_time")
+  durationMinutes    Int?               @map("duration_minutes")
+  unlockLatencyMs    Int?               @map("unlock_latency_ms")
+  verificationMethod VerificationMethod @map("verification_method")
+  status             SessionStatus      @default(ACTIVE)
+
+  // Dynamic 2FA PIN fields
+  oneTimePin   String?   @map("one_time_pin")
+  pinExpiresAt DateTime? @map("pin_expires_at")
+
+  // Academic linkages
+  subjectId       String?        @map("subject_id")
+  subject         Subject?       @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  facultyId       String?        @map("faculty_id")
+  faculty         User?          @relation("FacultySessions", fields: [facultyId], references: [id], onDelete: SetNull)
+  timetableSlotId String?        @map("timetable_slot_id")
+  timetableSlot   TimetableSlot? @relation(fields: [timetableSlotId], references: [id], onDelete: SetNull)
+
+  attendance     Attendance[]
+  securityAlerts SecurityAlert[]
+
+  @@map("sessions")
+}
+
+model Attendance {
+  id             String           @id @default(uuid())
+  userId         String           @map("user_id")
+  user           User             @relation("StudentAttendance", fields: [userId], references: [id], onDelete: Cascade)
+  sessionId      String           @map("session_id")
+  session        Session          @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  date           DateTime         @default(now()) @db.Date
+  checkIn        DateTime         @default(now()) @map("check_in")
+  checkOut       DateTime?        @map("check_out")
+  status         AttendanceStatus @default(ABSENT)
+  duration       Int?             @map("duration") // total minutes
+  practicalHours Float?           @map("practical_hours") // credits earned
+
+  // Academic linkage redundancy for fast reporting queries
+  subjectId String?  @map("subject_id")
+  subject   Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  facultyId String?  @map("faculty_id")
+  faculty   User?    @relation("FacultyAttendance", fields: [facultyId], references: [id], onDelete: SetNull)
+
+  @@map("attendance")
+}
+
+model SecurityAlert {
+  id            String        @id @default(uuid())
+  computerId    String?       @map("computer_id")
+  computer      Computer?     @relation(fields: [computerId], references: [id], onDelete: SetNull)
+  sessionId     String?       @map("session_id")
+  session       Session?      @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  alertType     String        @map("alert_type")
+  alertSeverity AlertSeverity @default(WARNING) @map("alert_severity")
+  details       String?
+  alertTime     DateTime      @default(now()) @map("alert_time")
+  resolved      Boolean       @default(false)
+
+  @@map("security_alerts")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  action     String
+  userId     String?  @map("user_id")
+  computerId String?  @map("computer_id")
+  details    String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("audit_logs")
+}
