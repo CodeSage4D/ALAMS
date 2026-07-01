@@ -1,0 +1,33 @@
+# Logs
+*.log
+logs/
+
+# Node.js
+node_modules/
+dist/
+.next/
+tsconfig.tsbuildinfo
+
+# Sensitive Files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+credential.txt
+
+# .NET / C#
+**/bin/
+**/obj/
+**/publish/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# IDE / System
+.vscode/
+.idea/
+.gemini/
+Thumbs.db
+.DS_Store
