@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    <!-- ALAMS (Aurxon Lab Access Management System) Installer Schema -->
+    <Product Id="*" 
+             Name="Aurxon Lab Access Management System (ALAMS)" 
+             Language="1033" 
+             Version="1.0.0" 
+             Manufacturer="Aurxon Technologies" 
+             UpgradeCode="d283c7a9-2d1d-44a5-bdf9-b5fe2cb99b82">
+             
+        <Package InstallerVersion="200" 
+                 Compressed="yes" 
+                 InstallScope="perMachine" 
+                 Description="ALAMS Client and Watchdog Service Installer" />
+
+        <MajorUpgrade DowngradeErrorMessage="A newer version of ALAMS is already installed." />
+        <MediaTemplate EmbedCab="yes" />
+
+        <Feature Id="ProductFeature" Title="ALAMS Core Installation" Level="1">
+            <ComponentRef Id="CMP_ClientBinaries" />
+            <ComponentRef Id="CMP_WatchdogService" />
+            <ComponentRef Id="CMP_ConfigurationFolders" />
+            <ComponentRef Id="CMP_RegistrySettings" />
+        </Feature>
+
+        <Directory Id="TARGETDIR" Name="SourceDir">
+            <!-- Program Files directory -->
+            <Directory Id="ProgramFilesFolder">
+                <Directory Id="INSTALLFOLDER" Name="ALAMS">
+                    <!-- Installation components -->
+                </Directory>
+            </Directory>
+
+            <!-- Common ProgramData directory for shared config -->
+            <Directory Id="CommonAppDataFolder">
+                <Directory Id="CONFIGFOLDER" Name="ALAMS">
+                    <!-- Config file components -->
+                </Directory>
+            </Directory>
+        </Directory>
+
+        <DirectoryRef Id="INSTALLFOLDER">
+            <!-- ALAMS Client executable component -->
+            <Component Id="CMP_ClientBinaries" Guid="bc8a38a7-5ef4-4d89-9a2e-4b4ea013c7a7">
+                <File Id="FILE_AlamsClientExe" 
+                      Source="$(var.ProjectDir)\client\bin\Release\net8.0-windows\publish\AlamsClient.exe" 
+                      KeyPath="yes" />
+            </Component>
+
+            <!-- ALAMS Watchdog Service executable & Windows Service installer component -->
+            <Component Id="CMP_WatchdogService" Guid="fe34a3a6-89b5-4a6f-b1e7-c104e1bc2a9a">
+                <File Id="FILE_AlamsWatchdogExe" 
+                      Source="$(var.ProjectDir)\watchdog\bin\Release\net8.0\publish\AlamsWatchdog.exe" 
+                      KeyPath="yes" />
+                      
+                <ServiceInstall Id="ServiceInstaller" 
+                                Type="ownProcess" 
+                                Name="AlamsWatchdog" 
+                                DisplayName="ALAMS Anti-bypass Security Watchdog" 
+                                Description="Enforces ALAMS secure student desktop locking by closing Explorer if Client is closed." 
+                                Start="auto" 
+                                ErrorControl="normal">
+                    <ServiceDependency Id="LanmanServer" />
+                </ServiceInstall>
+                
+                <ServiceControl Id="ServiceController" 
+                                Name="AlamsWatchdog" 
+                                Start="install" 
+                                Stop="both" 
+                                Remove="uninstall" 
+                                Wait="yes" />
+            </Component>
+        </DirectoryRef>
+
+        <DirectoryRef Id="CONFIGFOLDER">
+            <!-- Configuration and schemas folder components -->
+            <Component Id="CMP_ConfigurationFolders" Guid="ac93a3a5-102e-405e-a2e6-c114e1bc3a8e">
+                <CreateFolder />
+                <!-- Install default configuration file template -->
+                <File Id="FILE_DefaultConfigJson" 
+                      Source="$(var.ProjectDir)\config\pilot.config.json" 
+                      Name="default_settings.json" />
+            </Component>
+        </DirectoryRef>
+
+        <DirectoryRef Id="TARGETDIR">
+            <!-- Registry keys configuration for student shell replacement -->
+            <Component Id="CMP_RegistrySettings" Guid="dcf2c3b6-d2ef-4c6e-821f-135f5cbb819c">
+                <RegistryKey Root="HKLM" Key="SOFTWARE\ALAMS">
+                    <RegistryValue Type="string" Name="InstallPath" Value="[INSTALLFOLDER]" KeyPath="yes" />
+                    <RegistryValue Type="string" Name="Version" Value="1.0.0" />
+                    <RegistryValue Type="string" Name="Environment" Value="Pilot" />
+                </RegistryKey>
+            </Component>
+        </DirectoryRef>
+
+        <!-- UI Configurations for setup wizard -->
+        <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+        <UIRef Id="WixUI_InstallDir" />
+
+    </Product>
+</Wix>

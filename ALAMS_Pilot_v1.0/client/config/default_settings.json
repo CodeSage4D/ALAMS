@@ -1,0 +1,20 @@
+{
+  "clientVersion": "1.0.0",
+  "window": {
+    "fullscreen": true,
+    "topmost": true,
+    "allowClose": false,
+    "theme": "Dark"
+  },
+  "security": {
+    "killExplorer": true,
+    "blockTaskManager": true,
+    "blockWinKeys": true,
+    "watchdogIntervalMs": 2000
+  },
+  "network": {
+    "connectionTimeoutMs": 5000,
+    "reconnectIntervalMs": 5000,
+    "heartbeatIntervalMs": 30000
+  }
+}
