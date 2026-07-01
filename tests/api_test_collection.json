@@ -1,0 +1,150 @@
+{
+  "name": "ALAMS REST API Collection",
+  "version": "1.0.0",
+  "endpoints": [
+    {
+      "name": "Health Diagnostics",
+      "path": "/health",
+      "method": "GET",
+      "authRequired": false,
+      "expectedStatus": 200,
+      "responseSchema": {
+        "status": "string",
+        "timestamp": "number"
+      }
+    },
+    {
+      "name": "Admin/Faculty Diagnostics Details",
+      "path": "/api/v1/health/diagnostics",
+      "method": "GET",
+      "authRequired": false,
+      "expectedStatus": 200,
+      "responseSchema": {
+        "status": "string",
+        "dbConnected": "boolean",
+        "metrics": "object"
+      }
+    },
+    {
+      "name": "User Login",
+      "path": "/api/v1/auth/login",
+      "method": "POST",
+      "authRequired": false,
+      "expectedStatus": 200,
+      "requestBody": {
+        "enrollmentNumber": "string",
+        "password": "string"
+      },
+      "responseSchema": {
+        "token": "string",
+        "user": {
+          "id": "string",
+          "enrollmentNumber": "string",
+          "fullName": "string",
+          "role": "string"
+        }
+      }
+    },
+    {
+      "name": "Get Dynamic QR Code Token",
+      "path": "/api/v1/client/qr-token",
+      "method": "GET",
+      "authRequired": false,
+      "expectedStatus": 200,
+      "queryParams": {
+        "computerId": "string (UUID)"
+      },
+      "responseSchema": {
+        "token": "string"
+      }
+    },
+    {
+      "name": "Verify Dynamic QR (Mobile)",
+      "path": "/api/v1/mobile/verify-unlock",
+      "method": "POST",
+      "authRequired": true,
+      "role": "STUDENT",
+      "expectedStatus": 200,
+      "requestBody": {
+        "qrToken": "string"
+      },
+      "responseSchema": {
+        "message": "string",
+        "pin": "string (6-digit numeric)",
+        "expiresIn": 60,
+        "classInfo": "object"
+      }
+    },
+    {
+      "name": "Verify One-Time Session PIN (Lockscreen UI)",
+      "path": "/api/v1/client/verify-session-pin",
+      "method": "POST",
+      "authRequired": false,
+      "expectedStatus": 200,
+      "requestBody": {
+        "computerId": "string (UUID)",
+        "oneTimePin": "string (6-digit)"
+      },
+      "responseSchema": {
+        "success": true,
+        "message": "string",
+        "enrollmentNumber": "string",
+        "sessionId": "string (UUID)"
+      }
+    },
+    {
+      "name": "Resilient Local PIN Fallback Auth",
+      "path": "/api/v1/client/fallback-auth",
+      "method": "POST",
+      "authRequired": false,
+      "expectedStatus": 200,
+      "requestBody": {
+        "enrollmentNumber": "string",
+        "pin": "string (6-digit)",
+        "computerId": "string (UUID)"
+      },
+      "responseSchema": {
+        "success": true,
+        "message": "string",
+        "sessionId": "string (UUID)"
+      }
+    },
+    {
+      "name": "Session Logout",
+      "path": "/api/v1/client/logout",
+      "method": "POST",
+      "authRequired": false,
+      "expectedStatus": 200,
+      "requestBody": {
+        "sessionId": "string (UUID)",
+        "computerId": "string (UUID)"
+      },
+      "responseSchema": {
+        "message": "string"
+      }
+    },
+    {
+      "name": "Watchdog Security Heartbeat",
+      "path": "/api/v1/client/watchdog-heartbeat",
+      "method": "POST",
+      "authRequired": false,
+      "expectedStatus": 200,
+      "requestBody": {
+        "computerId": "string (UUID)"
+      }
+    },
+    {
+      "name": "Watchdog Security Alert Dispatcher",
+      "path": "/api/v1/client/watchdog-alert",
+      "method": "POST",
+      "authRequired": false,
+      "expectedStatus": 200,
+      "requestBody": {
+        "computerId": "string (UUID)",
+        "alertType": "string",
+        "severity": "string",
+        "details": "string"
+      }
+    }
+  ]
+}
