@@ -71,7 +71,7 @@ xcopy /y "%~dp0\..\tests\checklists.md" "%PKG_DIR%\pilot\"
 xcopy /y "%~dp0\..\tests\api_test_collection.json" "%PKG_DIR%\pilot\"
 
 echo [ALAMS PACKAGER] Copying documentation manuals...
-xcopy /y "%~dp0\..\docs\*.md" "%PKG_DIR%\documentation\"
+xcopy /y "%~dp0\..\docs\markdown\*.md" "%PKG_DIR%\documentation\"
 
 echo =============================================================================
 echo [OK] ALAMS_Pilot_v1.0 package generated successfully at:
