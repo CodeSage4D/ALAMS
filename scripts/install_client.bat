@@ -8,6 +8,7 @@ REM Run check for administrator privileges
 net session >nul 2>&1
 if %ERRORLEVEL% neq 0 (
     echo [ERROR] This installer must be executed as an ADMINISTRATOR.
+    pause
     exit /b 1
 )
 
@@ -31,7 +32,9 @@ echo }>> "%CONFIG_DIR%\config.json"
 
 REM Copy binaries
 echo [ALAMS CLIENT INSTALL] Copying binaries to: %INSTALL_DIR%
-if exist "%~dp0\..\client\bin\Release\net8.0-windows\publish\AlamsClient.exe" (
+if exist "%~dp0AlamsClient.exe" (
+    copy /y "%~dp0AlamsClient.exe" "%INSTALL_DIR%\"
+) else if exist "%~dp0\..\client\bin\Release\net8.0-windows\publish\AlamsClient.exe" (
     copy /y "%~dp0\..\client\bin\Release\net8.0-windows\publish\AlamsClient.exe" "%INSTALL_DIR%\"
 ) else if exist "%~dp0\..\client\bin\Debug\net8.0-windows\AlamsClient.exe" (
     copy /y "%~dp0\..\client\bin\Debug\net8.0-windows\AlamsClient.exe" "%INSTALL_DIR%\"
@@ -39,7 +42,9 @@ if exist "%~dp0\..\client\bin\Release\net8.0-windows\publish\AlamsClient.exe" (
     echo [WARN] Compiled AlamsClient release build not found. Copied files must be configured manually.
 )
 
-if exist "%~dp0\..\watchdog\bin\Release\net8.0\publish\AlamsWatchdog.exe" (
+if exist "%~dp0AlamsWatchdog.exe" (
+    copy /y "%~dp0AlamsWatchdog.exe" "%INSTALL_DIR%\"
+) else if exist "%~dp0\..\watchdog\bin\Release\net8.0\publish\AlamsWatchdog.exe" (
     copy /y "%~dp0\..\watchdog\bin\Release\net8.0\publish\AlamsWatchdog.exe" "%INSTALL_DIR%\"
 ) else if exist "%~dp0\..\watchdog\bin\Debug\net8.0\AlamsWatchdog.exe" (
     copy /y "%~dp0\..\watchdog\bin\Debug\net8.0\AlamsWatchdog.exe" "%INSTALL_DIR%\"
@@ -65,7 +70,10 @@ if exist "%INSTALL_DIR%\AlamsWatchdog.exe" (
 )
 
 REM Run shell enrollment script
-if exist "%~dp0\..\EnrollShell.ps1" (
+if exist "%~dp0EnrollShell.ps1" (
+    echo [ALAMS CLIENT INSTALL] Executing user shell enrollment...
+    powershell -ExecutionPolicy Bypass -File "%~dp0EnrollShell.ps1" -AlamsClientPath "%INSTALL_DIR%\AlamsClient.exe"
+) else if exist "%~dp0\..\EnrollShell.ps1" (
     echo [ALAMS CLIENT INSTALL] Executing user shell enrollment...
     powershell -ExecutionPolicy Bypass -File "%~dp0\..\EnrollShell.ps1" -AlamsClientPath "%INSTALL_DIR%\AlamsClient.exe"
 ) else (
@@ -73,4 +81,5 @@ if exist "%~dp0\..\EnrollShell.ps1" (
 )
 
 echo [OK] Client installation completed.
+pause
 exit /b 0

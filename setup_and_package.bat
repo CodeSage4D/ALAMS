@@ -112,6 +112,18 @@ if %BUILD_CLIENT_FLAG%==1 (
         pause
         exit /b 1
     )
+
+    echo [BUILD] Publishing Bootstrap Installer...
+    cd /d "%~dp0installer\bootstrap"
+    call dotnet publish AlamsBootstrap.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o "%~dp0installer"
+    if !ERRORLEVEL! neq 0 (
+        echo [ERROR] Bootstrap Installer build failed!
+        pause
+        exit /b 1
+    )
+    if exist "%~dp0installer\AlamsBootstrap.exe" (
+        move /y "%~dp0installer\AlamsBootstrap.exe" "%~dp0installer\bootstrap_installer.exe" >nul
+    )
 )
 
 echo =============================================================================
