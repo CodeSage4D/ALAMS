@@ -156,22 +156,54 @@ export default function AdminLogin() {
                 <Database size={14} className="text-indigo-400" />
                 <span>Select Seeded Admin to Autofill:</span>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
                 <button
                   type="button"
                   onClick={() => handleAutofill("karan.mishra@suas.ac.in", "Pilot@2026!")}
-                  className="p-2.5 rounded-xl bg-slate-900 hover:bg-indigo-950/20 border border-slate-800 hover:border-indigo-500/30 text-left text-white transition-all"
+                  className="p-2 rounded-xl bg-slate-900 hover:bg-indigo-950/20 border border-slate-800 hover:border-indigo-500/30 text-left text-white transition-all"
                 >
-                  <div className="font-bold">Karan Mishra</div>
-                  <div className="text-[10px] text-slate-400">Admin</div>
+                  <div className="font-bold text-slate-200">Karan M.</div>
+                  <div className="text-[9px] text-slate-500">Admin</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAutofill("nitin.panchal@suas.ac.in", "Pilot@2026!")}
+                  className="p-2 rounded-xl bg-slate-900 hover:bg-indigo-950/20 border border-slate-800 hover:border-indigo-500/30 text-left text-white transition-all"
+                >
+                  <div className="font-bold text-slate-200">Nitin P.</div>
+                  <div className="text-[9px] text-slate-500">Admin</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAutofill("prashant.patil@suas.ac.in", "Pilot@2026!")}
+                  className="p-2 rounded-xl bg-slate-900 hover:bg-indigo-950/20 border border-slate-800 hover:border-indigo-500/30 text-left text-white transition-all"
+                >
+                  <div className="font-bold text-slate-200">Prashant P.</div>
+                  <div className="text-[9px] text-slate-500">Admin</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAutofill("mrityunjay@suas.ac.in", "Pilot@2026!")}
+                  className="p-2 rounded-xl bg-slate-900 hover:bg-indigo-950/20 border border-slate-800 hover:border-indigo-500/30 text-left text-white transition-all"
+                >
+                  <div className="font-bold text-slate-200">Mrityunjay</div>
+                  <div className="text-[9px] text-slate-500">Admin</div>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleAutofill("monark.riakwar@suas.ac.in", "Pilot@2026!")}
-                  className="p-2.5 rounded-xl bg-slate-900 hover:bg-indigo-950/20 border border-slate-800 hover:border-indigo-500/30 text-left text-white transition-all"
+                  className="p-2 rounded-xl bg-slate-900 hover:bg-indigo-950/20 border border-slate-800 hover:border-indigo-500/30 text-left text-white transition-all"
                 >
-                  <div className="font-bold">Monark Riakwar</div>
-                  <div className="text-[10px] text-slate-400">Supervisor</div>
+                  <div className="font-bold text-slate-200">Monark R.</div>
+                  <div className="text-[9px] text-slate-500">Supervisor</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAutofill("salman.khan@suas.ac.in", "Pilot@2026!")}
+                  className="p-2 rounded-xl bg-slate-900 hover:bg-indigo-950/20 border border-slate-800 hover:border-indigo-500/30 text-left text-white transition-all"
+                >
+                  <div className="font-bold text-slate-200">Salman K.</div>
+                  <div className="text-[9px] text-slate-500">Supervisor</div>
                 </button>
               </div>
             </div>

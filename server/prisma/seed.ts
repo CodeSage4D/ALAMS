@@ -74,6 +74,7 @@ async function main() {
     { email: "karan.mishra@suas.ac.in", name: "Karan Mishra", role: Role.ADMIN },
     { email: "nitin.panchal@suas.ac.in", name: "Nitin Panchal", role: Role.ADMIN },
     { email: "prashant.patil@suas.ac.in", name: "Prashant Patil", role: Role.ADMIN },
+    { email: "mrityunjay@suas.ac.in", name: "Mrityunjay", role: Role.ADMIN },
     { email: "monark.riakwar@suas.ac.in", name: "Monark Riakwar", role: Role.SUPERVISOR },
     { email: "salman.khan@suas.ac.in", name: "Salman Khan", role: Role.SUPERVISOR },
     { email: "faculty.member@suas.ac.in", name: "Dr. Faculty Member", role: Role.FACULTY }
