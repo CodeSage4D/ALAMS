@@ -37,7 +37,7 @@
             <!-- Header -->
             <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
                 <Border Width="16" Height="16" CornerRadius="4" Background="#10B981" Margin="0,0,12,0" VerticalAlignment="Center"/>
-                <TextBlock Text="AURXON LABS" Foreground="#FFFFFF" FontSize="20" FontWeight="Bold" LetterSpacing="2"/>
+                <TextBlock Text="AURXON LABS" Foreground="#FFFFFF" FontSize="20" FontWeight="Bold"/>
                 <TextBlock Text="|" Foreground="#374151" FontSize="20" Margin="15,0" VerticalAlignment="Center"/>
                 <TextBlock Text="ACCESS PORTAL" Foreground="#9CA3AF" FontSize="18" FontWeight="Medium" VerticalAlignment="Center"/>
             </StackPanel>
@@ -108,13 +108,13 @@
                             <TextBlock Text="Access computer via local account PIN credentials" Foreground="#9CA3AF" FontSize="15" Margin="0,5,0,30"/>
 
                             <!-- Enrollment Number Input -->
-                            <TextBlock Text="ENROLLMENT NUMBER" Foreground="#9CA3AF" FontSize="12" FontWeight="Bold" LetterSpacing="1" Margin="0,0,0,8"/>
+                            <TextBlock Text="ENROLLMENT NUMBER" Foreground="#9CA3AF" FontSize="12" FontWeight="Bold" Margin="0,0,0,8"/>
                             <Border Background="#1F2937" CornerRadius="8" Padding="12,4" BorderBrush="#374151" BorderThickness="1" Margin="0,0,0,20">
                                 <TextBox x:Name="EnrollmentInput" Background="Transparent" Foreground="#FFFFFF" BorderThickness="0" FontSize="18" VerticalAlignment="Center"/>
                             </Border>
 
                             <!-- PIN Input -->
-                            <TextBlock Text="6-DIGIT PASSCODE / PIN" Foreground="#9CA3AF" FontSize="12" FontWeight="Bold" LetterSpacing="1" Margin="0,0,0,8"/>
+                            <TextBlock Text="6-DIGIT PASSCODE / PIN" Foreground="#9CA3AF" FontSize="12" FontWeight="Bold" Margin="0,0,0,8"/>
                             <Border Background="#1F2937" CornerRadius="8" Padding="12,4" BorderBrush="#374151" BorderThickness="1" Margin="0,0,0,30">
                                 <PasswordBox x:Name="PinInput" Background="Transparent" Foreground="#FFFFFF" BorderThickness="0" FontSize="18" VerticalAlignment="Center" MaxLength="6"/>
                             </Border>

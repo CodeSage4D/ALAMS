@@ -163,6 +163,38 @@ namespace AlamsClient
             }
         }
 
+        private string GetServiceStatus(string serviceName)
+        {
+            try
+            {
+                using (var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey($@"SYSTEM\CurrentControlSet\Services\{serviceName}"))
+                {
+                    if (key == null) return "Not Registered";
+                    var process = new System.Diagnostics.Process
+                    {
+                        StartInfo = new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = "sc.exe",
+                            Arguments = $"query {serviceName}",
+                            RedirectStandardOutput = true,
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        }
+                    };
+                    process.Start();
+                    string output = process.StandardOutput.ReadToEnd();
+                    process.WaitForExit();
+                    if (output.Contains("RUNNING")) return "RUNNING";
+                    if (output.Contains("STOPPED")) return "STOPPED";
+                    return "UNKNOWN";
+                }
+            }
+            catch
+            {
+                return "ERROR";
+            }
+        }
+
         private string GetWmiProperty(string wmiClass, string propertyName)
         {
             try
@@ -767,9 +799,10 @@ namespace AlamsClient
             {
                 if (online)
                 {
-                    NetworkIndicator.Fill = System.Windows.Media.Brushes.Emerald;
+                    var emeraldBrush = (System.Windows.Media.SolidColorBrush)new System.Windows.Media.BrushConverter().ConvertFromString("#10B981");
+                    NetworkIndicator.Fill = emeraldBrush;
                     NetworkStatusText.Text = "ONLINE";
-                    NetworkStatusText.Foreground = System.Windows.Media.Brushes.Emerald;
+                    NetworkStatusText.Foreground = emeraldBrush;
                 }
                 else
                 {

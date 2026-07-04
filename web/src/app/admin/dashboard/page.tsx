@@ -64,6 +64,8 @@ interface SecurityAlert {
   computer?: { pcNumber: string; deviceName: string };
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || API_URL;
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [adminUser, setAdminUser] = useState<any>(null);
@@ -123,13 +125,13 @@ export default function AdminDashboard() {
 
         // Concurrent fetching
         const [labsRes, pcRes, pendingRes, studRes, attRes, alertRes, analyticsRes] = await Promise.all([
-          fetch("http://localhost:5000/api/v1/admin/labs", { headers }),
-          fetch("http://localhost:5000/api/v1/admin/computers", { headers }),
-          fetch("http://localhost:5000/api/v1/admin/computers/pending", { headers }),
-          fetch("http://localhost:5000/api/v1/admin/students", { headers }),
-          fetch("http://localhost:5000/api/v1/admin/reports/attendance", { headers }),
-          fetch("http://localhost:5000/api/v1/admin/logs/security", { headers }),
-          fetch("http://localhost:5000/api/v1/admin/analytics/pilot", { headers }),
+          fetch(API_URL + "/api/v1/admin/labs", { headers }),
+          fetch(API_URL + "/api/v1/admin/computers", { headers }),
+          fetch(API_URL + "/api/v1/admin/computers/pending", { headers }),
+          fetch(API_URL + "/api/v1/admin/students", { headers }),
+          fetch(API_URL + "/api/v1/admin/reports/attendance", { headers }),
+          fetch(API_URL + "/api/v1/admin/logs/security", { headers }),
+          fetch(API_URL + "/api/v1/admin/analytics/pilot", { headers }),
         ]);
 
         if (labsRes.ok) setLabs(await labsRes.json());
@@ -166,7 +168,7 @@ export default function AdminDashboard() {
     setActionLoading(computerId);
     try {
       const token = localStorage.getItem("admin_token");
-      const res = await fetch("http://localhost:5000/api/v1/admin/computers/remote-unlock", {
+      const res = await fetch(API_URL + "/api/v1/admin/computers/remote-unlock", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -192,7 +194,7 @@ export default function AdminDashboard() {
     setActionLoading(computerId);
     try {
       const token = localStorage.getItem("admin_token");
-      const res = await fetch("http://localhost:5000/api/v1/admin/computers/remote-lock", {
+      const res = await fetch(API_URL + "/api/v1/admin/computers/remote-lock", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -216,7 +218,7 @@ export default function AdminDashboard() {
   const handleToggleStudent = async (studentId: string, currentStatus: boolean) => {
     try {
       const token = localStorage.getItem("admin_token");
-      const res = await fetch(`http://localhost:5000/api/v1/admin/students/${studentId}/status`, {
+      const res = await fetch(`${API_URL}/api/v1/admin/students/${studentId}/status`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -238,7 +240,7 @@ export default function AdminDashboard() {
   const handleToggleFallback = async (computerId: string, currentStatus: boolean) => {
     try {
       const token = localStorage.getItem("admin_token");
-      const res = await fetch(`http://localhost:5000/api/v1/admin/computers/${computerId}/fallback`, {
+      const res = await fetch(`${API_URL}/api/v1/admin/computers/${computerId}/fallback`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -263,7 +265,7 @@ export default function AdminDashboard() {
 
     try {
       const token = localStorage.getItem("admin_token");
-      const res = await fetch("http://localhost:5000/api/v1/admin/labs", {
+      const res = await fetch(API_URL + "/api/v1/admin/labs", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -292,7 +294,7 @@ export default function AdminDashboard() {
 
     try {
       const token = localStorage.getItem("admin_token");
-      const res = await fetch("http://localhost:5000/api/v1/admin/computers", {
+      const res = await fetch(API_URL + "/api/v1/admin/computers", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -331,7 +333,7 @@ export default function AdminDashboard() {
     }
 
     try {
-      const res = await fetch("http://localhost:5000/api/v1/auth/signup", {
+      const res = await fetch(API_URL + "/api/v1/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -362,7 +364,7 @@ export default function AdminDashboard() {
   const handleResolveAlert = async (alertId: string) => {
     try {
       const token = localStorage.getItem("admin_token");
-      const res = await fetch(`http://localhost:5000/api/v1/admin/logs/security/${alertId}/resolve`, {
+      const res = await fetch(`${API_URL}/api/v1/admin/logs/security/${alertId}/resolve`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -388,7 +390,7 @@ export default function AdminDashboard() {
 
     try {
       const token = localStorage.getItem("admin_token");
-      const res = await fetch("http://localhost:5000/api/v1/admin/computers/approve", {
+      const res = await fetch(API_URL + "/api/v1/admin/computers/approve", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -412,7 +414,7 @@ export default function AdminDashboard() {
   const handleUpdateComputerStatus = async (computerId: string, status: string) => {
     try {
       const token = localStorage.getItem("admin_token");
-      const res = await fetch(`http://localhost:5000/api/v1/admin/computers/${computerId}/status`, {
+      const res = await fetch(`${API_URL}/api/v1/admin/computers/${computerId}/status`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -689,7 +691,7 @@ export default function AdminDashboard() {
                           const labSel = document.getElementById("faculty_lab_select") as HTMLSelectElement;
                           const token = localStorage.getItem("admin_token");
                           try {
-                            const res = await fetch("http://localhost:5000/api/v1/admin/reports/start-practical", {
+                            const res = await fetch(API_URL + "/api/v1/admin/reports/start-practical", {
                               method: "POST",
                               headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
                               body: JSON.stringify({ subjectId: subSel?.value, labId: labSel?.value }),
@@ -709,7 +711,7 @@ export default function AdminDashboard() {
                           const labSel = document.getElementById("faculty_lab_select") as HTMLSelectElement;
                           const token = localStorage.getItem("admin_token");
                           try {
-                            const res = await fetch("http://localhost:5000/api/v1/admin/reports/end-practical", {
+                            const res = await fetch(API_URL + "/api/v1/admin/reports/end-practical", {
                               method: "POST",
                               headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
                               body: JSON.stringify({ subjectId: subSel?.value, labId: labSel?.value }),
@@ -733,7 +735,7 @@ export default function AdminDashboard() {
                           if (!confirm("Are you sure you want to broadcast LOCK command to ALL online terminals?")) return;
                           const token = localStorage.getItem("admin_token");
                           try {
-                            const res = await fetch("http://localhost:5000/api/v1/admin/computers/remote-lock-all", {
+                            const res = await fetch(API_URL + "/api/v1/admin/computers/remote-lock-all", {
                               method: "POST",
                               headers: { Authorization: `Bearer ${token}` },
                             });
@@ -754,7 +756,7 @@ export default function AdminDashboard() {
                           if (!confirm("Are you sure you want to FORCE LOGOUT all active student sessions?")) return;
                           const token = localStorage.getItem("admin_token");
                           try {
-                            const res = await fetch("http://localhost:5000/api/v1/admin/computers/remote-end-all", {
+                            const res = await fetch(API_URL + "/api/v1/admin/computers/remote-end-all", {
                               method: "POST",
                               headers: { Authorization: `Bearer ${token}` },
                             });
