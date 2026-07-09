@@ -122,9 +122,9 @@ On the same server machine (or another system running on the LAN):
     ```powershell
     copy .env.local.example .env.local
     ```
-3.  Open [web/.env.local](file:///d:/Project%20Data%20Aurxon/ALAMS/web/.env.local) and verify the API URL matches your central server LAN IP (e.g. `10.0.3.5` or `localhost` if local):
+3.  Open [web/.env.local](file:///d:/Project%20Data%20Aurxon/ALAMS/web/.env.local) and verify the API URL matches your central server LAN IP (e.g. `192.168.128.73` or `localhost` if local):
     ```env
-    NEXT_PUBLIC_API_URL="http://10.0.3.5:5000"
+    NEXT_PUBLIC_API_URL="http://192.168.128.73:5000"
     ```
 4.  Compile and start the Next.js production server:
     ```powershell
@@ -156,8 +156,8 @@ Before heading to the workstations, build the binaries on your personal PC:
 2.  Open PowerShell as **Administrator** on the workstation.
 3.  Execute the installation script, specifying the Server API IP:
     ```powershell
-    # Replace 10.0.3.5 with your actual server machine IP
-    .\scripts\install_client.bat "http://10.0.3.5:5000"
+    # Replace 192.168.128.73 with your actual server machine IP
+    .\scripts\install_client.bat "http://192.168.128.73:5000"
     ```
     *This creates directories inside Program Files and ProgramData, registers the background watchdog service, and executes the user registry shell hook.*
 

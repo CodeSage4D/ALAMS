@@ -29,6 +29,10 @@ import {
   startPractical,
   endPractical,
   getDiagnostics,
+  queueRemoteCommand,
+  createGpoPolicy,
+  getGpoPolicies,
+  deleteGpoPolicy,
 } from "./controllers/adminController";
 import {
   getQRToken,
@@ -39,10 +43,13 @@ import {
   watchdogHeartbeat,
   watchdogAlert,
   getStudentAttendance,
+  registerAndUnlock,
+  dispatchTelemetry,
 } from "./controllers/clientController";
 import { getPilotAnalytics, recordFailedLogin } from "./controllers/analyticsController";
 import { authenticateJWT, authorizeRoles } from "./middleware/auth";
 import { initWebSocketServer, requestDiagnosticsFromClient } from "./websocket";
+import { startUdpBeacon } from "./utils/udpBeacon";
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -71,7 +78,7 @@ app.set("trust proxy", 1);
 
 // Public API
 app.get("/health", (req, res) => res.json({ status: "healthy", timestamp: Date.now() }));
-app.get("/api/v1/health/diagnostics", getDiagnostics);
+app.get("/api/v1/health/diagnostics", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR"), getDiagnostics);
 
 // Authentication API
 app.post("/api/v1/auth/signup", signup);
@@ -95,8 +102,12 @@ app.put("/api/v1/admin/computers/:id/status", authenticateJWT, authorizeRoles("A
 app.put("/api/v1/admin/computers/:id/fallback", authenticateJWT, authorizeRoles("ADMIN"), toggleFallback);
 app.post("/api/v1/admin/computers/remote-unlock", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR", "FACULTY"), remoteUnlock);
 app.post("/api/v1/admin/computers/remote-lock", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR", "FACULTY"), remoteLock);
+app.post("/api/v1/admin/computers/:id/command", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR", "FACULTY"), queueRemoteCommand);
 app.post("/api/v1/admin/computers/remote-lock-all", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR", "FACULTY"), lockAllWorkstations);
 app.post("/api/v1/admin/computers/remote-end-all", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR", "FACULTY"), endAllSessions);
+app.post("/api/v1/admin/profiles/:id/policies", authenticateJWT, authorizeRoles("ADMIN"), createGpoPolicy);
+app.get("/api/v1/admin/profiles/:id/policies", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR", "FACULTY"), getGpoPolicies);
+app.delete("/api/v1/admin/policies/:id", authenticateJWT, authorizeRoles("ADMIN"), deleteGpoPolicy);
 app.get("/api/v1/admin/computers/:id/diagnostics", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR"), async (req, res) => {
   const { id } = req.params;
   try {
@@ -122,6 +133,7 @@ app.post("/api/v1/client/logout", clientLogout);
 app.post("/api/v1/client/verify-session-pin", verifySessionPIN);
 app.post("/api/v1/client/watchdog-heartbeat", watchdogHeartbeat);
 app.post("/api/v1/client/watchdog-alert", watchdogAlert);
+app.post("/api/v1/client/telemetry", dispatchTelemetry);
 app.post("/api/v1/client/failed-login", recordFailedLogin);
 
 // Analytics / Reporting APIs
@@ -129,6 +141,7 @@ app.get("/api/v1/admin/analytics/pilot", authenticateJWT, authorizeRoles("ADMIN"
 
 // Mobile Verification API
 app.post("/api/v1/mobile/verify-unlock", authenticateJWT, verifyMobileUnlock);
+app.post("/api/v1/mobile/register-and-unlock", registerAndUnlock);
 
 // Student Portal API (read-only — student can only see their own data)
 app.get("/api/v1/student/attendance", authenticateJWT, authorizeRoles("STUDENT", "ADMIN", "SUPERVISOR", "FACULTY"), getStudentAttendance);
@@ -141,4 +154,6 @@ server.listen(port, () => {
   console.log(`====================================================`);
   console.log(`[ALAMS SERVER] Operating at http://localhost:${port}`);
   console.log(`====================================================`);
+  // Start UDP Discovery Beacon
+  startUdpBeacon(port);
 });

@@ -13,13 +13,13 @@ if %ERRORLEVEL% neq 0 (
 set INSTALL_DIR=C:\Program Files\ALAMS
 set CONFIG_DIR=C:\ProgramData\ALAMS
 
-REM Stop and delete AlamsWatchdog service
-sc query AlamsWatchdog >nul 2>nul
+REM Stop and delete AlamsDaemon service
+sc query AlamsDaemon >nul 2>nul
 if %ERRORLEVEL% equ 0 (
-    echo [ALAMS CLIENT UNINSTALL] Stopping and deleting AlamsWatchdog service...
-    net stop AlamsWatchdog >nul 2>nul
-    sc delete AlamsWatchdog >nul 2>nul
-    echo [OK] Watchdog service removed.
+    echo [ALAMS CLIENT UNINSTALL] Stopping and deleting AlamsDaemon service...
+    net stop AlamsDaemon >nul 2>nul
+    sc delete AlamsDaemon >nul 2>nul
+    echo [OK] Daemon service removed.
 )
 
 REM Restore Windows shell

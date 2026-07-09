@@ -29,6 +29,10 @@ interface Computer {
   labId: string;
   lastSeen?: string;
   watchdogHeartbeat?: string | null;
+  cpuUsage?: number | null;
+  ramUsage?: number | null;
+  loggedStudent?: string | null;
+  policyStatus?: string | null;
 }
 
 interface Student {
@@ -64,7 +68,7 @@ interface SecurityAlert {
   computer?: { pcNumber: string; deviceName: string };
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || API_URL;
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -881,6 +885,16 @@ export default function AdminDashboard() {
                             <div className="flex justify-between text-gray-500">
                               <span>IP Allocation:</span>
                               <span className="text-gray-300 font-semibold">{pc.ipAddress}</span>
+                            </div>
+                            <div className="flex justify-between text-gray-500">
+                              <span>Active User:</span>
+                              <span className="text-gray-300 font-semibold truncate max-w-[120px]" title={pc.loggedStudent || "None"}>{pc.loggedStudent || "None"}</span>
+                            </div>
+                            <div className="flex justify-between text-gray-500">
+                              <span>CPU / RAM:</span>
+                              <span className="text-gray-300 font-semibold">
+                                {pc.cpuUsage !== undefined && pc.cpuUsage !== null ? `${pc.cpuUsage.toFixed(0)}%` : "—"} / {pc.ramUsage !== undefined && pc.ramUsage !== null ? `${pc.ramUsage.toFixed(0)}%` : "—"}
+                              </span>
                             </div>
                             <div className="flex justify-between text-gray-500">
                               <span>Local Fallback:</span>

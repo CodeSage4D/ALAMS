@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import prisma from "../prisma";
-import { generateQRToken, verifyQRToken, compareValue } from "../utils/crypto";
+import { generateQRToken, verifyQRToken, compareValue, hashValue } from "../utils/crypto";
 import { unlockComputer } from "../websocket";
 import { AuthenticatedRequest } from "../middleware/auth";
 
@@ -174,6 +174,29 @@ export async function verifySessionPIN(req: Request, res: Response) {
   }
 
   try {
+    // Brute force check: count failed PIN verification attempts in the last 5 minutes
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const failedAttemptsCount = await prisma.securityAlert.count({
+      where: {
+        computerId,
+        alertType: "failed_pin_verification",
+        alertTime: { gte: fiveMinutesAgo },
+        resolved: false,
+      },
+    });
+
+    if (failedAttemptsCount >= 3) {
+      await prisma.securityAlert.create({
+        data: {
+          computerId,
+          alertType: "brute_force_pin_lockout",
+          alertSeverity: "CRITICAL",
+          details: `Brute force lockout: Workstation PIN verification locked due to ${failedAttemptsCount} failed attempts.`,
+        },
+      });
+      return res.status(429).json({ error: "Workstation is locked due to too many failed PIN entry attempts. Please contact administrative staff." });
+    }
+
     // Find pending session
     const session = await prisma.session.findFirst({
       where: {
@@ -309,14 +332,81 @@ export async function verifyLocalPINAuth(req: Request, res: Response) {
       return res.status(403).json({ error: "PIN fallback authentication is disabled for this computer" });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { enrollmentNumber },
+    // Find student (support both enrollment ID and email format)
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { enrollmentNumber: enrollmentNumber },
+          { enrollmentNumber: enrollmentNumber.split("@")[0] }
+        ]
+      }
     });
 
     if (!user || !user.isActive) {
       return res.status(401).json({ error: "Invalid enrollment or inactive account" });
     }
 
+    // ── CHECK 1: Dynamic Session PIN ──
+    const pendingSession = await prisma.session.findFirst({
+      where: {
+        computerId,
+        userId: user.id,
+        status: "PENDING",
+        oneTimePin: pin,
+        pinExpiresAt: { gte: new Date() }
+      }
+    });
+
+    if (pendingSession) {
+      const now = new Date();
+      await prisma.session.update({
+        where: { id: pendingSession.id },
+        data: {
+          status: "ACTIVE",
+          oneTimePin: null,
+          pinExpiresAt: null,
+          loginTime: now
+        }
+      });
+
+      await prisma.attendance.create({
+        data: {
+          userId: user.id,
+          sessionId: pendingSession.id,
+          status: AttendanceStatus.PRESENT,
+          checkIn: now,
+          subjectId: pendingSession.subjectId,
+          facultyId: pendingSession.facultyId
+        }
+      });
+
+      await prisma.computer.update({
+        where: { id: computerId },
+        data: { status: "ACTIVE" }
+      });
+
+      unlockComputer(computerId, user.enrollmentNumber);
+
+      await prisma.auditLog.create({
+        data: {
+          action: "STUDENT_LOGIN",
+          userId: user.id,
+          computerId,
+          details: `Student ${user.enrollmentNumber} unlocked workstation ${computer.deviceName} via QR-PIN entry`
+        }
+      });
+
+      return res.json({
+        message: "Workstation unlocked successfully",
+        user: {
+          fullName: user.fullName,
+          enrollmentNumber: user.enrollmentNumber,
+        },
+        sessionId: pendingSession.id
+      });
+    }
+
+    // ── CHECK 2: Permanent PIN Fallback ──
     const isPinValid = await compareValue(pin, user.pinHash);
 
     if (!isPinValid) {
@@ -615,5 +705,169 @@ export async function getStudentAttendance(req: AuthenticatedRequest, res: Respo
   } catch (err: any) {
     console.error("getStudentAttendance error:", err);
     return res.status(500).json({ error: "Failed to load attendance records" });
+  }
+}
+
+export async function registerAndUnlock(req: Request, res: Response) {
+  const { qrToken, fullName, email, enrollmentNumber } = req.body;
+
+  if (!qrToken || !fullName || !email || !enrollmentNumber) {
+    return res.status(400).json({ error: "All parameters are required (qrToken, fullName, email, enrollmentNumber)" });
+  }
+
+  // Enforce SUAS email domain validation
+  if (!email.endsWith("@suas.ac.in")) {
+    return res.status(400).json({ error: "Only SUAS email addresses (@suas.ac.in) are permitted." });
+  }
+
+  try {
+    // 1. Verify dynamic QR token
+    let payload;
+    try {
+      payload = verifyQRToken(qrToken);
+    } catch (e: any) {
+      return res.status(400).json({ error: "QR Code expired or invalid. Please scan again." });
+    }
+
+    const { computerId } = payload;
+
+    // 2. Fetch computer
+    const computer = await prisma.computer.findUnique({
+      where: { id: computerId },
+      include: { lab: true },
+    });
+
+    if (!computer) {
+      return res.status(404).json({ error: "Workstation not registered" });
+    }
+
+    // 3. Find or Create User
+    let user = await prisma.user.findUnique({
+      where: { enrollmentNumber },
+    });
+
+    if (!user) {
+      // Find by email just in case
+      user = await prisma.user.findFirst({
+        where: { enrollmentNumber: email },
+      });
+    }
+
+    if (!user) {
+      // Auto-register student on-the-fly
+      const tempPass = Math.random().toString(36).substring(2, 10);
+      const tempPin = Math.floor(100000 + Math.random() * 900000).toString();
+      const passwordHash = await hashValue(tempPass);
+      const pinHash = await hashValue(tempPin);
+
+      user = await prisma.user.create({
+        data: {
+          enrollmentNumber,
+          fullName,
+          passwordHash,
+          pinHash,
+          role: "STUDENT",
+          isActive: true,
+          mustChangePassword: false,
+        },
+      });
+
+      console.log(`[AUTH] Auto-registered new student user: ${enrollmentNumber}`);
+    } else {
+      // Update full name if it's different
+      if (user.fullName !== fullName) {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { fullName },
+        });
+      }
+    }
+
+    // 4. Ensure student does not have another active session elsewhere
+    const activeStudentSession = await prisma.session.findFirst({
+      where: {
+        userId: user.id,
+        status: "ACTIVE",
+      },
+    });
+
+    if (activeStudentSession) {
+      return res.status(400).json({
+        error: "Active session already detected on another workstation.",
+      });
+    }
+
+    // 5. Determine active timetable slot
+    const now = new Date();
+    const currentDay = now.getDay();
+    const currentHours = String(now.getHours()).padStart(2, "0");
+    const currentMinutes = String(now.getMinutes()).padStart(2, "0");
+    const currentTime = `${currentHours}:${currentMinutes}`;
+
+    const slot = await prisma.timetableSlot.findFirst({
+      where: {
+        labId: computer.labId,
+        dayOfWeek: currentDay,
+        startTime: { lte: currentTime },
+        endTime: { gte: currentTime },
+      },
+    });
+
+    // 6. Generate 60-second session PIN
+    const oneTimePin = Math.floor(100000 + Math.random() * 900000).toString();
+    const pinExpiresAt = new Date(Date.now() + 60000);
+
+    // Create session in PENDING state
+    await prisma.session.create({
+      data: {
+        userId: user.id,
+        computerId: computer.id,
+        verificationMethod: "QR_CODE",
+        status: "PENDING",
+        oneTimePin,
+        pinExpiresAt,
+        subjectId: slot?.subjectId ?? null,
+        facultyId: slot?.facultyId ?? null,
+        timetableSlotId: slot?.id ?? null,
+      },
+    });
+
+    return res.json({
+      success: true,
+      message: "Student registration matched. Session PIN generated.",
+      pin: oneTimePin,
+      expiresInSeconds: 60,
+      labName: computer.lab?.name || "SUAS Lab",
+      pcNumber: computer.pcNumber,
+    });
+  } catch (err: any) {
+    console.error("registerAndUnlock error:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function dispatchTelemetry(req: Request, res: Response) {
+  const { computerId, cpuUsage, ramUsage, loggedStudent, policyStatus, installedVersion } = req.body;
+
+  if (!computerId) {
+    return res.status(400).json({ error: "Computer ID required" });
+  }
+
+  try {
+    const pc = await prisma.computer.update({
+      where: { id: computerId },
+      data: {
+        cpuUsage: cpuUsage !== undefined ? parseFloat(cpuUsage) : null,
+        ramUsage: ramUsage !== undefined ? parseFloat(ramUsage) : null,
+        loggedStudent: loggedStudent || null,
+        policyStatus: policyStatus || null,
+        installedVersion: installedVersion || null,
+        lastTelemetry: new Date(),
+      },
+    });
+
+    return res.json({ status: "success", lastTelemetry: pc.lastTelemetry });
+  } catch (err: any) {
+    return res.status(404).json({ error: "Computer not found" });
   }
 }

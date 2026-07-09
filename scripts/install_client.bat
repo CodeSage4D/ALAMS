@@ -42,31 +42,31 @@ if exist "%~dp0AlamsClient.exe" (
     echo [WARN] Compiled AlamsClient release build not found. Copied files must be configured manually.
 )
 
-if exist "%~dp0AlamsWatchdog.exe" (
-    copy /y "%~dp0AlamsWatchdog.exe" "%INSTALL_DIR%\"
-) else if exist "%~dp0\..\watchdog\bin\Release\net8.0\publish\AlamsWatchdog.exe" (
-    copy /y "%~dp0\..\watchdog\bin\Release\net8.0\publish\AlamsWatchdog.exe" "%INSTALL_DIR%\"
-) else if exist "%~dp0\..\watchdog\bin\Debug\net8.0\AlamsWatchdog.exe" (
-    copy /y "%~dp0\..\watchdog\bin\Debug\net8.0\AlamsWatchdog.exe" "%INSTALL_DIR%\"
+if exist "%~dp0AlamsDaemon.exe" (
+    copy /y "%~dp0AlamsDaemon.exe" "%INSTALL_DIR%\"
+) else if exist "%~dp0\..\watchdog\bin\Release\net8.0\publish\AlamsDaemon.exe" (
+    copy /y "%~dp0\..\watchdog\bin\Release\net8.0\publish\AlamsDaemon.exe" "%INSTALL_DIR%\"
+) else if exist "%~dp0\..\watchdog\bin\Debug\net8.0\AlamsDaemon.exe" (
+    copy /y "%~dp0\..\watchdog\bin\Debug\net8.0\AlamsDaemon.exe" "%INSTALL_DIR%\"
 ) else (
-    echo [WARN] Compiled AlamsWatchdog release build not found. Copied files must be configured manually.
+    echo [WARN] Compiled AlamsDaemon release build not found. Copied files must be configured manually.
 )
 
-REM Install watchdog as Windows Service
-echo [ALAMS CLIENT INSTALL] Installing AlamsWatchdog service...
-sc query AlamsWatchdog >nul 2>nul
+REM Install daemon as Windows Service
+echo [ALAMS CLIENT INSTALL] Installing AlamsDaemon service...
+sc query AlamsDaemon >nul 2>nul
 if %ERRORLEVEL% equ 0 (
-    echo [ALAMS CLIENT INSTALL] Watchdog service already registered, stopping and deleting...
-    net stop AlamsWatchdog >nul 2>nul
-    sc delete AlamsWatchdog >nul 2>nul
+    echo [ALAMS CLIENT INSTALL] Daemon service already registered, stopping and deleting...
+    net stop AlamsDaemon >nul 2>nul
+    sc delete AlamsDaemon >nul 2>nul
 )
 
-if exist "%INSTALL_DIR%\AlamsWatchdog.exe" (
-    sc create AlamsWatchdog binPath= "%INSTALL_DIR%\AlamsWatchdog.exe" start= auto
-    sc description AlamsWatchdog "ALAMS Anti-bypass Security Watchdog Service"
-    net start AlamsWatchdog
+if exist "%INSTALL_DIR%\AlamsDaemon.exe" (
+    sc create AlamsDaemon binPath= "%INSTALL_DIR%\AlamsDaemon.exe" start= auto
+    sc description AlamsDaemon "ALAMS Security Watchdog & Policy Daemon Service"
+    net start AlamsDaemon
 ) else (
-    echo [ERROR] AlamsWatchdog.exe is missing. Cannot register service.
+    echo [ERROR] AlamsDaemon.exe is missing. Cannot register service.
 )
 
 REM Run shell enrollment script

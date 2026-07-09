@@ -168,7 +168,7 @@ namespace AlamsBootstrap
             {
                 Console.ForegroundColor = ConsoleColor.Magenta;
                 Console.WriteLine("  [WARN] Automatic server discovery on localhost:5000 failed.");
-                Console.Write("         Enter server address (e.g., http://10.0.3.5:5000): ");
+                Console.Write("         Enter server address (e.g., http://192.168.128.73:5000): ");
                 string input = Console.ReadLine()?.Trim() ?? "";
                 Console.ResetColor();
                 if (!string.IsNullOrEmpty(input))

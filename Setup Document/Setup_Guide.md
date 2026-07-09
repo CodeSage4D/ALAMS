@@ -213,7 +213,7 @@ The Next.js web application acts as both the student mobile gateway (for scannin
 2. Set your environment variables:
    - **`NEXT_PUBLIC_API_URL`**: Must point to the server API URL.
      - **For Local Testing (Loopback)**: `http://localhost:5000`
-     - **For Production LAN**: `http://[server-ip]:5000` (e.g., `http://10.0.3.5:5000`)
+     - **For Production LAN**: `http://[server-ip]:5000` (e.g., `http://192.168.128.73:5000`)
 
 #### Step 3: Run the Server
 * **For Development (Hot Reloading)**:
@@ -273,7 +273,7 @@ For corporate/educational networks where IT staff deploy to dozens of computers 
 2. Log in as local administrator on the target workstation.
 3. Open an administrative command prompt/PowerShell and run the client installation batch script, providing the central server URL:
    ```powershell
-   .\scripts\install_client.bat "http://10.0.3.5:5000"
+   .\scripts\install_client.bat "http://192.168.128.73:5000"
    ```
    *This silent installer creates local application directories, provisions the `config.json` containing the backend host, copies binary files into Program Files, registers `AlamsWatchdog` as a Windows service, and invokes the shell enrollment script.*
 

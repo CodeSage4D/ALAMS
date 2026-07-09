@@ -77,16 +77,13 @@
                             <TextBlock Text="Scan QR to Unlock with Phone" Foreground="#FFFFFF" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,20,0,5"/>
                             <TextBlock Text="Use your standard mobile camera application" Foreground="#6B7280" FontSize="14" HorizontalAlignment="Center"/>
 
-                            <StackPanel x:Name="OneTimePinPanel" Margin="0,20,0,0" Orientation="Horizontal" HorizontalAlignment="Center">
-                                <PasswordBox x:Name="OneTimePinInput" Width="140" Height="40" Background="#1F2937" Foreground="#FFFFFF" BorderBrush="#374151" BorderThickness="1" FontSize="20" VerticalAlignment="Center" HorizontalContentAlignment="Center" MaxLength="6" Margin="0,0,10,0" VerticalContentAlignment="Center"/>
-                                <Button x:Name="VerifyOneTimePinButton" Content="Verify PIN" Width="100" Height="40" Background="#10B981" Foreground="#0B0F19" FontWeight="Bold" FontSize="14" Click="VerifyOneTimePinButton_Click">
-                                    <Button.Resources>
-                                        <Style TargetType="Border">
-                                            <Setter Property="CornerRadius" Value="6" />
-                                        </Style>
-                                    </Button.Resources>
-                                </Button>
-                            </StackPanel>
+                            <Button x:Name="ShowPinOverlayButton" Content="Enter Session PIN" Width="200" Height="40" Background="#1F2937" Foreground="#10B981" BorderBrush="#10B981" BorderThickness="1" FontWeight="Bold" FontSize="14" Margin="0,20,0,0" Click="ShowPinOverlayButton_Click">
+                                <Button.Resources>
+                                    <Style TargetType="Border">
+                                        <Setter Property="CornerRadius" Value="8" />
+                                    </Style>
+                                </Button.Resources>
+                            </Button>
                         </StackPanel>
 
                         <!-- Refresh countdown -->
@@ -143,6 +140,35 @@
                     <TextBlock x:Name="NetworkStatusText" Text="OFFLINE" Foreground="#9CA3AF" FontSize="12" FontWeight="Bold" VerticalAlignment="Center"/>
                 </StackPanel>
             </Grid>
+        </Grid>
+
+        <!-- PIN Verification Overlay Modal -->
+        <Grid x:Name="PinOverlayGrid" Background="#D80B0F19" Visibility="Collapsed">
+            <Border Background="#111827" BorderBrush="#1F2937" BorderThickness="1" CornerRadius="16" Width="420" Height="320" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="30">
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="🔒 2FA Verification" Foreground="#10B981" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                    <TextBlock Text="Enter the 6-digit session PIN shown on your mobile device." Foreground="#9CA3AF" FontSize="14" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,25"/>
+                    
+                    <PasswordBox x:Name="OverlayOneTimePinInput" Width="220" Height="50" Background="#1F2937" Foreground="#FFFFFF" BorderBrush="#374151" BorderThickness="1.5" FontSize="26" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLength="6" Margin="0,0,0,25"/>
+                    
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Content="Cancel" Margin="5" Height="40" Background="#374151" Foreground="#FFFFFF" FontWeight="Bold" Click="CancelPinOverlay_Click">
+                            <Button.Resources>
+                                <Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style>
+                            </Button.Resources>
+                        </Button>
+                        <Button Grid.Column="1" x:Name="VerifyOverlayPinButton" Content="Verify" Margin="5" Height="40" Background="#10B981" Foreground="#0B0F19" FontWeight="Bold" Click="VerifyOverlayPin_Click">
+                            <Button.Resources>
+                                <Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style>
+                            </Button.Resources>
+                        </Button>
+                    </Grid>
+                </StackPanel>
+            </Border>
         </Grid>
     </Grid>
 </Window>

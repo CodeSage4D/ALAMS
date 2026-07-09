@@ -2,6 +2,7 @@ import { Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import prisma from "./prisma";
 import { isIpInSubnet } from "./controllers/adminController";
+import { evaluateWorkstationBehavior } from "./utils/aiAnalytics";
 
 // Map of active client computer IDs to their open WebSocket connections
 const connectedClients = new Map<string, WebSocket>();
@@ -209,12 +210,22 @@ export function initWebSocketServer(server: Server) {
             const heartbeatInterval = lab?.profile?.heartbeatInterval ?? 30;
             const offlinePinEnabled = lab?.profile?.offlinePinEnabled ?? true;
 
+            // Fetch custom GPO policies associated with the profile
+            let gpoPolicies: any[] = [];
+            if (lab?.profileId) {
+              gpoPolicies = await prisma.gpoPolicy.findMany({
+                where: { profileId: lab.profileId },
+                select: { key: true, valueName: true, valueType: true, value: true }
+              });
+            }
+
             ws.send(
               JSON.stringify({
                 type: "config_profile",
                 qrLifetime,
                 heartbeatInterval,
                 offlinePinEnabled,
+                gpoPolicies,
               })
             );
 
@@ -266,6 +277,52 @@ export function initWebSocketServer(server: Server) {
             }
 
             ws.send(JSON.stringify({ type: "heartbeat_ack", timestamp: Date.now() }));
+            break;
+          }
+
+          case "telemetry": {
+            if (!pairedComputerId) return;
+            const { cpuUsage, ramUsage, loggedStudent, policyStatus, installedVersion } = payload;
+            const cpuNum = cpuUsage !== undefined ? parseFloat(cpuUsage) : null;
+            const ramNum = ramUsage !== undefined ? parseFloat(ramUsage) : null;
+
+            await prisma.computer.update({
+              where: { id: pairedComputerId },
+              data: {
+                cpuUsage: cpuNum,
+                ramUsage: ramNum,
+                loggedStudent: loggedStudent || null,
+                policyStatus: policyStatus || null,
+                installedVersion: installedVersion || null,
+                lastTelemetry: new Date(),
+              },
+            });
+
+            // Trigger behavioral analytics check
+            if (cpuNum !== null && ramNum !== null) {
+              evaluateWorkstationBehavior({
+                computerId: pairedComputerId,
+                cpuUsage: cpuNum,
+                ramUsage: ramNum,
+              }).catch(err => console.error("AI Evaluation error:", err));
+            }
+            break;
+          }
+
+          case "command_result": {
+            if (!pairedComputerId) return;
+            const { commandId, status, error } = payload;
+            if (commandId) {
+              await prisma.commandQueue.update({
+                where: { id: commandId },
+                data: {
+                  status: status || "EXECUTED",
+                  executedAt: new Date(),
+                  parameters: error ? JSON.stringify({ error }) : undefined,
+                },
+              });
+              console.log(`[WS] Command ${commandId} result: ${status} for computer ID: ${pairedComputerId}`);
+            }
             break;
           }
 
@@ -347,6 +404,27 @@ export function lockComputer(computerId: string): boolean {
 
 export function isComputerOnline(computerId: string): boolean {
   return connectedClients.has(computerId);
+}
+
+/**
+ * Dispatches a command to a connected client PC and returns true if it was sent.
+ */
+export function sendRemoteCommand(computerId: string, commandId: string, command: string, parameters?: string): boolean {
+  const clientSocket = connectedClients.get(computerId);
+  if (!clientSocket || clientSocket.readyState !== WebSocket.OPEN) {
+    console.error(`[WS] Attempted to send command ${command} to PC ${computerId} but socket is offline.`);
+    return false;
+  }
+
+  clientSocket.send(
+    JSON.stringify({
+      type: "command",
+      commandId,
+      command,
+      parameters,
+    })
+  );
+  return true;
 }
 
 export function sendApprovalToClient(computerId: string, pcNumber: string, qrSeed: string, fallbackEnabled: boolean, deviceName: string): boolean {

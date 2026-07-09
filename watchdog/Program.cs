@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace AlamsWatchdog
+namespace AlamsDaemon
 {
     public class Program
     {

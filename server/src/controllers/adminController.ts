@@ -1,7 +1,7 @@
 import { Response } from "express";
 import prisma from "../prisma";
 import { AuthenticatedRequest } from "../middleware/auth";
-import { unlockComputer, lockComputer, sendApprovalToClient } from "../websocket";
+import { unlockComputer, lockComputer, sendApprovalToClient, sendRemoteCommand } from "../websocket";
 import { AttendanceStatus } from "@prisma/client";
 
 export function isIpInSubnet(ip: string, cidr: string): boolean {
@@ -553,6 +553,119 @@ export async function getDiagnostics(req: AuthenticatedRequest, res: Response) {
       dbConnected: false,
       error: err.message || "Database connection failure",
     });
+  }
+}
+
+export async function queueRemoteCommand(req: AuthenticatedRequest, res: Response) {
+  const { id } = req.params;
+  const { command, parameters } = req.body;
+
+  if (!command) {
+    return res.status(400).json({ error: "Command action is required" });
+  }
+
+  try {
+    const computer = await prisma.computer.findUnique({ where: { id } });
+    if (!computer) {
+      return res.status(404).json({ error: "Workstation not found" });
+    }
+
+    const cmd = await prisma.commandQueue.create({
+      data: {
+        computerId: id,
+        command,
+        parameters: parameters ? JSON.stringify(parameters) : null,
+        status: "PENDING",
+      },
+    });
+
+    const sent = sendRemoteCommand(id, cmd.id, command, parameters ? JSON.stringify(parameters) : undefined);
+
+    if (sent) {
+      await prisma.commandQueue.update({
+        where: { id: cmd.id },
+        data: { status: "SENT" },
+      });
+    }
+
+    await createAuditLog(
+      "REMOTE_COMMAND_QUEUED",
+      `Admin queued remote command ${command} on workstation ${computer.deviceName}. Dispatch status: ${sent ? "SENT" : "QUEUED"}`,
+      req.user?.userId,
+      id
+    );
+
+    return res.json({
+      success: true,
+      message: sent ? "Command sent to workstation successfully" : "Workstation is offline. Command queued for execution upon reconnection.",
+      commandId: cmd.id,
+      status: sent ? "SENT" : "PENDING",
+    });
+  } catch (err: any) {
+    console.error("queueRemoteCommand error:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function createGpoPolicy(req: AuthenticatedRequest, res: Response) {
+  const { id } = req.params;
+  const { key, valueName, valueType, value } = req.body;
+
+  if (!key || !valueName || !value) {
+    return res.status(400).json({ error: "key, valueName, and value are required" });
+  }
+
+  try {
+    const profile = await prisma.profile.findUnique({ where: { id } });
+    if (!profile) return res.status(404).json({ error: "Profile not found" });
+
+    const policy = await prisma.gpoPolicy.create({
+      data: {
+        profileId: id,
+        key,
+        valueName,
+        valueType: valueType || "DWORD",
+        value,
+      },
+    });
+
+    await createAuditLog(
+      "GPO_POLICY_CREATED",
+      `GPO Policy ${valueName} created for profile ${profile.name}`,
+      req.user?.userId
+    );
+
+    return res.status(201).json(policy);
+  } catch (err: any) {
+    return res.status(500).json({ error: "Failed to create GPO policy" });
+  }
+}
+
+export async function getGpoPolicies(req: AuthenticatedRequest, res: Response) {
+  const { id } = req.params;
+  try {
+    const policies = await prisma.gpoPolicy.findMany({
+      where: { profileId: id },
+      orderBy: { createdAt: "desc" },
+    });
+    return res.json(policies);
+  } catch (err: any) {
+    return res.status(500).json({ error: "Failed to retrieve GPO policies" });
+  }
+}
+
+export async function deleteGpoPolicy(req: AuthenticatedRequest, res: Response) {
+  const { id } = req.params;
+  try {
+    const policy = await prisma.gpoPolicy.delete({ where: { id } });
+    await createAuditLog(
+      "GPO_POLICY_DELETED",
+      `GPO Policy ${policy.valueName} deleted from profile ${policy.profileId}`,
+      req.user?.userId
+    );
+    return res.json({ message: "GPO policy deleted successfully" });
+  } catch (err: any) {
+    return res.status(404).json({ error: "GPO policy not found" });
   }
 }
 

@@ -17,6 +17,7 @@ using Microsoft.Win32;
 using System.Management;
 using System.Net;
 using System.Net.Sockets;
+using QRCoder;
 
 namespace AlamsClient
 {
@@ -28,6 +29,9 @@ namespace AlamsClient
         private DispatcherTimer? _qrTimer;
         private DispatcherTimer? _heartbeatTimer;
         private DispatcherTimer? _uiCountdownTimer;
+        private System.IO.Pipes.NamedPipeClientStream? _ipcClient;
+        private System.IO.StreamWriter? _ipcWriter;
+        private CancellationTokenSource? _ipcCts;
 
         public string ServerHttpUrl { get; private set; } = "http://localhost:5000";
         public string ServerWsUrl { get; private set; } = "ws://localhost:5000";
@@ -101,6 +105,131 @@ namespace AlamsClient
             }
         }
 
+        private async Task<string?> ListenForUdpBeaconWithTimeoutAsync(int timeoutSeconds = 5)
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
+            using var udpClient = new UdpClient();
+            udpClient.ExclusiveAddressUse = false;
+            udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+            udpClient.Client.Bind(new IPEndPoint(IPAddress.Any, 35200));
+
+            try
+            {
+                var receiveResult = await udpClient.ReceiveAsync(cts.Token);
+                string json = Encoding.UTF8.GetString(receiveResult.Buffer);
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+                if (root.TryGetProperty("type", out var typeVal) && typeVal.GetString() == "ALAMS_SERVER_BEACON")
+                {
+                    return root.GetProperty("serverUrl").GetString();
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Timeout reached
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"UDP discovery error: {ex.Message}");
+            }
+            return null;
+        }
+
+        private async Task<string?> ScanSubnetForServerAsync(string clientIp, int port = 5000)
+        {
+            int lastDot = clientIp.LastIndexOf('.');
+            if (lastDot == -1) return null;
+            string subnetPrefix = clientIp.Substring(0, lastDot + 1);
+
+            var tcs = new TaskCompletionSource<string?>();
+            int completedCount = 0;
+            bool found = false;
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+
+            var tasks = Enumerable.Range(1, 254).Select(async i =>
+            {
+                if (found) return;
+                string targetIp = subnetPrefix + i;
+                if (targetIp == clientIp) return;
+
+                try
+                {
+                    using var client = new HttpClient();
+                    client.Timeout = TimeSpan.FromMilliseconds(800);
+                    var response = await client.GetAsync($"http://{targetIp}:{port}/health", cts.Token);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string resStr = await response.Content.ReadAsStringAsync();
+                        if (resStr.Contains("healthy"))
+                        {
+                            found = true;
+                            tcs.TrySetResult($"http://{targetIp}:{port}");
+                        }
+                    }
+                }
+                catch
+                {
+                    // Ignore connection failures
+                }
+                finally
+                {
+                    int count = Interlocked.Increment(ref completedCount);
+                    if (count == 254)
+                    {
+                        tcs.TrySetResult(null);
+                    }
+                }
+            }).ToArray();
+
+            return await tcs.Task;
+        }
+
+        private async Task DiscoverAndConnectServerAsync(string mac)
+        {
+            UpdateStatus("Discovering central server...", isError: false);
+            DeviceNameText.Text = "Listening for Server Discovery Beacon...";
+
+            string? serverUrl = await ListenForUdpBeaconWithTimeoutAsync(5);
+
+            if (serverUrl == null)
+            {
+                DeviceNameText.Text = "No beacon found. Running active subnet scan...";
+                UpdateStatus("Running Subnet Scan...", isError: false);
+
+                string ipv4, ipv6, gateway, dns, adapterName, domainWorkgroup;
+                DiscoverNetworkSettings(out ipv4, out ipv6, out gateway, out dns, out adapterName, out domainWorkgroup);
+
+                if (ipv4 != "N/A" && ipv4 != "127.0.0.1")
+                {
+                    serverUrl = await ScanSubnetForServerAsync(ipv4);
+                }
+            }
+
+            if (serverUrl != null)
+            {
+                ServerHttpUrl = serverUrl;
+                if (serverUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                {
+                    ServerWsUrl = "wss://" + serverUrl.Substring(8);
+                }
+                else if (serverUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+                {
+                    ServerWsUrl = "ws://" + serverUrl.Substring(7);
+                }
+
+                UpdateStatus("Server discovered successfully", isError: false);
+                DeviceNameText.Text = $"Connected to discovered server: {ServerHttpUrl}";
+            }
+            else
+            {
+                UpdateStatus("Server discovery failed. Using configured default.", isError: true);
+                LoadConfiguration();
+            }
+
+            await ConnectWebSocketAsync(mac);
+        }
+
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
             LoadConfiguration();
@@ -108,8 +237,12 @@ namespace AlamsClient
             string mac = GetMacAddress();
             DeviceNameText.Text = $"MAC: {mac} | Initializing connections...";
             
-            // Connect to server WS
-            await ConnectWebSocketAsync(mac);
+            // Initialize and start Named Pipe IPC Client to communicate with Daemon
+            _ipcCts = new CancellationTokenSource();
+            _ = RunIpcClientAsync(_ipcCts.Token);
+
+            // Auto-discover server and connect
+            await DiscoverAndConnectServerAsync(mac);
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -119,6 +252,10 @@ namespace AlamsClient
             {
                 e.Cancel = true;
                 UpdateStatus("Closing locked workstation is disabled.", isError: true);
+            }
+            else
+            {
+                _ipcCts?.Cancel();
             }
         }
 
@@ -511,6 +648,12 @@ namespace AlamsClient
                             EnrollmentInput.IsEnabled = offlinePinEnabled;
                             UnlockButton.IsEnabled = offlinePinEnabled;
                         });
+
+                        // Forward custom policies to Daemon over Named Pipe IPC
+                        if (root.TryGetProperty("gpoPolicies", out var gpoVal))
+                        {
+                            _ = SendIpcMessageAsync(new { type = "apply_policies", policies = gpoVal });
+                        }
                     }
                     else if (type == "unlock")
                     {
@@ -520,6 +663,13 @@ namespace AlamsClient
                     else if (type == "lock")
                     {
                         Dispatcher.Invoke(LockWorkstation);
+                    }
+                    else if (type == "command")
+                    {
+                        string command = root.GetProperty("command").GetString() ?? "";
+                        string commandId = root.GetProperty("commandId").GetString() ?? "";
+                        string parameters = root.TryGetProperty("parameters", out var pVal) ? pVal.GetString() ?? "" : "";
+                        _ = ProcessRemoteCommandAsync(commandId, command, parameters);
                     }
                     else if (type == "heartbeat_ack")
                     {
@@ -578,7 +728,6 @@ namespace AlamsClient
                 var doc = JsonDocument.Parse(response);
                 _currentQrToken = doc.RootElement.GetProperty("token").GetString() ?? "";
 
-                // Point image source to QR generator API representing mobile page verification URL
                 string serverHost = "localhost";
                 try
                 {
@@ -589,9 +738,25 @@ namespace AlamsClient
                     // Fallback to localhost if ServerHttpUrl is invalid URI
                 }
                 string mobileUrl = $"http://{serverHost}:3000/unlock?token={_currentQrToken}";
-                string qrApiUrl = $"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={Uri.EscapeDataString(mobileUrl)}";
                 
-                QrCodeImage.Source = new BitmapImage(new Uri(qrApiUrl));
+                using (QRCodeGenerator qrGenerator = new QRCodeGenerator())
+                using (QRCodeData qrCodeData = qrGenerator.CreateQrCode(mobileUrl, QRCodeGenerator.ECCLevel.Q))
+                using (PngByteQRCode qrCode = new PngByteQRCode(qrCodeData))
+                {
+                    byte[] qrCodeAsPngByteArr = qrCode.GetGraphic(20);
+                    
+                    var bitmapImage = new BitmapImage();
+                    using (var stream = new System.IO.MemoryStream(qrCodeAsPngByteArr))
+                    {
+                        bitmapImage.BeginInit();
+                        bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                        bitmapImage.StreamSource = stream;
+                        bitmapImage.EndInit();
+                    }
+                    bitmapImage.Freeze();
+                    QrCodeImage.Source = bitmapImage;
+                }
+
                 _qrCountdown = 30;
                 QrProgressBar.Value = 100;
                 TimerText.Text = "30s";
@@ -733,8 +898,8 @@ namespace AlamsClient
         {
             _isUnlocked = true;
             
-            // Launch Windows Desktop environment if replacing explorer.exe
-            StartExplorer();
+            // Notify Daemon to lift restrictions and launch desktop
+            _ = SendIpcMessageAsync(new { type = "unlock", enrollment = studentEnrollment });
 
             this.Hide(); // Hide locked UI shell
             
@@ -775,8 +940,8 @@ namespace AlamsClient
             PinInput.Password = "";
             StatusMessageText.Text = "";
 
-            // Terminate explorer shell to enforce lock state
-            TerminateExplorer();
+            // Notify Daemon to apply restrictions and kill explorer
+            _ = SendIpcMessageAsync(new { type = "lock" });
 
             this.Show();
             this.Topmost = true;
@@ -826,9 +991,22 @@ namespace AlamsClient
             });
         }
 
-        private async void VerifyOneTimePinButton_Click(object sender, RoutedEventArgs e)
+        private void ShowPinOverlayButton_Click(object sender, RoutedEventArgs e)
         {
-            string otp = OneTimePinInput.Password.Trim();
+            PinOverlayGrid.Visibility = Visibility.Visible;
+            OverlayOneTimePinInput.Password = "";
+            OverlayOneTimePinInput.Focus();
+        }
+
+        private void CancelPinOverlay_Click(object sender, RoutedEventArgs e)
+        {
+            PinOverlayGrid.Visibility = Visibility.Collapsed;
+            OverlayOneTimePinInput.Password = "";
+        }
+
+        private async void VerifyOverlayPin_Click(object sender, RoutedEventArgs e)
+        {
+            string otp = OverlayOneTimePinInput.Password.Trim();
             if (string.IsNullOrEmpty(otp) || otp.Length != 6 || !otp.All(char.IsDigit))
             {
                 UpdateStatus("Enter a valid 6-digit numeric verification PIN.", isError: true);
@@ -841,7 +1019,7 @@ namespace AlamsClient
                 return;
             }
 
-            VerifyOneTimePinButton.IsEnabled = false;
+            VerifyOverlayPinButton.IsEnabled = false;
             UpdateStatus("Verifying session PIN...", isError: false);
 
             try
@@ -866,7 +1044,8 @@ namespace AlamsClient
                         string enrollment = root.GetProperty("enrollmentNumber").GetString() ?? "Student";
                         _activeSessionId = root.GetProperty("sessionId").GetString() ?? "";
                         
-                        OneTimePinInput.Password = "";
+                        OverlayOneTimePinInput.Password = "";
+                        PinOverlayGrid.Visibility = Visibility.Collapsed;
                         UnlockWorkstation(enrollment);
                     }
                 }
@@ -892,7 +1071,143 @@ namespace AlamsClient
             }
             finally
             {
-                VerifyOneTimePinButton.IsEnabled = true;
+                VerifyOverlayPinButton.IsEnabled = true;
+            }
+        }
+
+        private async Task RunIpcClientAsync(CancellationToken token)
+        {
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    _ipcClient = new System.IO.Pipes.NamedPipeClientStream(".", "AlamsIpcPipe", System.IO.Pipes.PipeDirection.InOut, System.IO.Pipes.PipeOptions.Asynchronous);
+                    await _ipcClient.ConnectAsync(2000, token);
+
+                    _ipcWriter = new System.IO.StreamWriter(_ipcClient, Encoding.UTF8) { AutoFlush = true };
+                    using (var reader = new System.IO.StreamReader(_ipcClient, Encoding.UTF8))
+                    {
+                        // Send initial synchronization message
+                        await SendIpcMessageAsync(new { type = _isUnlocked ? "unlock" : "lock", enrollment = _isUnlocked ? EnrollmentInput.Text.Trim() : "None" });
+
+                        while (_ipcClient.IsConnected && !token.IsCancellationRequested)
+                        {
+                            string? line = await reader.ReadLineAsync();
+                            if (line == null) break;
+
+                            using (var doc = JsonDocument.Parse(line))
+                            {
+                                var root = doc.RootElement;
+                                double cpu = root.TryGetProperty("cpuUsage", out var cpuVal) ? cpuVal.GetDouble() : 0;
+                                double ram = root.TryGetProperty("ramUsage", out var ramVal) ? ramVal.GetDouble() : 0;
+
+                                // Send telemetry to central server via WebSocket
+                                await ForwardTelemetryToServerAsync(cpu, ram);
+                            }
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    // Failed to connect/disconnected; retry after delay
+                }
+                finally
+                {
+                    _ipcWriter?.Dispose();
+                    _ipcWriter = null;
+                    _ipcClient?.Dispose();
+                    _ipcClient = null;
+                }
+                await Task.Delay(3000, token);
+            }
+        }
+
+        private async Task SendIpcMessageAsync(object message)
+        {
+            if (_ipcWriter != null && _ipcClient != null && _ipcClient.IsConnected)
+            {
+                try
+                {
+                    string json = JsonSerializer.Serialize(message);
+                    await _ipcWriter.WriteLineAsync(json);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[IPC CLIENT] Failed to send message: {ex.Message}");
+                }
+            }
+        }
+
+        private async Task ForwardTelemetryToServerAsync(double cpu, double ram)
+        {
+            if (_webSocket != null && _webSocket.State == WebSocketState.Open)
+            {
+                try
+                {
+                    var telemetry = new
+                    {
+                        type = "telemetry",
+                        cpuUsage = cpu,
+                        ramUsage = ram,
+                        loggedStudent = _isUnlocked ? EnrollmentInput.Text.Trim() : "None",
+                        policyStatus = "Enforced",
+                        installedVersion = "1.0.0"
+                    };
+                    string json = JsonSerializer.Serialize(telemetry);
+                    byte[] bytes = Encoding.UTF8.GetBytes(json);
+                    await _webSocket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[WS TELEMETRY] Failed to dispatch: {ex.Message}");
+                }
+            }
+        }
+
+        private async Task ProcessRemoteCommandAsync(string commandId, string command, string parameters)
+        {
+            bool success = false;
+            string? error = null;
+
+            try
+            {
+                if (command.Equals("LOCK", StringComparison.OrdinalIgnoreCase))
+                {
+                    Dispatcher.Invoke(LockWorkstation);
+                    success = true;
+                }
+                else if (command.Equals("UNLOCK", StringComparison.OrdinalIgnoreCase))
+                {
+                    Dispatcher.Invoke(() => UnlockWorkstation("ADMIN_OVERRIDE"));
+                    success = true;
+                }
+                else if (command.Equals("SHUTDOWN", StringComparison.OrdinalIgnoreCase))
+                {
+                    Process.Start("shutdown.exe", "/s /t 0 /f");
+                    success = true;
+                }
+                else if (command.Equals("REBOOT", StringComparison.OrdinalIgnoreCase))
+                {
+                    Process.Start("shutdown.exe", "/r /t 0 /f");
+                    success = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                error = ex.Message;
+            }
+
+            if (_webSocket != null && _webSocket.State == WebSocketState.Open)
+            {
+                var result = new
+                {
+                    type = "command_result",
+                    commandId = commandId,
+                    status = success ? "EXECUTED" : "FAILED",
+                    error = error
+                };
+                byte[] bytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(result));
+                await _webSocket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
             }
         }
     }

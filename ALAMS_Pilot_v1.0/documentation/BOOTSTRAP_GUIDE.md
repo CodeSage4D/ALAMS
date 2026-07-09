@@ -29,7 +29,7 @@ The wizard checks local environment configurations:
 ### Step 2: Locate ALAMS Server
 The wizard tries to locate the central API server:
 *   **Auto-Discovery**: Attempts to ping and call `/health` on loopback addresses or local gateway subnets.
-*   **Manual Entry**: If auto-discovery fails, the wizard prompts the engineer for the Server URL (e.g. `http://10.0.3.5:5000`).
+*   **Manual Entry**: If auto-discovery fails, the wizard prompts the engineer for the Server URL (e.g. `http://192.168.128.73:5000`).
 *   **API & WebSocket Validation**: The wizard connects to the HTTP API and tests the WebSocket handshake. Installation stops if either check fails.
 
 ### Step 3: Collect Device Information

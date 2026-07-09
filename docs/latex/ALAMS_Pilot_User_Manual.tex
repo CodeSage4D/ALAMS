@@ -340,10 +340,10 @@ Copy the template variables file:
 copy .env.local.example .env.local
 \end{lstlisting}
 
-Edit \texttt{.env.local} and map the server LAN endpoint (e.g., if server runs at IP \texttt{10.0.3.5}):
+Edit \texttt{.env.local} and map the server LAN endpoint (e.g., if server runs at IP \texttt{192.168.128.73}):
 \begin{tcolorbox}[codebox, title={web/.env.local}]
 \begin{lstlisting}[language=bash]
-NEXT_PUBLIC_API_URL="http://10.0.3.5:5000"
+NEXT_PUBLIC_API_URL="http://192.168.128.73:5000"
 \end{lstlisting}
 \tcolorbox}
 
@@ -355,7 +355,7 @@ npm run build
 npm run start
 \end{lstlisting}
 \end{tcolorbox}
-The console will start running on port 3000. You can access it at \texttt{http://10.0.3.5:3000}.
+The console will start running on port 3000. You can access it at \texttt{http://192.168.128.73:3000}.
 
 \newpage
 
@@ -384,7 +384,7 @@ Copy the published binaries folder to the workstation, open PowerShell as an **A
 \begin{tcolorbox}[codebox, title={Install Client script}]
 \begin{lstlisting}[language=PowerShell]
 # Provide the Server API URL as an argument
-.\scripts\install_client.bat "http://10.0.3.5:5000"
+.\scripts\install_client.bat "http://192.168.128.73:5000"
 \end{lstlisting}
 \end{tcolorbox}
 This script registers the `AlamsWatchdog` background service, provisions the `config.json` configuration file, and moves execution binaries into \texttt{C:\textbackslash Program Files\textbackslash ALAMS}.
@@ -392,7 +392,7 @@ This script registers the `AlamsWatchdog` background service, provisions the `co
 \section{Authorize Workstation on Dashboard}
 On the workstation, the lock screen displays a **PENDING REGISTRATION** message.
 \begin{enumerate}
-  \item Navigate to the admin web console: \texttt{http://10.0.3.5:3000}.
+  \item Navigate to the admin web console: \texttt{http://192.168.128.73:3000}.
   \item Log in using admin credentials: ID \texttt{ADMIN01} and Password \texttt{Pilot@2026!}.
   \item Go to **Asset Inventory** -> **Pending Workstations**.
   \item Approve the workstation, mapping it to a workstation ID (e.g. \texttt{PC-A01}).

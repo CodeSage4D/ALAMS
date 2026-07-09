@@ -71,6 +71,7 @@ async function main() {
   console.log("\n[4/6] Creating pilot administrative, faculty, and student accounts...");
 
   const adminAccounts = [
+    { email: "ADMIN01", name: "Administrator Default", role: Role.ADMIN },
     { email: "karan.mishra@suas.ac.in", name: "Karan Mishra", role: Role.ADMIN },
     { email: "nitin.panchal@suas.ac.in", name: "Nitin Panchal", role: Role.ADMIN },
     { email: "prashant.patil@suas.ac.in", name: "Prashant Patil", role: Role.ADMIN },
@@ -88,7 +89,7 @@ async function main() {
       data: {
         enrollmentNumber: admin.email,
         fullName: admin.name,
-        passwordHash: adminPasswordHash,
+        passwordHash: admin.email === "ADMIN01" ? await hashValue("Admin@ALAMS2026!") : adminPasswordHash,
         pinHash: adminPinHash,
         role: admin.role,
         isActive: true,

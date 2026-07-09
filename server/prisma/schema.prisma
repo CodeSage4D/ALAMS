@@ -81,15 +81,16 @@ model User {
 }
 
 model Profile {
-  id                String   @id @default(uuid())
-  name              String   @unique
-  qrLifetime        Int      @default(60) @map("qr_lifetime")
-  heartbeatInterval Int      @default(30) @map("heartbeat_interval")
-  offlinePinEnabled Boolean  @default(true) @map("offline_pin_enabled")
-  sessionTimeout    Int      @default(120) @map("session_timeout")
-  idleTimeout       Int      @default(15) @map("idle_timeout")
-  createdAt         DateTime @default(now()) @map("created_at")
+  id                String      @id @default(uuid())
+  name              String      @unique
+  qrLifetime        Int         @default(60) @map("qr_lifetime")
+  heartbeatInterval Int         @default(30) @map("heartbeat_interval")
+  offlinePinEnabled Boolean     @default(true) @map("offline_pin_enabled")
+  sessionTimeout    Int         @default(120) @map("session_timeout")
+  idleTimeout       Int         @default(15) @map("idle_timeout")
+  createdAt         DateTime    @default(now()) @map("created_at")
   labs              Lab[]
+  gpoPolicies       GpoPolicy[]
 
   @@map("profiles")
 }
@@ -128,6 +129,22 @@ model Computer {
   watchdogHeartbeat DateTime?      @map("watchdog_heartbeat")
   trustStatus       String         @default("TRUSTED") @map("trust_status")
 
+  // Hardware ID & Provisioning
+  hardwareId           String?        @unique @map("hardware_id")
+  machineCertificate   String?        @map("machine_certificate")
+  machineToken         String         @unique @default(uuid()) @map("machine_token")
+  certificateIssuedAt  DateTime?      @map("certificate_issued_at")
+  certificateExpiresAt DateTime?      @map("certificate_expires_at")
+  isCertificateRevoked Boolean        @default(false) @map("is_certificate_revoked")
+
+  // Telemetry metrics
+  cpuUsage          Float?         @map("cpu_usage")
+  ramUsage          Float?         @map("ram_usage")
+  loggedStudent     String?        @map("logged_student")
+  policyStatus      String?        @map("policy_status")
+  installedVersion  String?        @map("installed_version")
+  lastTelemetry     DateTime?      @map("last_telemetry")
+
   // Hardware specifications (Phase 4)
   computerUuid      String? @map("computer_uuid")
   machineGuid       String? @map("machine_guid")
@@ -149,6 +166,7 @@ model Computer {
 
   sessions       Session[]
   securityAlerts SecurityAlert[]
+  commands       CommandQueue[]
 
   @@map("computers")
 }
@@ -261,4 +279,31 @@ model AuditLog {
   createdAt  DateTime @default(now()) @map("created_at")
 
   @@map("audit_logs")
+}
+
+model CommandQueue {
+  id         String    @id @default(uuid())
+  computerId String    @map("computer_id")
+  computer   Computer  @relation(fields: [computerId], references: [id], onDelete: Cascade)
+  command    String    // e.g. "SHUTDOWN", "LOCK", "UNLOCK", "RUN_SCRIPT"
+  parameters String?   // JSON arguments
+  status     String    @default("PENDING") // PENDING, SENT, EXECUTED, FAILED
+  createdAt  DateTime  @default(now()) @map("created_at")
+  executedAt DateTime? @map("executed_at")
+
+  @@map("command_queue")
+}
+
+model GpoPolicy {
+  id          String   @id @default(uuid())
+  profileId   String   @map("profile_id")
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  key         String   // Registry path, e.g. "Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System"
+  valueName   String   // Registry value name, e.g. "DisableTaskMgr"
+  valueType   String   // Registry value type: "DWORD", "SZ", etc.
+  value       String   // Value as string, e.g. "1" or "0"
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("gpo_policies")
 }
