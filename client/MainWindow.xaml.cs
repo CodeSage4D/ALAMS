@@ -149,12 +149,12 @@ namespace AlamsClient
 
             var tasks = Enumerable.Range(1, 254).Select(async i =>
             {
-                if (found) return;
-                string targetIp = subnetPrefix + i;
-                if (targetIp == clientIp) return;
-
                 try
                 {
+                    if (found || cts.Token.IsCancellationRequested) return;
+                    string targetIp = subnetPrefix + i;
+                    if (targetIp == clientIp) return;
+
                     using var client = new HttpClient();
                     client.Timeout = TimeSpan.FromMilliseconds(800);
                     var response = await client.GetAsync($"http://{targetIp}:{port}/health", cts.Token);
@@ -165,6 +165,7 @@ namespace AlamsClient
                         {
                             found = true;
                             tcs.TrySetResult($"http://{targetIp}:{port}");
+                            cts.Cancel();
                         }
                     }
                 }
@@ -181,6 +182,9 @@ namespace AlamsClient
                     }
                 }
             }).ToArray();
+
+            // Safety fallback timeout to prevent hanging if tasks fail to increment counter
+            _ = Task.Delay(6000).ContinueWith(_ => tcs.TrySetResult(null));
 
             return await tcs.Task;
         }
