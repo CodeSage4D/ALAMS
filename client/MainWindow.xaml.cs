@@ -48,6 +48,7 @@ namespace AlamsClient
         private int _qrCountdown = 30;
         private bool _isUnlocked = false;
         private bool _isOnline = false;
+        private bool _isAdminBypassMode = false;
 
         public MainWindow()
         {
@@ -997,6 +998,10 @@ namespace AlamsClient
 
         private void ShowPinOverlayButton_Click(object sender, RoutedEventArgs e)
         {
+            _isAdminBypassMode = false;
+            OverlayTitle.Text = "🔒 2FA Verification";
+            OverlaySubtitle.Text = "Enter the 6-digit session PIN shown on your mobile device.";
+            OverlayOneTimePinInput.MaxLength = 6;
             PinOverlayGrid.Visibility = Visibility.Visible;
             OverlayOneTimePinInput.Password = "";
             OverlayOneTimePinInput.Focus();
@@ -1006,12 +1011,52 @@ namespace AlamsClient
         {
             PinOverlayGrid.Visibility = Visibility.Collapsed;
             OverlayOneTimePinInput.Password = "";
+            _isAdminBypassMode = false;
+        }
+
+        private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            // Admin Local Bypass trigger: Ctrl + Shift + Alt + A
+            if ((System.Windows.Input.Keyboard.Modifiers == (System.Windows.Input.ModifierKeys.Control | System.Windows.Input.ModifierKeys.Shift | System.Windows.Input.ModifierKeys.Alt)) && e.Key == System.Windows.Input.Key.A)
+            {
+                e.Handled = true;
+                _isAdminBypassMode = true;
+                OverlayTitle.Text = "🛡️ Admin Security Bypass";
+                OverlaySubtitle.Text = "Enter the administrative password to bypass local workstation security.";
+                OverlayOneTimePinInput.MaxLength = 30; // Allow longer passwords
+                PinOverlayGrid.Visibility = Visibility.Visible;
+                OverlayOneTimePinInput.Password = "";
+                OverlayOneTimePinInput.Focus();
+            }
         }
 
         private async void VerifyOverlayPin_Click(object sender, RoutedEventArgs e)
         {
             string otp = OverlayOneTimePinInput.Password.Trim();
-            if (string.IsNullOrEmpty(otp) || otp.Length != 6 || !otp.All(char.IsDigit))
+            if (string.IsNullOrEmpty(otp))
+            {
+                UpdateStatus("Input cannot be empty.", isError: true);
+                return;
+            }
+
+            if (_isAdminBypassMode)
+            {
+                // Verify against allowed admin credentials
+                if (otp == "Admin@ALAMS2026!" || otp == "Pilot@2026!")
+                {
+                    OverlayOneTimePinInput.Password = "";
+                    PinOverlayGrid.Visibility = Visibility.Collapsed;
+                    _isAdminBypassMode = false;
+                    UnlockWorkstation("LOCAL_ADMIN_BYPASS");
+                }
+                else
+                {
+                    UpdateStatus("Invalid administrative bypass password.", isError: true);
+                }
+                return;
+            }
+
+            if (otp.Length != 6 || !otp.All(char.IsDigit))
             {
                 UpdateStatus("Enter a valid 6-digit numeric verification PIN.", isError: true);
                 return;
