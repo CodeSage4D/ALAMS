@@ -114,6 +114,30 @@ namespace AlamsServerConsole
             });
         }
 
+        private string FindServerDirectory()
+        {
+            string[] possiblePaths = new[]
+            {
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..\\..\\..\\..\\server"), // Dev debug mode
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..\\..\\server"),         // Sibling inside publish folder
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..\\server"),             // Direct sibling
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "server"),                 // Child directory
+                AppDomain.CurrentDomain.BaseDirectory                                          // Current directory fallback
+            };
+
+            foreach (var path in possiblePaths)
+            {
+                string fullPath = Path.GetFullPath(path);
+                if (Directory.Exists(fullPath) && File.Exists(Path.Combine(fullPath, "package.json")))
+                {
+                    return fullPath;
+                }
+            }
+
+            // Ultimate fallback
+            return Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "server"));
+        }
+
         private void StartServerBtn_Click(object sender, RoutedEventArgs e)
         {
             if (_isServerRunning)
@@ -126,16 +150,7 @@ namespace AlamsServerConsole
 
             try
             {
-                string serverDir = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..\\..\\..\\..\\server"));
-                if (!Directory.Exists(serverDir))
-                {
-                    // Fallback to relative location if running from target install directory
-                    serverDir = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "server"));
-                    if (!Directory.Exists(serverDir))
-                    {
-                        serverDir = AppDomain.CurrentDomain.BaseDirectory; // Run in current dir
-                    }
-                }
+                string serverDir = FindServerDirectory();
 
                 AppendLog($"[INFO] Target server working directory: {serverDir}");
 
@@ -287,15 +302,7 @@ namespace AlamsServerConsole
         {
             try
             {
-                string serverDir = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..\\..\\..\\..\\server"));
-                if (!Directory.Exists(serverDir))
-                {
-                    serverDir = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "server"));
-                    if (!Directory.Exists(serverDir))
-                    {
-                        serverDir = AppDomain.CurrentDomain.BaseDirectory;
-                    }
-                }
+                string serverDir = FindServerDirectory();
 
                 var proc = new Process();
                 proc.StartInfo.FileName = "cmd.exe";
