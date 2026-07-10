@@ -29,6 +29,7 @@ namespace AlamsClient
         private DispatcherTimer? _qrTimer;
         private DispatcherTimer? _heartbeatTimer;
         private DispatcherTimer? _uiCountdownTimer;
+        private DispatcherTimer? _reconnectTimer;
         private System.IO.Pipes.NamedPipeClientStream? _ipcClient;
         private System.IO.StreamWriter? _ipcWriter;
         private CancellationTokenSource? _ipcCts;
@@ -49,6 +50,7 @@ namespace AlamsClient
         private bool _isUnlocked = false;
         private bool _isOnline = false;
         private bool _isAdminBypassMode = false;
+        private bool _isConnecting = false;
 
         public MainWindow()
         {
@@ -63,6 +65,10 @@ namespace AlamsClient
 
             _heartbeatTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
             _heartbeatTimer.Tick += HeartbeatTimer_Tick;
+
+            _reconnectTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+            _reconnectTimer.Tick += ReconnectTimer_Tick;
+            _reconnectTimer.Start();
         }
 
         private void LoadConfiguration()
@@ -190,49 +196,68 @@ namespace AlamsClient
             return await tcs.Task;
         }
 
+        private async void ReconnectTimer_Tick(object? sender, EventArgs e)
+        {
+            if (!_isOnline)
+            {
+                string mac = GetMacAddress();
+                await DiscoverAndConnectServerAsync(mac);
+            }
+        }
+
         private async Task DiscoverAndConnectServerAsync(string mac)
         {
-            UpdateStatus("Discovering central server...", isError: false);
-            DeviceNameText.Text = "Listening for Server Discovery Beacon...";
+            if (_isConnecting) return;
+            _isConnecting = true;
 
-            string? serverUrl = await ListenForUdpBeaconWithTimeoutAsync(5);
-
-            if (serverUrl == null)
+            try
             {
-                DeviceNameText.Text = "No beacon found. Running active subnet scan...";
-                UpdateStatus("Running Subnet Scan...", isError: false);
+                UpdateStatus("Discovering central server...", isError: false);
+                DeviceNameText.Text = "Listening for Server Discovery Beacon...";
 
-                string ipv4, ipv6, gateway, dns, adapterName, domainWorkgroup;
-                DiscoverNetworkSettings(out ipv4, out ipv6, out gateway, out dns, out adapterName, out domainWorkgroup);
+                string? serverUrl = await ListenForUdpBeaconWithTimeoutAsync(5);
 
-                if (ipv4 != "N/A" && ipv4 != "127.0.0.1")
+                if (serverUrl == null)
                 {
-                    serverUrl = await ScanSubnetForServerAsync(ipv4);
-                }
-            }
+                    DeviceNameText.Text = "No beacon found. Running active subnet scan...";
+                    UpdateStatus("Running Subnet Scan...", isError: false);
 
-            if (serverUrl != null)
-            {
-                ServerHttpUrl = serverUrl;
-                if (serverUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-                {
-                    ServerWsUrl = "wss://" + serverUrl.Substring(8);
-                }
-                else if (serverUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
-                {
-                    ServerWsUrl = "ws://" + serverUrl.Substring(7);
+                    string ipv4, ipv6, gateway, dns, adapterName, domainWorkgroup;
+                    DiscoverNetworkSettings(out ipv4, out ipv6, out gateway, out dns, out adapterName, out domainWorkgroup);
+
+                    if (ipv4 != "N/A" && ipv4 != "127.0.0.1")
+                    {
+                        serverUrl = await ScanSubnetForServerAsync(ipv4);
+                    }
                 }
 
-                UpdateStatus("Server discovered successfully", isError: false);
-                DeviceNameText.Text = $"Connected to discovered server: {ServerHttpUrl}";
-            }
-            else
-            {
-                UpdateStatus("Server discovery failed. Using configured default.", isError: true);
-                LoadConfiguration();
-            }
+                if (serverUrl != null)
+                {
+                    ServerHttpUrl = serverUrl;
+                    if (serverUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                    {
+                        ServerWsUrl = "wss://" + serverUrl.Substring(8);
+                    }
+                    else if (serverUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+                    {
+                        ServerWsUrl = "ws://" + serverUrl.Substring(7);
+                    }
 
-            await ConnectWebSocketAsync(mac);
+                    UpdateStatus("Server discovered successfully", isError: false);
+                    DeviceNameText.Text = $"Connected to discovered server: {ServerHttpUrl}";
+                }
+                else
+                {
+                    UpdateStatus("Server discovery failed. Using configured default.", isError: true);
+                    LoadConfiguration();
+                }
+
+                await ConnectWebSocketAsync(mac);
+            }
+            finally
+            {
+                _isConnecting = false;
+            }
         }
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
@@ -494,6 +519,15 @@ namespace AlamsClient
 
         private async Task ConnectWebSocketAsync(string mac)
         {
+            if (_webSocket != null)
+            {
+                try
+                {
+                    _wsCts?.Cancel();
+                    _webSocket.Dispose();
+                }
+                catch {}
+            }
             _wsCts = new CancellationTokenSource();
             _webSocket = new ClientWebSocket();
 
@@ -967,18 +1001,29 @@ namespace AlamsClient
             _isOnline = online;
             Dispatcher.Invoke(() =>
             {
+                var greenBrush = (System.Windows.Media.SolidColorBrush)new System.Windows.Media.BrushConverter().ConvertFromString("#22C55E");
+                var redBrush = (System.Windows.Media.SolidColorBrush)new System.Windows.Media.BrushConverter().ConvertFromString("#EF4444");
+                var rubyRedBrush = (System.Windows.Media.SolidColorBrush)new System.Windows.Media.BrushConverter().ConvertFromString("#BE123C");
+
                 if (online)
                 {
-                    var emeraldBrush = (System.Windows.Media.SolidColorBrush)new System.Windows.Media.BrushConverter().ConvertFromString("#10B981");
-                    NetworkIndicator.Fill = emeraldBrush;
+                    NetworkIndicator.Fill = greenBrush;
                     NetworkStatusText.Text = "ONLINE";
-                    NetworkStatusText.Foreground = emeraldBrush;
+                    NetworkStatusText.Foreground = greenBrush;
+                    if (NetworkIndicatorGlow != null)
+                    {
+                        NetworkIndicatorGlow.Color = System.Windows.Media.Colors.Green;
+                    }
                 }
                 else
                 {
-                    NetworkIndicator.Fill = System.Windows.Media.Brushes.Red;
+                    NetworkIndicator.Fill = redBrush;
                     NetworkStatusText.Text = "OFFLINE";
-                    NetworkStatusText.Foreground = System.Windows.Media.Brushes.Red;
+                    NetworkStatusText.Foreground = rubyRedBrush;
+                    if (NetworkIndicatorGlow != null)
+                    {
+                        NetworkIndicatorGlow.Color = System.Windows.Media.Colors.Red;
+                    }
                     _qrTimer?.Stop();
                     _uiCountdownTimer?.Stop();
                 }
@@ -994,6 +1039,17 @@ namespace AlamsClient
                     System.Windows.Media.Brushes.Tomato : 
                     System.Windows.Media.Brushes.LightSkyBlue;
             });
+        }
+
+        private void AdminIcon_Click(object sender, RoutedEventArgs e)
+        {
+            _isAdminBypassMode = true;
+            OverlayTitle.Text = "🛡️ Admin Security Bypass";
+            OverlaySubtitle.Text = "Enter the administrative password to bypass local workstation security.";
+            OverlayOneTimePinInput.MaxLength = 30; // Allow longer passwords
+            PinOverlayGrid.Visibility = Visibility.Visible;
+            OverlayOneTimePinInput.Password = "";
+            OverlayOneTimePinInput.Focus();
         }
 
         private void ShowPinOverlayButton_Click(object sender, RoutedEventArgs e)

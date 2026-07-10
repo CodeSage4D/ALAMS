@@ -1,0 +1,209 @@
+<Window x:Class="AlamsServerConsole.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="ALAMS Enterprise Server console" 
+        Height="720" Width="1100"
+        WindowStartupLocation="CenterScreen"
+        Background="#F8FAFC"
+        Closing="Window_Closing">
+    
+    <Grid>
+        <!-- Background decorative gradient -->
+        <Grid.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#FFFFFF" Offset="0"/>
+                <GradientStop Color="#F0F9FF" Offset="0.5"/>
+                <GradientStop Color="#E0F2FE" Offset="1"/>
+            </LinearGradientBrush>
+        </Grid.Background>
+
+        <Grid Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Top Banner: Branding -->
+            <Border Grid.Row="0" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="12" Padding="20,15" Margin="0,0,0,15">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="10" ShadowDepth="2" Color="#93C5FD" Opacity="0.15"/>
+                </Border.Effect>
+                <Grid>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Width="12" Height="12" CornerRadius="6" Background="#BE123C" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                        <StackPanel>
+                            <TextBlock Text="Symbiosis University of Applied Sciences, Indore" Foreground="#BE123C" FontSize="20" FontWeight="Bold"/>
+                            <TextBlock Text="SCSIT Department — ALAMS Server Control Dashboard" Foreground="#475569" FontSize="12" FontWeight="Medium" Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Ellipse x:Name="ServerStatusIndicator" Width="10" Height="10" Fill="#EF4444" Margin="0,0,8,0" VerticalAlignment="Center">
+                            <Ellipse.Effect>
+                                <DropShadowEffect x:Name="ServerStatusIndicatorGlow" BlurRadius="6" Color="#EF4444" ShadowDepth="0" Opacity="0.8"/>
+                            </Ellipse.Effect>
+                        </Ellipse>
+                        <TextBlock x:Name="ServerStatusText" Text="SERVER OFFLINE" Foreground="#EF4444" FontSize="13" FontWeight="Bold" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Main Workspace -->
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="320"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Left Column: Controls & Stats -->
+                <StackPanel Grid.Column="0" Margin="0,0,15,0">
+                    
+                    <!-- Server Operations Card -->
+                    <Border Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="12" Padding="20" Margin="0,0,0,15">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="10" ShadowDepth="2" Color="#93C5FD" Opacity="0.15"/>
+                        </Border.Effect>
+                        <StackPanel>
+                            <TextBlock Text="SERVER POWER OPERATIONS" Foreground="#BE123C" FontSize="13" FontWeight="Bold" Margin="0,0,0,15"/>
+                            
+                            <Button x:Name="StartServerBtn" Content="▶ Start Service" Background="#1E293B" Foreground="#FFFFFF" FontWeight="Bold" Height="40" Margin="0,0,0,10" Click="StartServerBtn_Click" Cursor="Hand">
+                                <Button.Resources>
+                                    <Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style>
+                                </Button.Resources>
+                            </Button>
+                            
+                            <Button x:Name="StopServerBtn" Content="⏹ Stop Service" Background="#E2E8F0" Foreground="#475569" FontWeight="Bold" Height="40" Margin="0,0,0,10" Click="StopServerBtn_Click" Cursor="Hand" IsEnabled="False">
+                                <Button.Resources>
+                                    <Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style>
+                                </Button.Resources>
+                            </Button>
+
+                            <Button x:Name="RestartServerBtn" Content="🔄 Restart Service" Background="#F1F5F9" Foreground="#BE123C" BorderBrush="#BE123C" BorderThickness="1" FontWeight="Bold" Height="40" Click="RestartServerBtn_Click" Cursor="Hand" IsEnabled="False">
+                                <Button.Resources>
+                                    <Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style>
+                                </Button.Resources>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Realtime Statistics Card -->
+                    <Border Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="12" Padding="20">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="10" ShadowDepth="2" Color="#93C5FD" Opacity="0.15"/>
+                        </Border.Effect>
+                        <StackPanel>
+                            <TextBlock Text="SYSTEM STATISTICS" Foreground="#BE123C" FontSize="13" FontWeight="Bold" Margin="0,0,0,15"/>
+                            
+                            <Grid Margin="0,0,0,10">
+                                <TextBlock Text="Active Workstations:" Foreground="#475569" FontSize="13"/>
+                                <TextBlock x:Name="ActiveClientsCountText" Text="0" Foreground="#BE123C" FontSize="13" FontWeight="Bold" HorizontalAlignment="Right"/>
+                            </Grid>
+                            
+                            <Grid Margin="0,0,0,10">
+                                <TextBlock Text="Total Active Sessions:" Foreground="#475569" FontSize="13"/>
+                                <TextBlock x:Name="TotalSessionsCountText" Text="0" Foreground="#BE123C" FontSize="13" FontWeight="Bold" HorizontalAlignment="Right"/>
+                            </Grid>
+
+                            <Grid Margin="0,0,0,10">
+                                <TextBlock Text="Database Status:" Foreground="#475569" FontSize="13"/>
+                                <TextBlock x:Name="DbStatusText" Text="UNKNOWN" Foreground="#475569" FontSize="13" FontWeight="Bold" HorizontalAlignment="Right"/>
+                            </Grid>
+
+                            <Grid>
+                                <TextBlock Text="API Endpoint Port:" Foreground="#475569" FontSize="13"/>
+                                <TextBlock Text="5000" Foreground="#475569" FontSize="13" FontWeight="Bold" HorizontalAlignment="Right"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- Right Column: Console Log & Admin Utilities -->
+                <Grid Grid.Column="1">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Console Terminal Output -->
+                    <Border Grid.Row="0" Background="#1E293B" CornerRadius="12" Padding="15" Margin="0,0,0,15">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Text="ALAMS DAEMON LOG CONSOLE" Foreground="#94A3B8" FontSize="11" FontWeight="Bold" Margin="0,0,0,10"/>
+                            <ScrollViewer Grid.Row="1" x:Name="LogScrollViewer" VerticalScrollBarVisibility="Auto">
+                                <TextBox x:Name="LogTextBox" Background="Transparent" Foreground="#38BDF8" BorderThickness="0" TextWrapping="Wrap" IsReadOnly="True" FontFamily="Consolas" FontSize="12.5" Text="[SYSTEM CONSOLE READY] Click 'Start Service' to spin up the Node.js backend.&#x0a;"/>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+
+                    <!-- Administrative Utility Bar -->
+                    <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="12" Padding="20">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="10" ShadowDepth="2" Color="#93C5FD" Opacity="0.15"/>
+                        </Border.Effect>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Firewall Operations -->
+                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Text="FIREWALL MANAGEMENT" Foreground="#BE123C" FontSize="11" FontWeight="Bold" Margin="0,0,0,8"/>
+                                <Button Content="🛡️ Apply Firewall Rules" Background="#F8FAFC" Foreground="#475569" BorderBrush="#CBD5E1" Height="36" Margin="0,0,0,6" Click="ApplyFirewallRules_Click" Cursor="Hand">
+                                    <Button.Resources>
+                                        <Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style>
+                                    </Button.Resources>
+                                </Button>
+                                <Button Content="🚫 Remove Firewall Rules" Background="#F8FAFC" Foreground="#475569" BorderBrush="#CBD5E1" Height="36" Click="RemoveFirewallRules_Click" Cursor="Hand">
+                                    <Button.Resources>
+                                        <Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style>
+                                    </Button.Resources>
+                                </Button>
+                            </StackPanel>
+
+                            <!-- Database operations -->
+                            <StackPanel Grid.Column="1" Margin="10,0,10,0">
+                                <TextBlock Text="DATABASE UTILITIES" Foreground="#BE123C" FontSize="11" FontWeight="Bold" Margin="0,0,0,8"/>
+                                <Button Content="🧹 Fresh Database Reset" Background="#FEE2E2" Foreground="#991B1B" BorderBrush="#FCA5A5" Height="36" Margin="0,0,0,6" Click="FreshDbReset_Click" Cursor="Hand">
+                                    <Button.Resources>
+                                        <Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style>
+                                    </Button.Resources>
+                                </Button>
+                                <Button Content="📂 Seed Default Records" Background="#F1F5F9" Foreground="#475569" BorderBrush="#CBD5E1" Height="36" Click="SeedDatabase_Click" Cursor="Hand">
+                                    <Button.Resources>
+                                        <Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style>
+                                    </Button.Resources>
+                                </Button>
+                            </StackPanel>
+
+                            <!-- User Imports -->
+                            <StackPanel Grid.Column="2" Margin="10,0,0,0">
+                                <TextBlock Text="USER REGISTRATIONS" Foreground="#BE123C" FontSize="11" FontWeight="Bold" Margin="0,0,0,8"/>
+                                <Button Content="📊 Load Student Excel/CSV" Background="#E0F2FE" Foreground="#0369A1" BorderBrush="#7DD3FC" Height="36" Margin="0,0,0,6" Click="LoadExcelCsv_Click" Cursor="Hand">
+                                    <Button.Resources>
+                                        <Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style>
+                                    </Button.Resources>
+                                </Button>
+                                <Button Content="🌐 Open Web Dashboard" Background="#F1F5F9" Foreground="#BE123C" BorderBrush="#BE123C" Height="36" Click="OpenWebConsole_Click" Cursor="Hand">
+                                    <Button.Resources>
+                                        <Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style>
+                                    </Button.Resources>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Grid>
+
+            <!-- Bottom Status Strip -->
+            <Grid Grid.Row="2" Margin="0,15,0,0">
+                <TextBlock Text="Aurxon Lab Access Management System — Administrative Command Console v1.0" Foreground="#64748B" FontSize="11" VerticalAlignment="Center"/>
+                <TextBlock Text="SECURED ENVIRONMENT" Foreground="#BE123C" FontSize="11" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>

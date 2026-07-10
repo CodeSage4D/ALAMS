@@ -50,6 +50,7 @@ import { getPilotAnalytics, recordFailedLogin } from "./controllers/analyticsCon
 import { authenticateJWT, authorizeRoles } from "./middleware/auth";
 import { initWebSocketServer, requestDiagnosticsFromClient } from "./websocket";
 import { startUdpBeacon } from "./utils/udpBeacon";
+import prisma from "./prisma";
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -77,7 +78,28 @@ app.use(express.json({ limit: "1mb" }));
 app.set("trust proxy", 1);
 
 // Public API
-app.get("/health", (req, res) => res.json({ status: "healthy", timestamp: Date.now() }));
+app.get("/health", async (req, res) => {
+  try {
+    const activeClientsCount = await prisma.computer.count({ where: { status: "APPROVED" } });
+    const activeSessionsCount = await prisma.session.count({ where: { status: "ACTIVE" } });
+    return res.json({
+      status: "healthy",
+      timestamp: Date.now(),
+      activeClients: activeClientsCount,
+      activeSessions: activeSessionsCount,
+      dbStatus: "CONNECTED"
+    });
+  } catch (err: any) {
+    return res.json({
+      status: "unhealthy",
+      timestamp: Date.now(),
+      activeClients: 0,
+      activeSessions: 0,
+      dbStatus: "DISCONNECTED",
+      error: err.message
+    });
+  }
+});
 app.get("/api/v1/health/diagnostics", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR"), getDiagnostics);
 
 // Authentication API
