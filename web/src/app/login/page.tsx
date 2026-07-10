@@ -75,7 +75,11 @@ function LoginFormContent() {
       localStorage.setItem("student_token", data.token);
       localStorage.setItem("student_user", JSON.stringify(data.user));
 
-      router.push("/student/dashboard");
+      if (data.mustChangePassword) {
+        router.push(`/change-password?token=${encodeURIComponent(data.token)}&redirect=${encodeURIComponent(redirectUrl)}`);
+      } else {
+        router.push(redirectUrl === "/" ? "/student/dashboard" : redirectUrl);
+      }
     } catch (err: any) {
       setError(err.message || "Failed to connect to authentication server.");
     } finally {

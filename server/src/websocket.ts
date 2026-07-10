@@ -209,6 +209,7 @@ export function initWebSocketServer(server: Server) {
             const qrLifetime = lab?.profile?.qrLifetime ?? 60;
             const heartbeatInterval = lab?.profile?.heartbeatInterval ?? 30;
             const offlinePinEnabled = lab?.profile?.offlinePinEnabled ?? true;
+            const qrAuthEnabled = lab?.profile?.qrAuthEnabled ?? true;
 
             // Fetch custom GPO policies associated with the profile
             let gpoPolicies: any[] = [];
@@ -225,6 +226,7 @@ export function initWebSocketServer(server: Server) {
                 qrLifetime,
                 heartbeatInterval,
                 offlinePinEnabled,
+                qrAuthEnabled,
                 gpoPolicies,
               })
             );
@@ -461,5 +463,57 @@ export function requestDiagnosticsFromClient(computerId: string): Promise<any> {
 
     clientSocket.send(JSON.stringify({ type: "request_diagnostics" }));
   });
+}
+
+// Broadcast updated configuration profile to all connected workstations using that profile
+export async function sendProfileConfigToConnectedClients(profileId: string) {
+  try {
+    const profile = await prisma.profile.findUnique({
+      where: { id: profileId },
+      include: {
+        labs: {
+          include: {
+            computers: true
+          }
+        }
+      }
+    });
+
+    if (!profile) return;
+
+    const gpoPolicies = await prisma.gpoPolicy.findMany({
+      where: { profileId },
+      select: { key: true, valueName: true, valueType: true, value: true }
+    });
+
+    // Gather all computer IDs that belong to the profile
+    const computerIds: string[] = [];
+    for (const lab of profile.labs) {
+      if (lab.computers) {
+        for (const pc of lab.computers) {
+          computerIds.push(pc.id);
+        }
+      }
+    }
+
+    // Send updated config to all connected sockets
+    for (const pcId of computerIds) {
+      const ws = connectedClients.get(pcId);
+      if (ws && ws.readyState === 1) { // 1 = OPEN
+        ws.send(
+          JSON.stringify({
+            type: "config_profile",
+            qrLifetime: profile.qrLifetime,
+            heartbeatInterval: profile.heartbeatInterval,
+            offlinePinEnabled: profile.offlinePinEnabled,
+            qrAuthEnabled: profile.qrAuthEnabled,
+            gpoPolicies,
+          })
+        );
+      }
+    }
+  } catch (err) {
+    console.error("Failed to broadcast updated profile configuration:", err);
+  }
 }
 

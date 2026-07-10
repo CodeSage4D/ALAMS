@@ -4,7 +4,7 @@ import { hashValue, compareValue, generateToken } from "../utils/crypto";
 import crypto from "crypto";
 
 export async function signup(req: Request, res: Response) {
-  const { enrollmentNumber, password, pin, fullName, role } = req.body;
+  const { enrollmentNumber, password, pin, fullName, role, email, semester, department, section } = req.body;
 
   if (!enrollmentNumber || !password || !pin || !fullName) {
     return res.status(400).json({ error: "Missing required registration parameters" });
@@ -61,6 +61,10 @@ export async function signup(req: Request, res: Response) {
         passwordHash,
         pinHash,
         fullName,
+        email: email || null,
+        semester: semester || null,
+        department: department || null,
+        section: section || null,
         role: role || "STUDENT",
         mustChangePassword: true,
         isActive: true,

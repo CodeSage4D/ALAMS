@@ -83,6 +83,12 @@
                                     <Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style>
                                 </Button.Resources>
                             </Button>
+
+                            <Button x:Name="ForceShutdownAllBtn" Content="🛑 Force Shutdown All PCs" Background="#FEE2E2" Foreground="#991B1B" BorderBrush="#FCA5A5" BorderThickness="1" FontWeight="Bold" Height="40" Margin="0,10,0,0" Click="ForceShutdownAllBtn_Click" Cursor="Hand">
+                                <Button.Resources>
+                                    <Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style>
+                                </Button.Resources>
+                            </Button>
                         </StackPanel>
                     </Border>
 

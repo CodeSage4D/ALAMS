@@ -13,6 +13,7 @@ interface Lab {
   id: string;
   name: string;
   location: string;
+  profileId?: string;
   _count?: { computers: number };
 }
 
@@ -39,6 +40,10 @@ interface Student {
   id: string;
   enrollmentNumber: string;
   fullName: string;
+  email?: string | null;
+  semester?: string | null;
+  department?: string | null;
+  section?: string | null;
   isActive: boolean;
 }
 
@@ -103,6 +108,13 @@ export default function AdminDashboard() {
   const [newStudName, setNewStudName] = useState("");
   const [newStudPass, setNewStudPass] = useState("");
   const [newStudPin, setNewStudPin] = useState("");
+  const [newStudEmail, setNewStudEmail] = useState("");
+  const [newStudSem, setNewStudSem] = useState("");
+  const [newStudDept, setNewStudDept] = useState("");
+  const [newStudSection, setNewStudSection] = useState("");
+  const [importedCredentials, setImportedCredentials] = useState<any[] | null>(null);
+  const [resetResult, setResetResult] = useState<any | null>(null);
+  const [qrAuthEnabled, setQrAuthEnabled] = useState(true);
 
   const [feedbackMsg, setFeedbackMsg] = useState("");
   const [selectedPC, setSelectedPC] = useState<any>(null);
@@ -345,6 +357,10 @@ export default function AdminDashboard() {
           fullName: newStudName,
           password: newStudPass,
           pin: newStudPin,
+          email: newStudEmail || null,
+          semester: newStudSem || null,
+          department: newStudDept || null,
+          section: newStudSection || null,
           role: "STUDENT",
         }),
       });
@@ -354,6 +370,10 @@ export default function AdminDashboard() {
         setNewStudName("");
         setNewStudPass("");
         setNewStudPin("");
+        setNewStudEmail("");
+        setNewStudSem("");
+        setNewStudDept("");
+        setNewStudSection("");
         triggerRefresh();
         showFeedback("Student profile added successfully!");
       } else {
@@ -362,6 +382,123 @@ export default function AdminDashboard() {
       }
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const handleCsvImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      const text = evt.target?.result as string;
+      if (!text) return;
+
+      const lines = text.split("\n");
+      const studentsList = [];
+
+      for (let line of lines) {
+        line = line.trim();
+        if (!line) continue;
+        
+        // Skip header
+        if (line.toLowerCase().includes("enrollmentnumber") || line.toLowerCase().includes("fullname") || line.toLowerCase().includes("email")) {
+          continue;
+        }
+
+        const parts = line.split(",");
+        if (parts.length < 2) continue;
+
+        studentsList.push({
+          enrollmentNumber: parts[0]?.trim(),
+          fullName: parts[1]?.trim(),
+          email: parts[2]?.trim() || "",
+          semester: parts[3]?.trim() || "",
+          department: parts[4]?.trim() || "",
+          section: parts[5]?.trim() || ""
+        });
+      }
+
+      if (studentsList.length === 0) {
+        alert("No valid student records found in CSV file.");
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem("admin_token");
+        const res = await fetch(`${API_URL}/api/v1/admin/students/import`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(studentsList),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setImportedCredentials(data.importedStudents);
+          triggerRefresh();
+          showFeedback("CSV imported and student accounts created!");
+        } else {
+          const err = await res.json();
+          alert(err.error || "Failed to import CSV.");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Network error importing CSV file.");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  const handleResetPassword = async (studentId: string) => {
+    if (!confirm("Are you sure you want to reset this student's password?")) return;
+    try {
+      const token = localStorage.getItem("admin_token");
+      const res = await fetch(`${API_URL}/api/v1/admin/students/${studentId}/reset-password`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setResetResult(data);
+      } else {
+        const err = await res.json();
+        alert(err.error || "Password reset failed.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error resetting password.");
+    }
+  };
+
+  const handleToggleQrAuth = async (profileId: string, currentQrVal: boolean) => {
+    try {
+      const token = localStorage.getItem("admin_token");
+      const res = await fetch(`${API_URL}/api/v1/admin/profiles/${profileId}/auth-config`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ qrAuthEnabled: !currentQrVal }),
+      });
+
+      if (res.ok) {
+        setQrAuthEnabled(!currentQrVal);
+        showFeedback("Authentication configuration updated successfully!");
+        triggerRefresh();
+      } else {
+        alert("Failed to update profile settings.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error saving settings.");
     }
   };
 
@@ -955,7 +1092,7 @@ export default function AdminDashboard() {
 
           {/* TAB 2: STUDENT MANAGEMENT */}
           {activeTab === "students" && (
-            <div className="grid lg:grid-cols-3 gap-8">
+            <div className="grid lg:grid-cols-3 gap-8 animate-fade-in">
               {/* Table of students */}
               <div className="lg:col-span-2 bg-darkCard border border-darkBorder rounded-2xl overflow-hidden shadow-xl">
                 <div className="p-6 border-b border-darkBorder flex justify-between items-center">
@@ -967,6 +1104,10 @@ export default function AdminDashboard() {
                       <tr className="bg-darkBg/40 border-b border-darkBorder text-gray-400 text-xs font-bold uppercase tracking-wider">
                         <th className="p-4">Enrollment Number</th>
                         <th className="p-4">Full Name</th>
+                        <th className="p-4">Email</th>
+                        <th className="p-4">Sem/Batch</th>
+                        <th className="p-4">Dept</th>
+                        <th className="p-4">Sec</th>
                         <th className="p-4">Status</th>
                         <th className="p-4 text-center">Actions</th>
                       </tr>
@@ -974,15 +1115,19 @@ export default function AdminDashboard() {
                     <tbody className="divide-y divide-darkBorder">
                       {students.length === 0 ? (
                         <tr>
-                          <td colSpan={4} className="p-8 text-center text-gray-500">
-                            No student accounts found. Add profiles using the enrollment form.
+                          <td colSpan={8} className="p-8 text-center text-gray-500">
+                            No student accounts found. Add profiles using the enrollment forms.
                           </td>
                         </tr>
                       ) : (
                         students.map(student => (
                           <tr key={student.id} className="hover:bg-darkBg/10 transition">
                             <td className="p-4 font-mono font-bold text-emerald-400">{student.enrollmentNumber}</td>
-                            <td className="p-4 text-gray-200">{student.fullName}</td>
+                            <td className="p-4 text-gray-200 font-semibold">{student.fullName}</td>
+                            <td className="p-4 text-gray-400 text-xs">{student.email || "—"}</td>
+                            <td className="p-4 text-gray-300 text-xs">{student.semester || "—"}</td>
+                            <td className="p-4 text-gray-300 text-xs">{student.department || "—"}</td>
+                            <td className="p-4 text-gray-400 text-xs">{student.section || "—"}</td>
                             <td className="p-4">
                               {student.isActive ? (
                                 <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-xs font-semibold">Active</span>
@@ -990,12 +1135,18 @@ export default function AdminDashboard() {
                                 <span className="px-2 py-0.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded text-xs font-semibold">Suspended</span>
                               )}
                             </td>
-                            <td className="p-4 text-center">
+                            <td className="p-4 text-center flex items-center justify-center space-x-2">
                               <button
                                 onClick={() => handleToggleStudent(student.id, student.isActive)}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${student.isActive ? "bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20" : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"}`}
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition ${student.isActive ? "bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20" : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"}`}
                               >
-                                {student.isActive ? "Deactivate" : "Activate"}
+                                {student.isActive ? "Suspend" : "Activate"}
+                              </button>
+                              <button
+                                onClick={() => handleResetPassword(student.id)}
+                                className="px-2.5 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-400 rounded-lg text-xs font-bold transition"
+                              >
+                                Reset Pass
                               </button>
                             </td>
                           </tr>
@@ -1006,67 +1157,162 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Add Student Form */}
-              <div className="bg-darkCard border border-darkBorder rounded-2xl p-6 h-fit shadow-xl space-y-6">
-                <div className="flex items-center space-x-2 text-emerald-400 border-b border-darkBorder pb-4">
-                  <UserPlus size={20} />
-                  <h3 className="font-bold text-base text-white">Enroll Student Profile</h3>
+              {/* Enrollment forms side panel */}
+              <div className="space-y-8">
+                {/* Add Student Form */}
+                <div className="bg-darkCard border border-darkBorder rounded-2xl p-6 shadow-xl space-y-6">
+                  <div className="flex items-center space-x-2 text-blue-400 border-b border-darkBorder pb-4">
+                    <UserPlus size={20} />
+                    <h3 className="font-bold text-base text-white">Enroll Student Profile</h3>
+                  </div>
+
+                  <form onSubmit={handleAddStudent} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Enrollment No.</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. ENR2026001"
+                          value={newStudEnroll}
+                          onChange={e => setNewStudEnroll(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-darkBg border border-darkBorder focus:border-blue-500 focus:outline-none text-sm text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Full Name</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. Rahul Sharma"
+                          value={newStudName}
+                          onChange={e => setNewStudName(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-darkBg border border-darkBorder focus:border-blue-500 focus:outline-none text-sm text-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Email Address</label>
+                      <input
+                        type="email"
+                        placeholder="e.g. rahul@suas.ac.in"
+                        value={newStudEmail}
+                        onChange={e => setNewStudEmail(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl bg-darkBg border border-darkBorder focus:border-blue-500 focus:outline-none text-sm text-white"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="col-span-2">
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Department</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. CS"
+                          value={newStudDept}
+                          onChange={e => setNewStudDept(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-darkBg border border-darkBorder focus:border-blue-500 focus:outline-none text-sm text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Semester</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 3"
+                          value={newStudSem}
+                          onChange={e => setNewStudSem(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-darkBg border border-darkBorder focus:border-blue-500 focus:outline-none text-sm text-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Section (optional)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. A"
+                        value={newStudSection}
+                        onChange={e => setNewStudSection(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl bg-darkBg border border-darkBorder focus:border-blue-500 focus:outline-none text-sm text-white"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Login Password</label>
+                        <input
+                          type="password"
+                          required
+                          placeholder="Password"
+                          value={newStudPass}
+                          onChange={e => setNewStudPass(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-darkBg border border-darkBorder focus:border-blue-500 focus:outline-none text-sm text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">6-Digit PIN</label>
+                        <input
+                          type="password"
+                          required
+                          maxLength={6}
+                          placeholder="PIN"
+                          value={newStudPin}
+                          onChange={e => setNewStudPin(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-darkBg border border-darkBorder focus:border-blue-500 focus:outline-none text-sm text-white"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full py-3.5 bg-blue-500 hover:bg-blue-400 text-darkBg font-black rounded-xl text-sm transition shadow-lg shadow-blue-500/10"
+                    >
+                      Register Student Account
+                    </button>
+                  </form>
                 </div>
 
-                <form onSubmit={handleAddStudent} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Enrollment Number</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. ENR003"
-                      value={newStudEnroll}
-                      onChange={e => setNewStudEnroll(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl bg-darkBg border border-darkBorder focus:border-emerald-500 focus:outline-none text-sm text-white"
-                    />
+                {/* CSV File Upload Card */}
+                <div className="bg-darkCard border border-darkBorder rounded-2xl p-6 shadow-xl space-y-6">
+                  <div className="flex items-center space-x-2 text-emerald-400 border-b border-darkBorder pb-4">
+                    <FileSpreadsheet size={20} />
+                    <h3 className="font-bold text-base text-white">CSV Student Import</h3>
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Full Name</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Stephen Hawking"
-                      value={newStudName}
-                      onChange={e => setNewStudName(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl bg-darkBg border border-darkBorder focus:border-emerald-500 focus:outline-none text-sm text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Login Password</label>
-                    <input
-                      type="password"
-                      required
-                      placeholder="Password"
-                      value={newStudPass}
-                      onChange={e => setNewStudPass(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl bg-darkBg border border-darkBorder focus:border-emerald-500 focus:outline-none text-sm text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Fallback PIN (6-digits)</label>
-                    <input
-                      type="password"
-                      required
-                      maxLength={6}
-                      placeholder="e.g. 123456"
-                      value={newStudPin}
-                      onChange={e => setNewStudPin(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl bg-darkBg border border-darkBorder focus:border-emerald-500 focus:outline-none text-sm text-white"
-                    />
-                  </div>
+                  <p className="text-xs text-gray-400 leading-relaxed">
+                    Upload a comma-separated value (CSV) file containing student records to perform a bulk import.
+                  </p>
 
-                  <button
-                    type="submit"
-                    className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-darkBg font-bold rounded-xl text-sm transition shadow-lg"
-                  >
-                    Register Student Account
-                  </button>
-                </form>
+                  <div className="space-y-4">
+                    <div className="border border-dashed border-darkBorder rounded-xl p-6 text-center hover:border-emerald-500/40 transition cursor-pointer relative bg-darkBg/10">
+                      <input
+                        type="file"
+                        accept=".csv"
+                        onChange={handleCsvImport}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      />
+                      <FileSpreadsheet className="mx-auto text-gray-500 mb-2" size={32} />
+                      <span className="text-xs text-gray-400 block font-semibold">Choose CSV File</span>
+                      <span className="text-[10px] text-gray-500 block mt-1">Accepts .csv up to 10MB</span>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        const csv = "enrollmentNumber,fullName,email,semester,department,section\nENR2026011,Rahul Kumar,rahul@suas.ac.in,3,Computer Science,A\nENR2026012,Sneha Jain,sneha@suas.ac.in,3,Computer Science,B";
+                        const blob = new Blob([csv], { type: "text/csv" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = "alams_student_template.csv";
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                      }}
+                      className="w-full py-2 bg-darkCard border border-darkBorder hover:border-emerald-500/20 text-gray-300 font-bold rounded-xl text-xs transition"
+                    >
+                      Download CSV Template
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -1213,6 +1459,41 @@ export default function AdminDashboard() {
                       ))}
                     </div>
                   )}
+                </div>
+              </div>
+
+              {/* Authentication Mode Settings */}
+              <div className="bg-darkCard border border-darkBorder rounded-2xl p-6 shadow-xl space-y-6">
+                <div className="flex items-center space-x-2 text-blue-400 border-b border-darkBorder pb-4">
+                  <ShieldCheck size={20} />
+                  <h3 className="font-bold text-base text-white">Lab Authentication & Mode Controls</h3>
+                </div>
+                <p className="text-sm text-gray-400">
+                  Configure global access verification methods. Toggling options updates local workstation screen locking behaviours dynamically.
+                </p>
+                <div className="grid md:grid-cols-2 gap-6 pt-2">
+                  <div className="p-5 rounded-xl bg-darkBg/30 border border-darkBorder flex items-center justify-between">
+                    <div>
+                      <h4 className="font-bold text-white text-sm">Dynamic QR Login</h4>
+                      <p className="text-xs text-gray-500 mt-1">Hides or shows the QR Code login option on all client screens.</p>
+                    </div>
+                    <button
+                      onClick={() => handleToggleQrAuth(labs[0]?.profileId || "engineering-profile", qrAuthEnabled)}
+                      className={`px-4 py-2 rounded-xl text-xs font-black transition ${qrAuthEnabled ? "bg-emerald-500 hover:bg-emerald-400 text-darkBg" : "bg-darkCard border border-darkBorder text-gray-400 hover:text-white"}`}
+                    >
+                      {qrAuthEnabled ? "ENABLED" : "DISABLED"}
+                    </button>
+                  </div>
+                  
+                  <div className="p-5 rounded-xl bg-darkBg/30 border border-darkBorder flex items-center justify-between">
+                    <div>
+                      <h4 className="font-bold text-white text-sm">Offline PIN Fallback</h4>
+                      <p className="text-xs text-gray-500 mt-1">Allows local login bypass using individual 6-digit backup PINs.</p>
+                    </div>
+                    <span className="px-3 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold rounded-lg">
+                      ALWAYS ENABLED
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -1895,6 +2176,81 @@ export default function AdminDashboard() {
                     className="px-4 py-2 bg-darkCard hover:bg-darkHover text-gray-300 border border-darkBorder font-bold rounded-lg text-xs transition"
                   >
                     Close Specs Deck
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* PASSWORD RESET MODAL OVERLAY */}
+          {resetResult && (
+            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 animate-fade-in backdrop-blur-sm">
+              <div className="bg-darkCard border border-darkBorder rounded-2xl max-w-md w-full shadow-2xl overflow-hidden">
+                <div className="p-6 border-b border-darkBorder flex justify-between items-center bg-slate-900">
+                  <h3 className="font-bold text-lg text-white">🔑 Temporary Credentials</h3>
+                  <button onClick={() => setResetResult(null)} className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-darkHover transition">
+                    <X size={20} />
+                  </button>
+                </div>
+                <div className="p-6 space-y-4">
+                  <p className="text-sm text-gray-300">
+                    The password for student <strong className="text-white">{resetResult.fullName}</strong> ({resetResult.enrollmentNumber}) has been reset successfully.
+                  </p>
+                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-center">
+                    <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider mb-1">Temporary Password</span>
+                    <code className="text-xl font-black text-blue-400 font-mono select-all select-text">{resetResult.tempPassword}</code>
+                  </div>
+                  <p className="text-xs text-amber-400 font-semibold bg-amber-500/5 border border-amber-500/10 p-2.5 rounded-lg">
+                    💡 Note: The student will be forced to change this password immediately upon their next login.
+                  </p>
+                </div>
+                <div className="p-4 bg-slate-900 border-t border-darkBorder flex justify-end">
+                  <button onClick={() => setResetResult(null)} className="px-4 py-2 bg-blue-500 hover:bg-blue-400 text-darkBg font-black rounded-lg text-xs transition">
+                    Done
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* CSV STUDENT IMPORT MODAL OVERLAY */}
+          {importedCredentials && (
+            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 animate-fade-in backdrop-blur-sm">
+              <div className="bg-darkCard border border-darkBorder rounded-2xl max-w-xl w-full shadow-2xl overflow-hidden">
+                <div className="p-6 border-b border-darkBorder flex justify-between items-center bg-slate-900">
+                  <h3 className="font-bold text-lg text-white">🚀 Imported Student Accounts</h3>
+                  <button onClick={() => setImportedCredentials(null)} className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-darkHover transition">
+                    <X size={20} />
+                  </button>
+                </div>
+                <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+                  <p className="text-sm text-gray-300">
+                    Below are the accounts generated from your CSV import. Please copy the temporary passwords for distribution.
+                  </p>
+                  <div className="space-y-2">
+                    {importedCredentials.map((s: any, idx: number) => (
+                      <div key={idx} className="flex justify-between items-center p-3 bg-darkBg/50 border border-darkBorder rounded-xl text-xs font-mono">
+                        <div>
+                          <span className="text-white font-bold block">{s.fullName}</span>
+                          <span className="text-gray-400">{s.enrollmentNumber}</span>
+                        </div>
+                        <div className="text-right">
+                          {s.status === "CREATED" ? (
+                            <div className="space-y-0.5">
+                              <span className="text-emerald-400 font-bold block">Password:</span>
+                              <code className="text-blue-400 font-bold bg-blue-500/10 px-1.5 py-0.5 rounded text-[11px] select-all select-text">{s.tempPassword}</code>
+                            </div>
+                          ) : (
+                            <span className="text-amber-400">Skipped (Exists)</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="p-4 bg-slate-900 border-t border-darkBorder flex justify-end">
+                  <button onClick={() => setImportedCredentials(null)} className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-darkBg font-bold rounded-lg text-xs transition">
+                    Done
                   </button>
                 </div>
               </div>

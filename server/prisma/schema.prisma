@@ -58,6 +58,10 @@ model User {
   passwordHash         String    @map("password_hash")
   pinHash              String    @map("pin_hash") // Encrypted/hashed 6-digit PIN for local fallback login
   fullName             String    @map("full_name")
+  email                String?   @map("email")
+  semester             String?   @map("semester")
+  department           String?   @map("department")
+  section              String?   @map("section")
   role                 Role      @default(STUDENT)
   isActive             Boolean   @default(true) @map("is_active")
   mustChangePassword   Boolean   @default(true) @map("must_change_password")
@@ -86,6 +90,7 @@ model Profile {
   qrLifetime        Int         @default(60) @map("qr_lifetime")
   heartbeatInterval Int         @default(30) @map("heartbeat_interval")
   offlinePinEnabled Boolean     @default(true) @map("offline_pin_enabled")
+  qrAuthEnabled     Boolean     @default(true) @map("qr_auth_enabled")
   sessionTimeout    Int         @default(120) @map("session_timeout")
   idleTimeout       Int         @default(15) @map("idle_timeout")
   createdAt         DateTime    @default(now()) @map("created_at")

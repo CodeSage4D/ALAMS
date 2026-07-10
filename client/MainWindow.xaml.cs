@@ -44,6 +44,7 @@ namespace AlamsClient
         private string _qrSeed = "";
         private bool _fallbackEnabled = true;
         private string _currentQrToken = "";
+        private bool _qrAuthEnabled = true;
         private string _activeSessionId = "";
 
         private int _qrCountdown = 30;
@@ -595,6 +596,13 @@ namespace AlamsClient
                 PcNumberText.Text = "OFFLINE MODE";
                 DeviceNameText.Text = "Please enter enrollment and PIN credentials to unlock.";
                 QrLoaderText.Text = "Workstation Offline";
+
+                Dispatcher.Invoke(() =>
+                {
+                    EnrollmentInput.IsEnabled = true;
+                    PinInput.IsEnabled = true;
+                    UnlockButton.IsEnabled = true;
+                });
             }
         }
 
@@ -670,6 +678,8 @@ namespace AlamsClient
                         int qrLifetime = root.TryGetProperty("qrLifetime", out var qlVal) ? qlVal.GetInt32() : 60;
                         int heartbeatInterval = root.TryGetProperty("heartbeatInterval", out var hbVal) ? hbVal.GetInt32() : 30;
                         bool offlinePinEnabled = root.TryGetProperty("offlinePinEnabled", out var opVal) ? opVal.GetBoolean() : true;
+                        bool qrAuthEnabled = root.TryGetProperty("qrAuthEnabled", out var qrVal) ? qrVal.GetBoolean() : true;
+                        _qrAuthEnabled = qrAuthEnabled;
 
                         Dispatcher.Invoke(() =>
                         {
@@ -686,6 +696,19 @@ namespace AlamsClient
                             PinInput.IsEnabled = offlinePinEnabled;
                             EnrollmentInput.IsEnabled = offlinePinEnabled;
                             UnlockButton.IsEnabled = offlinePinEnabled;
+
+                            if (qrAuthEnabled)
+                            {
+                                QrCodeImage.Visibility = Visibility.Visible;
+                                QrLoaderText.Text = "Scan to authenticate student device";
+                            }
+                            else
+                            {
+                                QrCodeImage.Source = null;
+                                QrCodeImage.Visibility = Visibility.Collapsed;
+                                QrLoaderText.Text = "Dynamic QR Authentication is disabled by Admin.";
+                                TimerText.Text = "";
+                            }
                         });
 
                         // Forward custom policies to Daemon over Named Pipe IPC
@@ -758,6 +781,18 @@ namespace AlamsClient
 
         private async void QrTimer_Tick(object? sender, EventArgs? e)
         {
+            if (!_qrAuthEnabled)
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    QrCodeImage.Source = null;
+                    QrCodeImage.Visibility = Visibility.Collapsed;
+                    QrLoaderText.Text = "Dynamic QR Authentication is disabled by Admin.";
+                    TimerText.Text = "";
+                });
+                return;
+            }
+
             if (string.IsNullOrEmpty(_computerId)) return;
 
             try

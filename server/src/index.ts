@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import http from "http";
 import dotenv from "dotenv";
+import path from "path";
 
 // Load configuration
 dotenv.config();
@@ -33,6 +34,10 @@ import {
   createGpoPolicy,
   getGpoPolicies,
   deleteGpoPolicy,
+  importStudents,
+  adminResetStudentPassword,
+  shutdownAllWorkstations,
+  updateProfileAuthConfig,
 } from "./controllers/adminController";
 import {
   getQRToken,
@@ -77,6 +82,9 @@ app.use(express.json({ limit: "1mb" }));
 // Trust proxy (for accurate IP behind nginx/reverse proxy in production)
 app.set("trust proxy", 1);
 
+// Static downloads directory for Client updates
+app.use("/download", express.static(path.join(__dirname, "../../publish")));
+
 // Public API
 app.get("/health", async (req, res) => {
   try {
@@ -112,6 +120,8 @@ app.post("/api/v1/auth/reset-password", resetPassword);
 // Admin / Supervisor / Faculty APIs
 app.get("/api/v1/admin/students", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR", "FACULTY"), getStudents);
 app.put("/api/v1/admin/students/:id/status", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR"), toggleStudentStatus);
+app.post("/api/v1/admin/students/import", authenticateJWT, authorizeRoles("ADMIN"), importStudents);
+app.post("/api/v1/admin/students/:id/reset-password", authenticateJWT, authorizeRoles("ADMIN"), adminResetStudentPassword);
 
 app.get("/api/v1/admin/labs", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR", "FACULTY"), getLabs);
 app.post("/api/v1/admin/labs", authenticateJWT, authorizeRoles("ADMIN"), createLab);
@@ -127,9 +137,11 @@ app.post("/api/v1/admin/computers/remote-lock", authenticateJWT, authorizeRoles(
 app.post("/api/v1/admin/computers/:id/command", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR", "FACULTY"), queueRemoteCommand);
 app.post("/api/v1/admin/computers/remote-lock-all", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR", "FACULTY"), lockAllWorkstations);
 app.post("/api/v1/admin/computers/remote-end-all", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR", "FACULTY"), endAllSessions);
+app.post("/api/v1/admin/computers/remote-shutdown-all", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR", "FACULTY"), shutdownAllWorkstations);
 app.post("/api/v1/admin/profiles/:id/policies", authenticateJWT, authorizeRoles("ADMIN"), createGpoPolicy);
 app.get("/api/v1/admin/profiles/:id/policies", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR", "FACULTY"), getGpoPolicies);
 app.delete("/api/v1/admin/policies/:id", authenticateJWT, authorizeRoles("ADMIN"), deleteGpoPolicy);
+app.put("/api/v1/admin/profiles/:id/auth-config", authenticateJWT, authorizeRoles("ADMIN"), updateProfileAuthConfig);
 app.get("/api/v1/admin/computers/:id/diagnostics", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR"), async (req, res) => {
   const { id } = req.params;
   try {

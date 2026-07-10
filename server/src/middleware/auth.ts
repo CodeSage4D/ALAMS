@@ -6,6 +6,17 @@ export interface AuthenticatedRequest extends Request {
 }
 
 export function authenticateJWT(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  // Localhost loopback bypass for local Server GUI Console operations
+  const clientIp = req.ip || req.socket.remoteAddress || "";
+  if (clientIp === "127.0.0.1" || clientIp === "::1" || clientIp.includes("127.0.0.1") || clientIp === "::ffff:127.0.0.1") {
+    req.user = {
+      userId: "LOCAL_ADMIN",
+      enrollmentNumber: "LOCAL_ADMIN",
+      role: "ADMIN"
+    };
+    return next();
+  }
+
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {

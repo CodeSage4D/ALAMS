@@ -1,8 +1,9 @@
 import { Response } from "express";
 import prisma from "../prisma";
 import { AuthenticatedRequest } from "../middleware/auth";
-import { unlockComputer, lockComputer, sendApprovalToClient, sendRemoteCommand } from "../websocket";
+import { unlockComputer, lockComputer, sendApprovalToClient, sendRemoteCommand, sendProfileConfigToConnectedClients } from "../websocket";
 import { AttendanceStatus } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 export function isIpInSubnet(ip: string, cidr: string): boolean {
   try {
@@ -235,6 +236,10 @@ export async function getStudents(req: AuthenticatedRequest, res: Response) {
         id: true,
         enrollmentNumber: true,
         fullName: true,
+        email: true,
+        semester: true,
+        department: true,
+        section: true,
         isActive: true,
         createdAt: true,
       },
@@ -666,6 +671,207 @@ export async function deleteGpoPolicy(req: AuthenticatedRequest, res: Response) 
     return res.json({ message: "GPO policy deleted successfully" });
   } catch (err: any) {
     return res.status(404).json({ error: "GPO policy not found" });
+  }
+}
+
+// Helper to hash password/PIN
+async function hashValue(value: string): Promise<string> {
+  const salt = await bcrypt.genSalt(10);
+  return bcrypt.hash(value, salt);
+}
+
+// Bulk import students
+export async function importStudents(req: AuthenticatedRequest, res: Response) {
+  const studentsList = req.body;
+
+  if (!Array.isArray(studentsList)) {
+    return res.status(400).json({ error: "Expected an array of student objects" });
+  }
+
+  try {
+    let createdCount = 0;
+    let skippedCount = 0;
+    const defaultPinHash = await hashValue("123456");
+
+    for (const student of studentsList) {
+      const { enrollmentNumber, fullName, email, semester, department, section } = student;
+      if (!enrollmentNumber || !fullName) {
+        skippedCount++;
+        continue;
+      }
+
+      // Check if user exists
+      const existing = await prisma.user.findUnique({
+        where: { enrollmentNumber }
+      });
+
+      if (existing) {
+        skippedCount++;
+        continue;
+      }
+
+      // Generate secure temporary password
+      const tempPassword = Math.random().toString(36).slice(-8);
+      const passwordHash = await hashValue(tempPassword);
+
+      await prisma.user.create({
+        data: {
+          enrollmentNumber,
+          fullName,
+          email: email || null,
+          semester: semester || null,
+          department: department || null,
+          section: section || null,
+          passwordHash,
+          pinHash: defaultPinHash,
+          role: "STUDENT",
+          mustChangePassword: true,
+          isActive: true
+        }
+      });
+
+      student.tempPassword = tempPassword;
+      student.status = "CREATED";
+      createdCount++;
+    }
+
+    await createAuditLog(
+      "STUDENT_BULK_IMPORT",
+      `Bulk imported ${createdCount} student profiles. Skipped/Existing: ${skippedCount}`,
+      req.user?.userId
+    );
+
+    return res.json({
+      message: `Successfully imported ${createdCount} students. Skipped ${skippedCount} existing or invalid records.`,
+      importedStudents: studentsList
+    });
+  } catch (err: any) {
+    console.error("Bulk import failed:", err);
+    return res.status(500).json({ error: err.message || "Bulk student import failed" });
+  }
+}
+
+// Reset student password
+export async function adminResetStudentPassword(req: AuthenticatedRequest, res: Response) {
+  const { id } = req.params;
+
+  try {
+    const student = await prisma.user.findFirst({
+      where: { id, role: "STUDENT" }
+    });
+
+    if (!student) {
+      return res.status(404).json({ error: "Student profile not found" });
+    }
+
+    // Generate secure temporary password
+    const tempPassword = Math.random().toString(36).slice(-8);
+    const newPasswordHash = await hashValue(tempPassword);
+
+    await prisma.user.update({
+      where: { id },
+      data: {
+        passwordHash: newPasswordHash,
+        mustChangePassword: true,
+        passwordChangedAt: null,
+      }
+    });
+
+    await createAuditLog(
+      "STUDENT_PASSWORD_RESET",
+      `Admin reset password for student ${student.fullName} (${student.enrollmentNumber}).`,
+      req.user?.userId
+    );
+
+    return res.json({
+      message: "Password reset successfully",
+      enrollmentNumber: student.enrollmentNumber,
+      fullName: student.fullName,
+      tempPassword
+    });
+  } catch (err: any) {
+    console.error("Admin student password reset failed:", err);
+    return res.status(500).json({ error: err.message || "Failed to reset student password" });
+  }
+}
+
+// Force shutdown all workstations
+export async function shutdownAllWorkstations(req: AuthenticatedRequest, res: Response) {
+  try {
+    const computers = await prisma.computer.findMany({
+      where: { status: { in: ["APPROVED", "ACTIVE"] } }
+    });
+    let count = 0;
+    for (const pc of computers) {
+      const cmd = await prisma.commandQueue.create({
+        data: {
+          computerId: pc.id,
+          command: "SHUTDOWN",
+          status: "PENDING",
+        },
+      });
+
+      const sent = sendRemoteCommand(pc.id, cmd.id, "SHUTDOWN");
+      if (sent) {
+        count++;
+        await prisma.commandQueue.update({
+          where: { id: cmd.id },
+          data: { status: "SENT" },
+        });
+
+        // Terminate any active sessions on the machine
+        await prisma.session.updateMany({
+          where: { computerId: pc.id, status: "ACTIVE" },
+          data: { status: "TERMINATED", logoutTime: new Date() }
+        });
+
+        // Set computer status back to approved (unlocked state closed)
+        await prisma.computer.update({
+          where: { id: pc.id },
+          data: { status: "APPROVED" }
+        });
+      }
+    }
+
+    await createAuditLog(
+      "ADMIN_SHUTDOWN_ALL",
+      `Admin initiated force shutdown command on all workstations. Target connected count: ${count}`,
+      req.user?.userId
+    );
+
+    return res.json({ message: `Sent shutdown command to ${count} connected workstations.` });
+  } catch (err: any) {
+    console.error("Force shutdown all workstations failed:", err);
+    return res.status(500).json({ error: err.message || "Failed to shut down workstations" });
+  }
+}
+
+// Update profile authentication configuration (QR / PIN toggles)
+export async function updateProfileAuthConfig(req: AuthenticatedRequest, res: Response) {
+  const { id } = req.params;
+  const { offlinePinEnabled, qrAuthEnabled } = req.body;
+
+  try {
+    const profile = await prisma.profile.update({
+      where: { id },
+      data: {
+        offlinePinEnabled: offlinePinEnabled !== undefined ? offlinePinEnabled : undefined,
+        qrAuthEnabled: qrAuthEnabled !== undefined ? qrAuthEnabled : undefined
+      }
+    });
+
+    await createAuditLog(
+      "PROFILE_CONFIG_UPDATED",
+      `Admin updated profile ${profile.name} authentication configurations: QR: ${profile.qrAuthEnabled ? "ON" : "OFF"}, PIN: ${profile.offlinePinEnabled ? "ON" : "OFF"}`,
+      req.user?.userId
+    );
+
+    // Broadcast updated configurations to all connected client computers
+    await sendProfileConfigToConnectedClients(profile.id);
+
+    return res.json(profile);
+  } catch (err: any) {
+    return res.status(404).json({ error: "Profile not found" });
   }
 }
 

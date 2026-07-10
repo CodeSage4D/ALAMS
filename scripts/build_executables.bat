@@ -25,7 +25,20 @@ if %ERRORLEVEL% equ 0 (
 
 echo.
 echo =============================================================================
-echo [ALAMS BUILD] 2/2: Publishing WPF Server GUI console Dashboard...
+echo [ALAMS BUILD] 2/3: Publishing WPF Client Daemon/Watchdog...
+echo =============================================================================
+cd /d "%WORKSPACE_DIR%\watchdog"
+call dotnet publish AlamsWatchdog.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o "%PUBLISH_DIR%\client"
+
+if %ERRORLEVEL% equ 0 (
+    echo [SUCCESS] Client Daemon published to: %PUBLISH_DIR%\client\AlamsDaemon.exe
+) else (
+    echo [ERROR] Client Daemon compilation failed!
+)
+
+echo.
+echo =============================================================================
+echo [ALAMS BUILD] 3/3: Publishing WPF Server GUI console Dashboard...
 echo =============================================================================
 cd /d "%WORKSPACE_DIR%\server-gui"
 call dotnet publish AlamsServerConsole.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o "%PUBLISH_DIR%\server-gui"

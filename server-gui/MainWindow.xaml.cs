@@ -437,5 +437,44 @@ namespace AlamsServerConsole
                 AppendLog($"[ERROR] Failed to open Web Console: {ex.Message}");
             }
         }
+
+        private async void ForceShutdownAllBtn_Click(object sender, RoutedEventArgs e)
+        {
+            var result = MessageBox.Show(
+                "Are you sure you want to FORCE SHUT DOWN all connected client PCs?\nThis will broadcast a force shutdown signal to all workstations.",
+                "Confirm Remote Power Down Command",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning
+            );
+
+            if (result != MessageBoxResult.Yes) return;
+
+            AppendLog("[COMMAND] Initiating force remote shutdown on all workstations...");
+            try
+            {
+                var content = new StringContent("", Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync("http://localhost:5000/api/v1/admin/computers/remote-shutdown-all", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    string jsonRes = await response.Content.ReadAsStringAsync();
+                    using var doc = JsonDocument.Parse(jsonRes);
+                    string msg = doc.RootElement.GetProperty("message").GetString() ?? "Shutdown command dispatched";
+                    AppendLog($"[SUCCESS] {msg}");
+                    MessageBox.Show(msg, "Remote Command Sent", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    string errRes = await response.Content.ReadAsStringAsync();
+                    AppendLog($"[ERROR] Remote shutdown failed with status code {response.StatusCode}: {errRes}");
+                    MessageBox.Show("Failed to trigger remote shutdown. Check server daemon status.", "Command Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                AppendLog($"[ERROR] Connection error during remote shutdown request: {ex.Message}");
+                MessageBox.Show($"Connection error: {ex.Message}", "Command Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
     }
 }
