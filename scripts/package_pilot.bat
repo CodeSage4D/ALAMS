@@ -52,13 +52,11 @@ REM Copy client compiled executables if available
 if exist "%~dp0\..\client\bin\Release\net8.0-windows\publish\AlamsClient.exe" (
     xcopy /y "%~dp0\..\client\bin\Release\net8.0-windows\publish\AlamsClient.exe" "%PKG_DIR%\client\"
 )
-if exist "%~dp0\..\watchdog\bin\Release\net8.0\publish\AlamsWatchdog.exe" (
-    xcopy /y "%~dp0\..\watchdog\bin\Release\net8.0\publish\AlamsWatchdog.exe" "%PKG_DIR%\client\"
+if exist "%~dp0\..\watchdog\bin\Release\net8.0\publish\AlamsDaemon.exe" (
+    xcopy /y "%~dp0\..\watchdog\bin\Release\net8.0\publish\AlamsDaemon.exe" "%PKG_DIR%\client\"
 )
-if exist "%~dp0\..\installer\bootstrap_installer.exe" (
-    xcopy /y "%~dp0\..\installer\bootstrap_installer.exe" "%PKG_DIR%\client\"
-) else if exist "%~dp0\..\installer\bootstrap\bin\Release\net8.0-windows\publish\AlamsBootstrap.exe" (
-    xcopy /y "%~dp0\..\installer\bootstrap\bin\Release\net8.0-windows\publish\AlamsBootstrap.exe" "%PKG_DIR%\client\bootstrap_installer.exe"
+if exist "%~dp0\..\scripts\EnrollWorkstation.ps1" (
+    xcopy /y "%~dp0\..\scripts\EnrollWorkstation.ps1" "%PKG_DIR%\client\"
 )
 
 REM Copy installer configuration files

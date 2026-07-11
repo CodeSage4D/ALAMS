@@ -6,6 +6,8 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Threading;
 using Microsoft.Win32;
 
@@ -17,7 +19,8 @@ namespace AlamsServerConsole
         private DispatcherTimer? _monitorTimer;
         private readonly HttpClient _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
         private bool _isServerRunning = false;
-        private bool _isClosingAllowed = false; // Used if we want to bypass it programmatically, but block user close by default
+        private bool _isClosingAllowed = false;
+        private bool _isWebViewInitialized = false;
 
         public MainWindow()
         {
@@ -28,7 +31,11 @@ namespace AlamsServerConsole
             _monitorTimer.Tick += MonitorTimer_Tick;
             _monitorTimer.Start();
 
-            AppendLog("[SYSTEM] Console Initialized. Ready to manage ALAMS Server.");
+            // Set active sidebar navigation bar look initially
+            UpdateNavButtonsLook(NavOpsBtn);
+            
+            AdminPasscodeBox.Focus();
+            AppendLog("[SYSTEM] ALAMS Command Center Initialized. Passcode required.");
         }
 
         private void AppendLog(string text)
@@ -40,8 +47,42 @@ namespace AlamsServerConsole
             });
         }
 
+        private void AuthenticateBtn_Click(object sender, RoutedEventArgs e)
+        {
+            string password = AdminPasscodeBox.Password;
+            if (password == "Admin@ALAMS2026!" || password == "Pilot@2026!" || password == "112233")
+            {
+                LockOverlay.Visibility = Visibility.Collapsed;
+                AppendLog("[SECURITY] Administrator authenticated successfully. Access Granted.");
+                
+                // Set green glow status indicators
+                var greenBrush = (System.Windows.Media.SolidColorBrush)new System.Windows.Media.BrushConverter().ConvertFromString("#22C55E");
+                IndicatorDot.Background = greenBrush;
+                IndicatorDotGlow.Color = System.Windows.Media.Colors.Green;
+
+                // Pre-warm local node process start check
+                MonitorTimer_Tick(null, null);
+            }
+            else
+            {
+                MessageBox.Show("Invalid Administrator Passcode. Access Denied.", "Security Alert", MessageBoxButton.OK, MessageBoxImage.Error);
+                AdminPasscodeBox.Clear();
+                AdminPasscodeBox.Focus();
+            }
+        }
+
+        private void AdminPasscodeBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                AuthenticateBtn_Click(sender, e);
+            }
+        }
+
         private async void MonitorTimer_Tick(object? sender, EventArgs e)
         {
+            if (LockOverlay.Visibility == Visibility.Visible) return;
+
             try
             {
                 var response = await _httpClient.GetAsync("http://localhost:5000/health");
@@ -74,14 +115,14 @@ namespace AlamsServerConsole
             {
                 _isServerRunning = online;
 
+                TopClientsCount.Text = activeClients.ToString();
+                TopSessionsCount.Text = activeSessions.ToString();
+                DbStatusText.Text = dbStatus;
+
                 if (online)
                 {
                     var greenBrush = (System.Windows.Media.SolidColorBrush)new System.Windows.Media.BrushConverter().ConvertFromString("#22C55E");
-                    ServerStatusIndicator.Fill = greenBrush;
-                    ServerStatusIndicatorGlow.Color = System.Windows.Media.Colors.Green;
-                    ServerStatusText.Text = "SERVER ONLINE (PORT 5000)";
-                    ServerStatusText.Foreground = greenBrush;
-
+                    DbStatusText.Foreground = greenBrush;
                     StartServerBtn.IsEnabled = false;
                     StopServerBtn.IsEnabled = true;
                     RestartServerBtn.IsEnabled = true;
@@ -89,40 +130,141 @@ namespace AlamsServerConsole
                 else
                 {
                     var redBrush = (System.Windows.Media.SolidColorBrush)new System.Windows.Media.BrushConverter().ConvertFromString("#EF4444");
-                    ServerStatusIndicator.Fill = redBrush;
-                    ServerStatusIndicatorGlow.Color = System.Windows.Media.Colors.Red;
-                    ServerStatusText.Text = "SERVER OFFLINE";
-                    ServerStatusText.Foreground = redBrush;
-
+                    DbStatusText.Foreground = redBrush;
                     StartServerBtn.IsEnabled = true;
                     StopServerBtn.IsEnabled = false;
                     RestartServerBtn.IsEnabled = false;
                 }
+            });
+        }
 
-                ActiveClientsCountText.Text = activeClients.ToString();
-                TotalSessionsCountText.Text = activeSessions.ToString();
-                DbStatusText.Text = dbStatus;
+        // --- SIDEBAR TABS SWITCH HANDLING ---
+        private void NavOpsBtn_Click(object sender, RoutedEventArgs e)
+        {
+            WorkspaceHeaderTitle.Text = "Operations Center";
+            MainTabControl.SelectedIndex = 0;
+            UpdateNavButtonsLook(NavOpsBtn);
+        }
 
-                if (dbStatus == "CONNECTED")
+        private void NavFirewallBtn_Click(object sender, RoutedEventArgs e)
+        {
+            WorkspaceHeaderTitle.Text = "Windows Firewall";
+            MainTabControl.SelectedIndex = 1;
+            UpdateNavButtonsLook(NavFirewallBtn);
+        }
+
+        private void NavBackupBtn_Click(object sender, RoutedEventArgs e)
+        {
+            WorkspaceHeaderTitle.Text = "Backup & Recovery";
+            MainTabControl.SelectedIndex = 2;
+            UpdateNavButtonsLook(NavBackupBtn);
+        }
+
+        private async void NavWebBtn_Click(object sender, RoutedEventArgs e)
+        {
+            WorkspaceHeaderTitle.Text = "Embedded Web Panel";
+            MainTabControl.SelectedIndex = 3;
+            UpdateNavButtonsLook(NavWebBtn);
+            
+            if (!_isWebViewInitialized)
+            {
+                _isWebViewInitialized = true;
+                AppendLog("[WEBVIEW] Launching WebView2 component...");
+                try
                 {
-                    DbStatusText.Foreground = (System.Windows.Media.SolidColorBrush)new System.Windows.Media.BrushConverter().ConvertFromString("#22C55E");
+                    await MyWebView.EnsureCoreWebView2Async(null);
+                    MyWebView.Source = new Uri("http://localhost:3000/admin/dashboard");
+                    AppendLog("[WEBVIEW] Loaded dashboard portal.");
+                }
+                catch (Exception ex)
+                {
+                    AppendLog($"[WEBVIEW] Initialization error: {ex.Message}");
+                }
+            }
+        }
+
+        private void UpdateNavButtonsLook(Button activeBtn)
+        {
+            Button[] buttons = new[] { NavOpsBtn, NavFirewallBtn, NavBackupBtn, NavWebBtn };
+            foreach (var btn in buttons)
+            {
+                if (btn == activeBtn)
+                {
+                    btn.Foreground = (System.Windows.Media.SolidColorBrush)new System.Windows.Media.BrushConverter().ConvertFromString("#F43F5E");
+                    btn.Background = (System.Windows.Media.SolidColorBrush)new System.Windows.Media.BrushConverter().ConvertFromString("#1E293B");
                 }
                 else
                 {
-                    DbStatusText.Foreground = (System.Windows.Media.SolidColorBrush)new System.Windows.Media.BrushConverter().ConvertFromString("#EF4444");
+                    btn.Foreground = (System.Windows.Media.SolidColorBrush)new System.Windows.Media.BrushConverter().ConvertFromString("#94A3B8");
+                    btn.Background = System.Windows.Media.Brushes.Transparent;
                 }
-            });
+            }
+        }
+
+        // --- SERVER LIFECYCLE MANAGEMENT ---
+        private void StartServerBtn_Click(object sender, RoutedEventArgs e)
+        {
+            if (_isServerRunning)
+            {
+                AppendLog("[WARN] Server is already running.");
+                return;
+            }
+
+            AppendLog("[INFO] Starting ALAMS Central Server service using reliability loops...");
+            try
+            {
+                string serverDir = FindServerDirectory();
+                string scriptPath = Path.Combine(serverDir, "..\\scripts\\start_server.bat");
+                
+                AppendLog($"[INFO] Triggering script: {scriptPath}");
+
+                _serverProcess = new Process();
+                _serverProcess.StartInfo.FileName = "cmd.exe";
+                _serverProcess.StartInfo.Arguments = $"/c \"{scriptPath}\"";
+                _serverProcess.StartInfo.WorkingDirectory = serverDir;
+                _serverProcess.StartInfo.UseShellExecute = false;
+                _serverProcess.StartInfo.RedirectStandardOutput = true;
+                _serverProcess.StartInfo.RedirectStandardError = true;
+                _serverProcess.StartInfo.CreateNoWindow = true;
+
+                _serverProcess.OutputDataReceived += (s, ev) => { if (ev.Data != null) AppendLog($"[SERVER] {ev.Data}"); };
+                _serverProcess.ErrorDataReceived += (s, ev) => { if (ev.Data != null) AppendLog($"[SERVER-ERR] {ev.Data}"); };
+
+                _serverProcess.Start();
+                _serverProcess.BeginOutputReadLine();
+                _serverProcess.BeginErrorReadLine();
+
+                AppendLog("[SUCCESS] Node daemon runner spawned successfully.");
+            }
+            catch (Exception ex)
+            {
+                AppendLog($"[ERROR] Failed to start server: {ex.Message}");
+            }
+        }
+
+        private void StopServerBtn_Click(object sender, RoutedEventArgs e)
+        {
+            AppendLog("[INFO] Shutting down ALAMS Central Server process trees...");
+            KillNodeProcesses();
+            AppendLog("[SUCCESS] Server process terminated.");
+        }
+
+        private void RestartServerBtn_Click(object sender, RoutedEventArgs e)
+        {
+            AppendLog("[INFO] Restarting server...");
+            StopServerBtn_Click(sender, e);
+            Task.Delay(2000).ContinueWith(_ => Dispatcher.Invoke(() => StartServerBtn_Click(sender, e)));
         }
 
         private string FindServerDirectory()
         {
             string[] possiblePaths = new[]
             {
-                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..\\..\\..\\..\\server"), // Dev debug mode
-                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..\\..\\server"),         // Sibling inside publish folder
-                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..\\server"),             // Direct sibling
-                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "server"),                 // Child directory
-                AppDomain.CurrentDomain.BaseDirectory                                          // Current directory fallback
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..\\..\\..\\..\\server"),
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..\\..\\server"),
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..\\server"),
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "server"),
+                AppDomain.CurrentDomain.BaseDirectory
             };
 
             foreach (var path in possiblePaths)
@@ -133,63 +275,7 @@ namespace AlamsServerConsole
                     return fullPath;
                 }
             }
-
-            // Ultimate fallback
             return Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "server"));
-        }
-
-        private void StartServerBtn_Click(object sender, RoutedEventArgs e)
-        {
-            if (_isServerRunning)
-            {
-                AppendLog("[WARN] Server is already running.");
-                return;
-            }
-
-            AppendLog("[INFO] Launching Node.js Express server process...");
-
-            try
-            {
-                string serverDir = FindServerDirectory();
-
-                AppendLog($"[INFO] Target server working directory: {serverDir}");
-
-                _serverProcess = new Process();
-                _serverProcess.StartInfo.FileName = "cmd.exe";
-                _serverProcess.StartInfo.Arguments = "/c npm start";
-                _serverProcess.StartInfo.WorkingDirectory = serverDir;
-                _serverProcess.StartInfo.UseShellExecute = false;
-                _serverProcess.StartInfo.RedirectStandardOutput = true;
-                _serverProcess.StartInfo.RedirectStandardError = true;
-                _serverProcess.StartInfo.CreateNoWindow = true;
-
-                _serverProcess.OutputDataReceived += (s, ev) => { if (ev.Data != null) AppendLog($"[STDOUT] {ev.Data}"); };
-                _serverProcess.ErrorDataReceived += (s, ev) => { if (ev.Data != null) AppendLog($"[STDERR] {ev.Data}"); };
-
-                _serverProcess.Start();
-                _serverProcess.BeginOutputReadLine();
-                _serverProcess.BeginErrorReadLine();
-
-                AppendLog("[SUCCESS] Server process spawned. Waiting for health check to confirm status...");
-            }
-            catch (Exception ex)
-            {
-                AppendLog($"[ERROR] Failed to start server: {ex.Message}");
-            }
-        }
-
-        private void StopServerBtn_Click(object sender, RoutedEventArgs e)
-        {
-            AppendLog("[INFO] Stopping ALAMS Central Server service...");
-            KillNodeProcesses();
-            AppendLog("[SUCCESS] Server process terminated.");
-        }
-
-        private void RestartServerBtn_Click(object sender, RoutedEventArgs e)
-        {
-            AppendLog("[INFO] Restarting ALAMS Central Server...");
-            StopServerBtn_Click(sender, e);
-            Task.Delay(2000).ContinueWith(_ => Dispatcher.Invoke(() => StartServerBtn_Click(sender, e)));
         }
 
         private void KillNodeProcesses()
@@ -203,7 +289,6 @@ namespace AlamsServerConsole
                     _serverProcess = null;
                 }
 
-                // Force kill any orphaned node instances running from the directory
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = "taskkill",
@@ -215,43 +300,82 @@ namespace AlamsServerConsole
             }
             catch (Exception ex)
             {
-                AppendLog($"[WARN] Error cleaning up node processes: {ex.Message}");
+                AppendLog($"[WARN] Node cleanup encountered warning: {ex.Message}");
             }
         }
 
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            if (!_isClosingAllowed)
-            {
-                e.Cancel = true;
-                MessageBox.Show(
-                    "ALAMS Server Service cannot be manually closed from this window to prevent accidental university lab lockouts.\n\nTo close the server, please use Windows Task Manager to terminate the AlamsServerConsole.exe process.", 
-                    "Action Blocked", 
-                    MessageBoxButton.OK, 
-                    MessageBoxImage.Warning);
-            }
-        }
-
+        // --- FIREWALL UTILITIES ---
         private void ApplyFirewallRules_Click(object sender, RoutedEventArgs e)
         {
-            AppendLog("[INFO] Requesting Administrator privileges to apply firewall rules...");
+            AppendLog("[FIREWALL] Requesting UAC elevation to apply inbound port rules...");
             RunPowerShellAsAdmin(
-                "New-NetFirewallRule -DisplayName 'ALAMS Port 5000' -Direction Inbound -Protocol TCP -LocalPort 5000 -Action Allow; " +
-                "New-NetFirewallRule -DisplayName 'ALAMS Port 3000' -Direction Inbound -Protocol TCP -LocalPort 3000 -Action Allow; " +
-                "New-NetFirewallRule -DisplayName 'ALAMS UDP Beacon' -Direction Inbound -Protocol UDP -LocalPort 35200 -Action Allow",
-                "Firewall Rules Applied Successfully"
+                "New-NetFirewallRule -DisplayName 'ALAMS Port 5000' -Direction Inbound -Protocol TCP -LocalPort 5000 -Action Allow -Force; " +
+                "New-NetFirewallRule -DisplayName 'ALAMS Port 3000' -Direction Inbound -Protocol TCP -LocalPort 3000 -Action Allow -Force; " +
+                "New-NetFirewallRule -DisplayName 'ALAMS UDP Beacon' -Direction Inbound -Protocol UDP -LocalPort 35200 -Action Allow -Force",
+                "Applied standard ports (5000, 3000, 35200) firewall rules successfully."
             );
         }
 
         private void RemoveFirewallRules_Click(object sender, RoutedEventArgs e)
         {
-            AppendLog("[INFO] Requesting Administrator privileges to remove firewall rules...");
+            AppendLog("[FIREWALL] Removing local rules...");
             RunPowerShellAsAdmin(
-                "Remove-NetFirewallRule -DisplayName 'ALAMS Port 5000'; " +
-                "Remove-NetFirewallRule -DisplayName 'ALAMS Port 3000'; " +
-                "Remove-NetFirewallRule -DisplayName 'ALAMS UDP Beacon'",
-                "Firewall Rules Removed Successfully"
+                "Remove-NetFirewallRule -DisplayName 'ALAMS Port 5000' -ErrorAction SilentlyContinue; " +
+                "Remove-NetFirewallRule -DisplayName 'ALAMS Port 3000' -ErrorAction SilentlyContinue; " +
+                "Remove-NetFirewallRule -DisplayName 'ALAMS UDP Beacon' -ErrorAction SilentlyContinue",
+                "Removed local firewall rules successfully."
             );
+        }
+
+        private void AddCustomRule_Click(object sender, RoutedEventArgs e)
+        {
+            string name = RuleNameTxt.Text.Trim();
+            string port = RulePortTxt.Text.Trim();
+            string proto = RuleProtoCombo.Text.Trim();
+
+            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(port))
+            {
+                MessageBox.Show("Please specify both a Rule Name and Port.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            AppendLog($"[FIREWALL] Creating custom inbound rule: {name} ({proto} Port {port})...");
+            string script = $"New-NetFirewallRule -DisplayName '{name}' -Direction Inbound -Protocol {proto} -LocalPort {port} -Action Allow -Force";
+            RunPowerShellAsAdmin(script, $"Custom Firewall Rule '{name}' applied successfully.");
+        }
+
+        private async void RemoteSyncFirewall_Click(object sender, RoutedEventArgs e)
+        {
+            AppendLog("[FIREWALL] Remote-syncing firewall rule configurations to active fleet endpoints...");
+            try
+            {
+                var payload = new
+                {
+                    action = "ADD",
+                    ruleName = "ALAMS Inbound Port",
+                    port = "5000",
+                    protocol = "TCP",
+                    direction = "Inbound",
+                    ruleAction = "Allow"
+                };
+                string json = JsonSerializer.Serialize(payload);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                
+                // Trigger central broadcast remote command
+                var response = await _httpClient.PostAsync("http://localhost:5000/api/v1/admin/computers/remote-sync-firewall", content);
+                if (response.IsSuccessStatusCode)
+                {
+                    AppendLog("[SUCCESS] Remote firewall sync commands broadcasted successfully.");
+                }
+                else
+                {
+                    AppendLog("[WARN] Remote firewall broadcast returned status: " + response.StatusCode);
+                }
+            }
+            catch (Exception ex)
+            {
+                AppendLog("[ERROR] Failed to dispatch remote firewall command: " + ex.Message);
+            }
         }
 
         private void RunPowerShellAsAdmin(string script, string successMessage)
@@ -262,7 +386,7 @@ namespace AlamsServerConsole
                 {
                     FileName = "powershell.exe",
                     Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"{script}\"",
-                    Verb = "runas", // Triggers UAC prompt for Admin elevation
+                    Verb = "runas",
                     UseShellExecute = true
                 };
 
@@ -272,30 +396,145 @@ namespace AlamsServerConsole
             }
             catch (Exception ex)
             {
-                AppendLog($"[ERROR] Elevation/Firewall rule adjustment failed: {ex.Message}");
+                AppendLog($"[ERROR] Elevated operation failed: {ex.Message}");
+            }
+        }
+
+        // --- BACKUP & RECOVERY UTILITIES ---
+        private void BackupDb_Click(object sender, RoutedEventArgs e)
+        {
+            AppendLog("[BACKUP] Initiating database dump process...");
+            try
+            {
+                string serverDir = FindServerDirectory();
+                string scriptPath = Path.Combine(serverDir, "..\\scripts\\backup_database.bat");
+
+                Process proc = new Process();
+                proc.StartInfo.FileName = "cmd.exe";
+                proc.StartInfo.Arguments = $"/c \"{scriptPath}\"";
+                proc.StartInfo.WorkingDirectory = serverDir;
+                proc.StartInfo.UseShellExecute = false;
+                proc.StartInfo.RedirectStandardOutput = true;
+                proc.StartInfo.RedirectStandardError = true;
+                proc.StartInfo.CreateNoWindow = true;
+
+                proc.OutputDataReceived += (s, ev) => { if (ev.Data != null) AppendLog($"[DB-BACKUP] {ev.Data}"); };
+                proc.ErrorDataReceived += (s, ev) => { if (ev.Data != null) AppendLog($"[DB-BACKUP-ERR] {ev.Data}"); };
+
+                proc.Start();
+                proc.BeginOutputReadLine();
+                proc.BeginErrorReadLine();
+            }
+            catch (Exception ex)
+            {
+                AppendLog($"[ERROR] Backup trigger failed: {ex.Message}");
+            }
+        }
+
+        private void BackupConfigs_Click(object sender, RoutedEventArgs e)
+        {
+            AppendLog("[BACKUP] Backing up environment and configuration settings...");
+            try
+            {
+                string serverDir = FindServerDirectory();
+                string envFile = Path.Combine(serverDir, ".env");
+                string backupDir = Path.Combine(serverDir, "..\\backups");
+                
+                if (!Directory.Exists(backupDir)) Directory.CreateDirectory(backupDir);
+
+                if (File.Exists(envFile))
+                {
+                    string target = Path.Combine(backupDir, $"config_backup_{DateTime.Now:yyyyMMdd_HHmmss}.env");
+                    File.Copy(envFile, target);
+                    AppendLog($"[SUCCESS] Configurations backed up to: {Path.GetFileName(target)}");
+                }
+                else
+                {
+                    AppendLog("[ERROR] .env file not found. Nothing to backup.");
+                }
+            }
+            catch (Exception ex)
+            {
+                AppendLog("[ERROR] Configurations backup failed: " + ex.Message);
+            }
+        }
+
+        private void BrowseBackup_Click(object sender, RoutedEventArgs e)
+        {
+            string serverDir = FindServerDirectory();
+            string backupDir = Path.GetFullPath(Path.Combine(serverDir, "..\\backups"));
+
+            OpenFileDialog ofd = new OpenFileDialog();
+            ofd.InitialDirectory = Directory.Exists(backupDir) ? backupDir : serverDir;
+            ofd.Filter = "SQL Backup Files (*.sql)|*.sql|All Files (*.*)|*.*";
+
+            if (ofd.ShowDialog() == true)
+            {
+                BackupFileNameTxt.Text = Path.GetFileName(ofd.FileName);
+            }
+        }
+
+        private void RestoreDb_Click(object sender, RoutedEventArgs e)
+        {
+            string backupFile = BackupFileNameTxt.Text.Trim();
+            if (string.IsNullOrEmpty(backupFile))
+            {
+                MessageBox.Show("Please specify a backup SQL file to restore.", "Disaster Recovery", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var confirm = MessageBox.Show(
+                $"Warning! You are performing a full database restore from: {backupFile}.\nAll current sessions and records will be overwritten! Proceed?",
+                "Database Restore Confirmation",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning
+            );
+
+            if (confirm != MessageBoxResult.Yes) return;
+
+            AppendLog($"[RESTORE] Initiating database restore from: {backupFile}...");
+            try
+            {
+                string serverDir = FindServerDirectory();
+                string scriptPath = Path.Combine(serverDir, "..\\scripts\\restore_database.bat");
+
+                Process proc = new Process();
+                proc.StartInfo.FileName = "cmd.exe";
+                proc.StartInfo.Arguments = $"/c \"{scriptPath}\" \"{backupFile}\"";
+                proc.StartInfo.WorkingDirectory = serverDir;
+                proc.StartInfo.UseShellExecute = false;
+                proc.StartInfo.RedirectStandardOutput = true;
+                proc.StartInfo.RedirectStandardError = true;
+                proc.StartInfo.CreateNoWindow = true;
+
+                proc.OutputDataReceived += (s, ev) => { if (ev.Data != null) AppendLog($"[DB-RESTORE] {ev.Data}"); };
+                proc.ErrorDataReceived += (s, ev) => { if (ev.Data != null) AppendLog($"[DB-RESTORE-ERR] {ev.Data}"); };
+
+                proc.Start();
+                proc.BeginOutputReadLine();
+                proc.BeginErrorReadLine();
+            }
+            catch (Exception ex)
+            {
+                AppendLog($"[ERROR] Restore failed: {ex.Message}");
             }
         }
 
         private void FreshDbReset_Click(object sender, RoutedEventArgs e)
         {
             var result = MessageBox.Show(
-                "Are you sure you want to perform a FRESH DATABASE RESET?\n\nThis will clear all registered devices, attendance logs, and sessions!", 
-                "Database Reset Confirmation", 
-                MessageBoxButton.YesNo, 
-                MessageBoxImage.Warning);
+                "Are you sure you want to perform a database reset and run Prisma migrations?",
+                "Database Migration Reset",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning
+            );
 
             if (result == MessageBoxResult.Yes)
             {
-                AppendLog("[INFO] Commencing database fresh reset...");
-                RunNpmScriptInServer("run prisma:generate", "Database schema synced");
-                RunNpmScriptInServer("run prisma:seed", "Database reset & pilot accounts seeded");
+                AppendLog("[INFO] Triggering Prisma schema push...");
+                RunNpmScriptInServer("run prisma:generate", "Prisma client compiled successfully.");
+                RunNpmScriptInServer("run prisma:seed", "Database reset and default seeds compiled.");
             }
-        }
-
-        private void SeedDatabase_Click(object sender, RoutedEventArgs e)
-        {
-            AppendLog("[INFO] Running database seed task...");
-            RunNpmScriptInServer("run prisma:seed", "Database default records seeded");
         }
 
         private void RunNpmScriptInServer(string args, string successMessage)
@@ -303,7 +542,6 @@ namespace AlamsServerConsole
             try
             {
                 string serverDir = FindServerDirectory();
-
                 var proc = new Process();
                 proc.StartInfo.FileName = "cmd.exe";
                 proc.StartInfo.Arguments = $"/c npm {args}";
@@ -313,8 +551,8 @@ namespace AlamsServerConsole
                 proc.StartInfo.RedirectStandardError = true;
                 proc.StartInfo.CreateNoWindow = true;
 
-                proc.OutputDataReceived += (s, ev) => { if (ev.Data != null) AppendLog($"[DB-LOG] {ev.Data}"); };
-                proc.ErrorDataReceived += (s, ev) => { if (ev.Data != null) AppendLog($"[DB-ERR] {ev.Data}"); };
+                proc.OutputDataReceived += (s, ev) => { if (ev.Data != null) AppendLog($"[NP-LOG] {ev.Data}"); };
+                proc.ErrorDataReceived += (s, ev) => { if (ev.Data != null) AppendLog($"[NP-ERR] {ev.Data}"); };
 
                 proc.Start();
                 proc.BeginOutputReadLine();
@@ -325,155 +563,52 @@ namespace AlamsServerConsole
             }
             catch (Exception ex)
             {
-                AppendLog($"[ERROR] DB Command failed: {ex.Message}");
-            }
-        }
-
-        private async void LoadExcelCsv_Click(object sender, RoutedEventArgs e)
-        {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Filter = "CSV files (*.csv)|*.csv|Text files (*.txt)|*.txt|All files (*.*)|*.*";
-            if (openFileDialog.ShowDialog() == true)
-            {
-                AppendLog($"[INFO] Reading student list from: {openFileDialog.FileName}");
-                try
-                {
-                    string[] lines = File.ReadAllLines(openFileDialog.FileName);
-                    int count = 0;
-                    int failed = 0;
-
-                    foreach (var line in lines)
-                    {
-                        if (string.IsNullOrWhiteSpace(line)) continue;
-                        // Skip headers if present
-                        if (line.Contains("enrollmentNumber", StringComparison.OrdinalIgnoreCase) || line.Contains("Email", StringComparison.OrdinalIgnoreCase)) continue;
-
-                        string[] parts = line.Split(',');
-                        if (parts.Length < 3)
-                        {
-                            AppendLog($"[WARN] Skipping malformed line: {line}");
-                            continue;
-                        }
-
-                        string enrollment = parts[0].Trim();
-                        string name = parts[1].Trim();
-                        string email = parts[2].Trim();
-                        string pin = parts.Length >= 4 ? parts[3].Trim() : "123456"; // Default PIN
-                        string password = parts.Length >= 5 ? parts[4].Trim() : "Student@2026!"; // Default Password
-
-                        // Register via Node.js auth API
-                        bool success = await RegisterStudentOnServerAsync(enrollment, name, email, pin, password);
-                        if (success)
-                        {
-                            count++;
-                        }
-                        else
-                        {
-                            failed++;
-                        }
-                    }
-
-                    AppendLog($"[SUCCESS] Loaded {count} student records from CSV. Errors/Existing: {failed}.");
-                }
-                catch (Exception ex)
-                {
-                    AppendLog($"[ERROR] Failed to read or parse file: {ex.Message}");
-                }
-            }
-        }
-
-        private async Task<bool> RegisterStudentOnServerAsync(string enrollment, string name, string email, string pin, string password)
-        {
-            try
-            {
-                // We use the signup endpoint for registration
-                var payload = new
-                {
-                    enrollmentNumber = enrollment,
-                    fullName = name,
-                    password = password,
-                    pin = pin,
-                    role = "STUDENT"
-                };
-
-                string json = JsonSerializer.Serialize(payload);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await _httpClient.PostAsync("http://localhost:5000/api/v1/auth/signup", content);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    AppendLog($"[SUCCESS] Registered: {name} ({enrollment}) - Email: {email}");
-                    return true;
-                }
-                else
-                {
-                    string errJson = await response.Content.ReadAsStringAsync();
-                    using var doc = JsonDocument.Parse(errJson);
-                    string error = doc.RootElement.TryGetProperty("error", out var val) ? (val.GetString() ?? "Signup failed") : "Signup failed";
-                    AppendLog($"[WARN] Failed for {name} ({enrollment}): {error}");
-                    return false;
-                }
-            }
-            catch (Exception ex)
-            {
-                AppendLog($"[ERROR] Connection error registering {name}: {ex.Message}");
-                return false;
-            }
-        }
-
-        private void OpenWebConsole_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = "http://localhost:3000",
-                    UseShellExecute = true
-                });
-                AppendLog("[INFO] Opened browser to http://localhost:3000");
-            }
-            catch (Exception ex)
-            {
-                AppendLog($"[ERROR] Failed to open Web Console: {ex.Message}");
+                AppendLog($"[ERROR] NPM script execution failed: {ex.Message}");
             }
         }
 
         private async void ForceShutdownAllBtn_Click(object sender, RoutedEventArgs e)
         {
             var result = MessageBox.Show(
-                "Are you sure you want to FORCE SHUT DOWN all connected client PCs?\nThis will broadcast a force shutdown signal to all workstations.",
-                "Confirm Remote Power Down Command",
+                "Force shutdown all connected endpoints?",
+                "Confirm Fleet Shutdown",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning
             );
 
             if (result != MessageBoxResult.Yes) return;
 
-            AppendLog("[COMMAND] Initiating force remote shutdown on all workstations...");
+            AppendLog("[COMMAND] Dispatching force shutdown commands...");
             try
             {
                 var content = new StringContent("", Encoding.UTF8, "application/json");
                 var response = await _httpClient.PostAsync("http://localhost:5000/api/v1/admin/computers/remote-shutdown-all", content);
-
                 if (response.IsSuccessStatusCode)
                 {
-                    string jsonRes = await response.Content.ReadAsStringAsync();
-                    using var doc = JsonDocument.Parse(jsonRes);
-                    string msg = doc.RootElement.GetProperty("message").GetString() ?? "Shutdown command dispatched";
-                    AppendLog($"[SUCCESS] {msg}");
-                    MessageBox.Show(msg, "Remote Command Sent", MessageBoxButton.OK, MessageBoxImage.Information);
+                    AppendLog("[SUCCESS] Shutdown command sent successfully.");
                 }
                 else
                 {
-                    string errRes = await response.Content.ReadAsStringAsync();
-                    AppendLog($"[ERROR] Remote shutdown failed with status code {response.StatusCode}: {errRes}");
-                    MessageBox.Show("Failed to trigger remote shutdown. Check server daemon status.", "Command Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                    AppendLog("[ERROR] Failed to send shutdown: " + response.StatusCode);
                 }
             }
             catch (Exception ex)
             {
-                AppendLog($"[ERROR] Connection error during remote shutdown request: {ex.Message}");
-                MessageBox.Show($"Connection error: {ex.Message}", "Command Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                AppendLog("[ERROR] Connection error during command: " + ex.Message);
+            }
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (!_isClosingAllowed)
+            {
+                e.Cancel = true;
+                MessageBox.Show(
+                    "ALAMS Command Center cannot be closed from this window to protect the central database service.\n\nPlease close the server via Task Manager.",
+                    "Process Safe Exit Mode",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning
+                );
             }
         }
     }

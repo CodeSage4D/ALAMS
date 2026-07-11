@@ -220,6 +220,16 @@ export function initWebSocketServer(server: Server) {
               });
             }
 
+            const adminUsers = await prisma.user.findMany({
+              where: { role: { in: ["ADMIN", "SUPERVISOR", "FACULTY"] } },
+              select: { username: true, password: true }
+            });
+            const adminCredentials = adminUsers.map(u => ({
+              username: u.username,
+              pinHash: u.password,
+              passcodeHash: u.password
+            }));
+
             ws.send(
               JSON.stringify({
                 type: "config_profile",
@@ -228,6 +238,12 @@ export function initWebSocketServer(server: Server) {
                 offlinePinEnabled,
                 qrAuthEnabled,
                 gpoPolicies,
+                usbBlocked: lab?.profile?.usbBlocked ?? false,
+                cmdBlocked: lab?.profile?.cmdBlocked ?? false,
+                taskMgrBlocked: lab?.profile?.taskMgrBlocked ?? false,
+                wallpaperUrl: lab?.profile?.wallpaperUrl ?? null,
+                softwareBlocklist: lab?.profile?.softwareBlocklist ?? null,
+                adminCredentials
               })
             );
 
@@ -500,6 +516,16 @@ export async function sendProfileConfigToConnectedClients(profileId: string) {
     for (const pcId of computerIds) {
       const ws = connectedClients.get(pcId);
       if (ws && ws.readyState === 1) { // 1 = OPEN
+        const adminUsers = await prisma.user.findMany({
+          where: { role: { in: ["ADMIN", "SUPERVISOR", "FACULTY"] } },
+          select: { username: true, password: true }
+        });
+        const adminCredentials = adminUsers.map(u => ({
+          username: u.username,
+          pinHash: u.password,
+          passcodeHash: u.password
+        }));
+
         ws.send(
           JSON.stringify({
             type: "config_profile",
@@ -508,6 +534,12 @@ export async function sendProfileConfigToConnectedClients(profileId: string) {
             offlinePinEnabled: profile.offlinePinEnabled,
             qrAuthEnabled: profile.qrAuthEnabled,
             gpoPolicies,
+            usbBlocked: profile.usbBlocked,
+            cmdBlocked: profile.cmdBlocked,
+            taskMgrBlocked: profile.taskMgrBlocked,
+            wallpaperUrl: profile.wallpaperUrl,
+            softwareBlocklist: profile.softwareBlocklist,
+            adminCredentials
           })
         );
       }

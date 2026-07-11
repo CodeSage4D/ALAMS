@@ -30,7 +30,7 @@
             </StackPanel>
 
             <!-- Logout Button -->
-            <Button Grid.Column="1" x:Name="LogoutButton" Content="Log Out" Background="#EF4444" Foreground="#FFFFFF" FontSize="13" FontWeight="Bold" Width="90" Height="36" BorderThickness="0" Cursor="Hand" Click="LogoutButton_Click">
+            <Button Grid.Column="1" x:Name="LogoutButton" Content="Log Out" Background="#0284C7" Foreground="#FFFFFF" FontSize="13" FontWeight="Bold" Width="90" Height="36" BorderThickness="0" Cursor="Hand" Click="LogoutButton_Click">
                 <Button.Resources>
                     <Style TargetType="Border">
                         <Setter Property="CornerRadius" Value="6" />

@@ -161,7 +161,7 @@
                             </Button>
 
                             <!-- Dynamic Status/Errors display -->
-                            <TextBlock x:Name="StatusMessageText" Text="" Foreground="#EF4444" FontSize="14" Margin="0,20,0,0" TextAlignment="Center" TextWrapping="Wrap"/>
+                            <TextBlock x:Name="StatusMessageText" Text="" Foreground="#EA580C" FontSize="14" Margin="0,20,0,0" TextAlignment="Center" TextWrapping="Wrap"/>
                         </StackPanel>
                     </Grid>
                 </Border>

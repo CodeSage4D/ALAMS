@@ -94,6 +94,16 @@ model Profile {
   sessionTimeout    Int         @default(120) @map("session_timeout")
   idleTimeout       Int         @default(15) @map("idle_timeout")
   createdAt         DateTime    @default(now()) @map("created_at")
+  
+  // Central Policy Configuration Toggles
+  usbBlocked        Boolean     @default(false) @map("usb_blocked")
+  cmdBlocked        Boolean     @default(false) @map("cmd_blocked")
+  taskMgrBlocked    Boolean     @default(false) @map("task_mgr_blocked")
+  browserRestricted Boolean     @default(false) @map("browser_restricted")
+  wallpaperUrl      String?     @map("wallpaper_url")
+  startupAppsJson   String?     @map("startup_apps_json")  // JSON array of allowed/forced apps
+  softwareBlocklist String?     @map("software_blocklist")  // Comma-separated processes to block
+  
   labs              Lab[]
   gpoPolicies       GpoPolicy[]
 
@@ -109,6 +119,13 @@ model Lab {
   branch         String?
   section        String?
   batch          String?
+  
+  // Hierarchical Organization
+  organization   String          @default("SUAS") @map("organization")
+  campus         String          @default("Indore") @map("campus")
+  building       String          @default("SCSIT Block") @map("building")
+  floor          String          @default("Ground Floor") @map("floor")
+  
   createdAt      DateTime        @default(now()) @map("created_at")
   profileId      String?         @map("profile_id")
   profile        Profile?        @relation(fields: [profileId], references: [id], onDelete: SetNull)
@@ -311,4 +328,17 @@ model GpoPolicy {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("gpo_policies")
+}
+
+model ScheduleRule {
+  id         String   @id @default(uuid())
+  name       String
+  cronExpr   String   @map("cron_expr")   // e.g. "0 18 * * 0"
+  targetType String   @map("target_type") // "PC", "LAB", "GROUP"
+  targetId   String   @map("target_id")
+  action     String   @map("action")      // "SHUTDOWN", "RESTART", "UPDATE", "RESTART_SERVICE"
+  enabled    Boolean  @default(true) @map("is_enabled")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("schedule_rules")
 }

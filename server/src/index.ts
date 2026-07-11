@@ -50,6 +50,8 @@ import {
   getStudentAttendance,
   registerAndUnlock,
   dispatchTelemetry,
+  verifyAdminPIN,
+  enrollClient,
 } from "./controllers/clientController";
 import { getPilotAnalytics, recordFailedLogin } from "./controllers/analyticsController";
 import { authenticateJWT, authorizeRoles } from "./middleware/auth";
@@ -169,6 +171,8 @@ app.post("/api/v1/client/watchdog-heartbeat", watchdogHeartbeat);
 app.post("/api/v1/client/watchdog-alert", watchdogAlert);
 app.post("/api/v1/client/telemetry", dispatchTelemetry);
 app.post("/api/v1/client/failed-login", recordFailedLogin);
+app.post("/api/v1/client/verify-admin-pin", verifyAdminPIN);
+app.post("/api/v1/client/enroll", enrollClient);
 
 // Analytics / Reporting APIs
 app.get("/api/v1/admin/analytics/pilot", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR", "FACULTY"), getPilotAnalytics);
@@ -184,10 +188,33 @@ app.get("/api/v1/student/attendance", authenticateJWT, authorizeRoles("STUDENT",
 const server = http.createServer(app);
 initWebSocketServer(server);
 
-server.listen(port, () => {
-  console.log(`====================================================`);
-  console.log(`[ALAMS SERVER] Operating at http://localhost:${port}`);
-  console.log(`====================================================`);
-  // Start UDP Discovery Beacon
-  startUdpBeacon(port);
+// Database Warmup Connection Retry Loop
+async function warmupDatabase(retries = 10, delayMs = 5000): Promise<boolean> {
+  console.log(`[ALAMS DATABASE] Connecting to database...`);
+  for (let i = 1; i <= retries; i++) {
+    try {
+      await prisma.$connect();
+      console.log(`[ALAMS DATABASE] Connection established successfully!`);
+      return true;
+    } catch (err: any) {
+      console.warn(`[ALAMS DATABASE] [Attempt ${i}/${retries}] Connection failed: ${err.message || err}`);
+      if (i < retries) {
+        console.log(`[ALAMS DATABASE] Retrying in ${delayMs / 1000} seconds...`);
+        await new Promise((res) => setTimeout(res, delayMs));
+      }
+    }
+  }
+  console.error(`[ALAMS DATABASE] Max retries reached. Server starting but database operations might fail.`);
+  return false;
+}
+
+// Start database warmup and server listening
+warmupDatabase().then(() => {
+  server.listen(port, () => {
+    console.log(`====================================================`);
+    console.log(`[ALAMS SERVER] Operating at http://localhost:${port}`);
+    console.log(`====================================================`);
+    // Start UDP Discovery Beacon
+    startUdpBeacon(port);
+  });
 });
