@@ -89,7 +89,7 @@ model User {
 model Profile {
   id                String      @id @default(uuid())
   name              String      @unique
-  qrLifetime        Int         @default(60) @map("qr_lifetime")
+  qrLifetime        Int         @default(30) @map("qr_lifetime")
   heartbeatInterval Int         @default(30) @map("heartbeat_interval")
   offlinePinEnabled Boolean     @default(true) @map("offline_pin_enabled")
   qrAuthEnabled     Boolean     @default(true) @map("qr_auth_enabled")

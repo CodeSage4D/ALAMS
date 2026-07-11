@@ -709,6 +709,7 @@ namespace AlamsClient
                                 QrCodeImage.Visibility = Visibility.Visible;
                                 QrLoaderText.Text = "Scan to authenticate student device";
                                 QrTimerPanel.Visibility = Visibility.Visible;
+                                ShowPinOverlayButton.Visibility = Visibility.Visible;
 
                                 if (!_isUnlocked)
                                 {
@@ -724,6 +725,7 @@ namespace AlamsClient
                                 QrLoaderText.Text = "Dynamic QR Authentication is disabled by Admin.";
                                 QrTimerText.Text = "";
                                 QrTimerPanel.Visibility = Visibility.Collapsed;
+                                ShowPinOverlayButton.Visibility = Visibility.Collapsed;
                                 _qrTimer?.Stop();
                                 _qrCountdownTimer?.Stop();
                             }

@@ -80,7 +80,7 @@ export function initWebSocketServer(server: Server) {
                   defProfile = await prisma.profile.create({
                     data: {
                       name: "Default Profile",
-                      qrLifetime: 60,
+                      qrLifetime: 30,
                       heartbeatInterval: 30,
                     },
                   });
@@ -206,7 +206,7 @@ export function initWebSocketServer(server: Server) {
             connectedClients.set(computer.id, ws);
 
             // Dispatch profile details
-            const qrLifetime = lab?.profile?.qrLifetime ?? 60;
+            const qrLifetime = lab?.profile?.qrLifetime ?? 30;
             const heartbeatInterval = lab?.profile?.heartbeatInterval ?? 30;
             const offlinePinEnabled = lab?.profile?.offlinePinEnabled ?? true;
             const qrAuthEnabled = lab?.profile?.qrAuthEnabled ?? true;

@@ -8,6 +8,7 @@ import {
   ShieldCheck, RefreshCw, LogOut, Check, X, FileSpreadsheet,
   BarChart3, BookOpen, Clock, Mail
 } from "lucide-react";
+import * as XLSX from "xlsx";
 
 interface Lab {
   id: string;
@@ -527,54 +528,68 @@ export default function AdminDashboard() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      const text = evt.target?.result as string;
-      if (!text) return;
+    try {
+      const dataBuffer = await file.arrayBuffer();
+      const workbook = XLSX.read(dataBuffer, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
 
-      const lines = text.split("\n");
-      if (lines.length === 0) return;
-
-      const firstLine = lines[0].split(",");
-      const headers = firstLine.map(h => h.trim().toLowerCase());
-
-      const nameIndex = headers.findIndex(h => h.includes("name") || h.includes("fullname") || h.includes("student name"));
-      const enrollIndex = headers.findIndex(h => h.includes("enrollment") || h.includes("enrollmentnumber") || h.includes("enrollment number") || h.includes("enrollment no"));
-      const emailIndex = headers.findIndex(h => h.includes("email") || h.includes("collegeemail") || h.includes("college email"));
-      const semIndex = headers.findIndex(h => h.includes("semester") || h.includes("sem"));
-      const yearIndex = headers.findIndex(h => h.includes("year") || h.includes("yr") || h.includes("class year"));
-      const deptIndex = headers.findIndex(h => h.includes("department") || h.includes("dept") || h.includes("branch"));
-      const secIndex = headers.findIndex(h => h.includes("section") || h.includes("sec"));
-
-      if (nameIndex === -1 || enrollIndex === -1) {
-        alert("CSV must contain columns for 'Student Name' and 'Enrollment Number'.");
+      if (rows.length === 0) {
+        alert("The uploaded file is empty.");
         return;
       }
 
-      const studentsList = [];
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
+      // Headers resolution
+      const firstLine = rows[0];
+      const headers = firstLine.map(h => String(h || "").trim().toLowerCase());
 
-        const parts = line.split(",");
-        const fullName = parts[nameIndex]?.trim();
-        const enrollmentNumber = parts[enrollIndex]?.trim();
+      const nameIndex = headers.findIndex(h => h.includes("name") || h.includes("fullname") || h.includes("student name"));
+      const enrollIndex = headers.findIndex(h => h.includes("enrollment") || h.includes("enrollmentnumber") || h.includes("enrollment number") || h.includes("enrollment no"));
+      const emailIndex = headers.findIndex(h => h.includes("email") || h.includes("collegeemail") || h.includes("college email") || h.includes("email id") || h.includes("emailid"));
+      const semIndex = headers.findIndex(h => h.includes("semester") || h.includes("sem"));
+
+      if (nameIndex === -1 || enrollIndex === -1) {
+        alert("The file must contain columns for 'Student Name' and 'Enrollment Number'.");
+        return;
+      }
+
+      // Prompt admin if they want to increment semester by +1
+      const shouldIncrementSem = window.confirm(
+        "Would you like to automatically increment the semester by +1 for all imported students?\n\n(e.g., Sem 3 listed in sheet will be saved as Sem 4 in database)"
+      );
+
+      const studentsList = [];
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length === 0) continue;
+
+        const fullName = String(row[nameIndex] || "").trim();
+        const enrollmentNumber = String(row[enrollIndex] || "").trim();
 
         if (!fullName || !enrollmentNumber) continue;
+
+        let rawSem = semIndex !== -1 ? String(row[semIndex] || "").trim() : "";
+        if (shouldIncrementSem && rawSem) {
+          const semNum = parseInt(rawSem, 10);
+          if (!isNaN(semNum)) {
+            rawSem = String(semNum + 1);
+          }
+        }
 
         studentsList.push({
           enrollmentNumber,
           fullName,
-          email: emailIndex !== -1 ? parts[emailIndex]?.trim() : "",
-          semester: semIndex !== -1 ? parts[semIndex]?.trim() : "",
-          year: yearIndex !== -1 ? parts[yearIndex]?.trim() : "",
-          department: deptIndex !== -1 ? parts[deptIndex]?.trim() : "",
-          section: secIndex !== -1 ? parts[secIndex]?.trim() : ""
+          email: emailIndex !== -1 ? String(row[emailIndex] || "").trim() : "",
+          semester: rawSem,
+          year: "",
+          department: "",
+          section: ""
         });
       }
 
       if (studentsList.length === 0) {
-        alert("No valid student records found in CSV file.");
+        alert("No valid student records found in the uploaded file.");
         return;
       }
 
@@ -604,14 +619,16 @@ export default function AdminDashboard() {
           }, 300);
         } else {
           const err = await res.json();
-          alert(err.error || "Failed to import CSV.");
+          alert(err.error || "Failed to import file.");
         }
       } catch (err) {
         console.error(err);
-        alert("Network error importing CSV file.");
+        alert("Network error importing student profiles.");
       }
-    };
-    reader.readAsText(file);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to parse spreadsheet. Please ensure it is a valid CSV or Excel file.");
+    }
     e.target.value = "";
   };
 

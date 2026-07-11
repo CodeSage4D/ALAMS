@@ -47,7 +47,7 @@ async function main() {
   const engProfile = await prisma.profile.create({
     data: {
       name: "Engineering Lab Profile",
-      qrLifetime: 60,
+      qrLifetime: 30,
       heartbeatInterval: 30,
       offlinePinEnabled: true,
       sessionTimeout: 120,
@@ -58,7 +58,7 @@ async function main() {
   const generalProfile = await prisma.profile.create({
     data: {
       name: "General Lab Profile",
-      qrLifetime: 60,
+      qrLifetime: 30,
       heartbeatInterval: 30,
       offlinePinEnabled: true,
       sessionTimeout: 120,
