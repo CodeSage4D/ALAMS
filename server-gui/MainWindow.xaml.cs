@@ -316,32 +316,24 @@ namespace AlamsServerConsole
 
                 _serverProcess = new Process();
                 _serverProcess.StartInfo.WorkingDirectory = serverDir;
-                _serverProcess.StartInfo.UseShellExecute = false;
-                _serverProcess.StartInfo.RedirectStandardOutput = true;
-                _serverProcess.StartInfo.RedirectStandardError = true;
-                _serverProcess.StartInfo.CreateNoWindow = true;
+                _serverProcess.StartInfo.UseShellExecute = true;
+                _serverProcess.StartInfo.CreateNoWindow = false;
 
                 if (useScript)
                 {
-                    AppendLog($"[INFO] Launching via script: {scriptPath}");
+                    AppendLog($"[INFO] Launching visible script console: {scriptPath}");
                     _serverProcess.StartInfo.FileName = "cmd.exe";
-                    _serverProcess.StartInfo.Arguments = $"/c \"{scriptPath}\"";
+                    _serverProcess.StartInfo.Arguments = $"/k \"\"{scriptPath}\"\"";
                 }
                 else
                 {
-                    AppendLog("[INFO] Launching via: node dist/index.js (direct mode)");
-                    _serverProcess.StartInfo.FileName = "node.exe";
-                    _serverProcess.StartInfo.Arguments = "dist/index.js";
+                    AppendLog("[INFO] Launching visible Node console: node dist/index.js");
+                    _serverProcess.StartInfo.FileName = "cmd.exe";
+                    _serverProcess.StartInfo.Arguments = "/k node dist/index.js";
                 }
 
-                _serverProcess.OutputDataReceived += (s, ev) => { if (ev.Data != null) AppendLog($"[SERVER] {ev.Data}"); };
-                _serverProcess.ErrorDataReceived += (s, ev) => { if (ev.Data != null) AppendLog($"[SERVER-ERR] {ev.Data}"); };
-
                 _serverProcess.Start();
-                _serverProcess.BeginOutputReadLine();
-                _serverProcess.BeginErrorReadLine();
-
-                AppendLog("[SUCCESS] Server process spawned. Waiting for health check...");
+                AppendLog("[SUCCESS] Server console window opened and process started.");
             }
             catch (Exception ex)
             {
