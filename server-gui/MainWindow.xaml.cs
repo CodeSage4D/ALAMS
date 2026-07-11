@@ -270,51 +270,69 @@ namespace AlamsServerConsole
                 return;
             }
 
-            AppendLog("[INFO] Starting ALAMS Central Server service using reliability loops...");
+            AppendLog("[INFO] Starting ALAMS Central Server service...");
             try
             {
                 string serverDir = FindServerDirectory();
-                
-                // Construct absolute script paths dynamically
-                string scriptPath = Path.GetFullPath(Path.Combine(serverDir, "..\\scripts\\start_server.bat"));
-                if (!File.Exists(scriptPath))
-                {
-                    string parent = Directory.GetParent(serverDir)?.FullName ?? "";
-                    string alternatePath = Path.Combine(parent, "scripts\\start_server.bat");
-                    if (File.Exists(alternatePath))
-                    {
-                        scriptPath = alternatePath;
-                    }
-                }
-
-                AppendLog($"[INFO] Target Working Directory: {serverDir}");
-                AppendLog($"[INFO] Resolved Startup Script: {scriptPath}");
+                AppendLog($"[INFO] Server directory resolved to: {serverDir}");
 
                 if (!Directory.Exists(serverDir))
                 {
-                    AppendLog($"[ERROR] Invalid configuration: Working directory does not exist on disk: {serverDir}");
+                    AppendLog($"[ERROR] Server directory not found: {serverDir}");
+                    AppendLog("[HINT] Create 'alams.config' next to this EXE with the line: ServerPath=D:\\path\\to\\ALAMS\\server");
                     return;
                 }
 
+                // Auto-build dist if missing
+                if (!File.Exists(Path.Combine(serverDir, "dist", "index.js")))
+                {
+                    AppendLog("[WARN] dist/index.js not found. Running npm run build first...");
+                    var buildProc = new Process();
+                    buildProc.StartInfo.FileName = "cmd.exe";
+                    buildProc.StartInfo.Arguments = "/c npm run build";
+                    buildProc.StartInfo.WorkingDirectory = serverDir;
+                    buildProc.StartInfo.UseShellExecute = false;
+                    buildProc.StartInfo.CreateNoWindow = true;
+                    buildProc.StartInfo.RedirectStandardOutput = true;
+                    buildProc.StartInfo.RedirectStandardError = true;
+                    buildProc.OutputDataReceived += (s, ev) => { if (ev.Data != null) AppendLog($"[BUILD] {ev.Data}"); };
+                    buildProc.ErrorDataReceived += (s, ev) => { if (ev.Data != null) AppendLog($"[BUILD-ERR] {ev.Data}"); };
+                    buildProc.Start();
+                    buildProc.BeginOutputReadLine();
+                    buildProc.BeginErrorReadLine();
+                    buildProc.WaitForExit();
+
+                    if (!File.Exists(Path.Combine(serverDir, "dist", "index.js")))
+                    {
+                        AppendLog("[ERROR] Build failed. Cannot start server.");
+                        return;
+                    }
+                    AppendLog("[INFO] Build succeeded.");
+                }
+
+                // Prefer start_server.bat; fall back to node.exe directly
+                string scriptPath = Path.GetFullPath(Path.Combine(serverDir, "..", "scripts", "start_server.bat"));
+                bool useScript = File.Exists(scriptPath);
+
                 _serverProcess = new Process();
                 _serverProcess.StartInfo.WorkingDirectory = serverDir;
+                _serverProcess.StartInfo.UseShellExecute = false;
+                _serverProcess.StartInfo.RedirectStandardOutput = true;
+                _serverProcess.StartInfo.RedirectStandardError = true;
+                _serverProcess.StartInfo.CreateNoWindow = true;
 
-                if (File.Exists(scriptPath))
+                if (useScript)
                 {
+                    AppendLog($"[INFO] Launching via script: {scriptPath}");
                     _serverProcess.StartInfo.FileName = "cmd.exe";
                     _serverProcess.StartInfo.Arguments = $"/c \"{scriptPath}\"";
                 }
                 else
                 {
-                    AppendLog("[WARN] start_server.bat was not found. Launching server forcefully with 'npm run start'...");
-                    _serverProcess.StartInfo.FileName = "cmd.exe";
-                    _serverProcess.StartInfo.Arguments = "/c npm run start";
+                    AppendLog("[INFO] Launching via: node dist/index.js (direct mode)");
+                    _serverProcess.StartInfo.FileName = "node.exe";
+                    _serverProcess.StartInfo.Arguments = "dist/index.js";
                 }
-
-                _serverProcess.StartInfo.UseShellExecute = false;
-                _serverProcess.StartInfo.RedirectStandardOutput = true;
-                _serverProcess.StartInfo.RedirectStandardError = true;
-                _serverProcess.StartInfo.CreateNoWindow = true;
 
                 _serverProcess.OutputDataReceived += (s, ev) => { if (ev.Data != null) AppendLog($"[SERVER] {ev.Data}"); };
                 _serverProcess.ErrorDataReceived += (s, ev) => { if (ev.Data != null) AppendLog($"[SERVER-ERR] {ev.Data}"); };
@@ -323,7 +341,7 @@ namespace AlamsServerConsole
                 _serverProcess.BeginOutputReadLine();
                 _serverProcess.BeginErrorReadLine();
 
-                AppendLog("[SUCCESS] Node server daemon execution process spawned.");
+                AppendLog("[SUCCESS] Server process spawned. Waiting for health check...");
             }
             catch (Exception ex)
             {
@@ -358,44 +376,60 @@ namespace AlamsServerConsole
 
         private string FindServerDirectory()
         {
-            // Walk up from current directory to find directory containing "server" and "scripts"
-            string current = AppDomain.CurrentDomain.BaseDirectory;
-            while (!string.IsNullOrEmpty(current))
+            // Strategy 1: Read from alams.config placed next to the EXE
+            string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "alams.config");
+            if (File.Exists(configPath))
+            {
+                foreach (string line in File.ReadAllLines(configPath))
+                {
+                    if (line.StartsWith("ServerPath=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string customPath = line.Substring("ServerPath=".Length).Trim();
+                        if (Directory.Exists(customPath) && File.Exists(Path.Combine(customPath, "package.json")))
+                        {
+                            AppendLog($"[CONFIG] Server path loaded from alams.config: {customPath}");
+                            return customPath;
+                        }
+                    }
+                }
+            }
+
+            // Strategy 2: Walk UP from EXE directory
+            string current = AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\', '/');
+            for (int depth = 0; depth < 10; depth++)
             {
                 string possibleServer = Path.Combine(current, "server");
                 if (Directory.Exists(possibleServer) && File.Exists(Path.Combine(possibleServer, "package.json")))
-                {
                     return Path.GetFullPath(possibleServer);
-                }
-                
-                if (File.Exists(Path.Combine(current, "package.json")) && string.Equals(Path.GetFileName(current.TrimEnd('\\', '/')), "server", StringComparison.OrdinalIgnoreCase))
-                {
+
+                if (File.Exists(Path.Combine(current, "package.json")) &&
+                    string.Equals(Path.GetFileName(current), "server", StringComparison.OrdinalIgnoreCase))
                     return Path.GetFullPath(current);
-                }
-                
+
                 string? parent = Directory.GetParent(current)?.FullName;
-                if (parent == current || string.IsNullOrEmpty(parent)) break;
+                if (string.IsNullOrEmpty(parent) || parent == current) break;
                 current = parent;
             }
-            
-            // Backup static check
-            string[] possiblePaths = new[]
+
+            // Strategy 3: Known install paths
+            string[] candidates = new[]
             {
-                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..\\..\\..\\..\\server"),
-                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..\\..\\server"),
-                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..\\server"),
+                @"D:\Project Data Aurxon\ALAMS\server",
+                @"C:\ALAMS\server",
+                @"C:\Program Files\ALAMS\server",
                 Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "server"),
-                AppDomain.CurrentDomain.BaseDirectory
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "server"),
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "server"),
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "server"),
             };
 
-            foreach (var path in possiblePaths)
+            foreach (var path in candidates)
             {
-                string fullPath = Path.GetFullPath(path);
-                if (Directory.Exists(fullPath) && File.Exists(Path.Combine(fullPath, "package.json")))
-                {
-                    return fullPath;
-                }
+                string full = Path.GetFullPath(path);
+                if (Directory.Exists(full) && File.Exists(Path.Combine(full, "package.json")))
+                    return full;
             }
+
             return Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "server"));
         }
 
