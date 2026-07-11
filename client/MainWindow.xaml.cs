@@ -27,6 +27,7 @@ namespace AlamsClient
         private ClientWebSocket? _webSocket;
         private CancellationTokenSource? _wsCts;
         private DispatcherTimer? _qrTimer;
+        private DispatcherTimer? _qrCountdownTimer;
         private DispatcherTimer? _heartbeatTimer;
         private DispatcherTimer? _uiCountdownTimer;
         private DispatcherTimer? _reconnectTimer;
@@ -47,7 +48,9 @@ namespace AlamsClient
         private bool _qrAuthEnabled = true;
         private string _activeSessionId = "";
 
-        private int _qrCountdown = 30;
+        private int _qrCountdown = 30; // Kept for OTP panel compilation
+        private int _qrRefreshCountdown = 30;
+        private int _qrLifetime = 30;
         private bool _isUnlocked = false;
         private bool _isOnline = false;
         private bool _isAdminBypassMode = false;
@@ -60,6 +63,9 @@ namespace AlamsClient
             // Setup timers
             _qrTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
             _qrTimer.Tick += QrTimer_Tick;
+
+            _qrCountdownTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            _qrCountdownTimer.Tick += QrCountdownTimer_Tick;
 
             _uiCountdownTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             _uiCountdownTimer.Tick += UiCountdownTimer_Tick;
@@ -680,6 +686,7 @@ namespace AlamsClient
                         bool offlinePinEnabled = root.TryGetProperty("offlinePinEnabled", out var opVal) ? opVal.GetBoolean() : true;
                         bool qrAuthEnabled = root.TryGetProperty("qrAuthEnabled", out var qrVal) ? qrVal.GetBoolean() : true;
                         _qrAuthEnabled = qrAuthEnabled;
+                        _qrLifetime = qrLifetime;
 
                         Dispatcher.Invoke(() =>
                         {
@@ -691,7 +698,7 @@ namespace AlamsClient
                             {
                                 _heartbeatTimer.Interval = TimeSpan.FromSeconds(heartbeatInterval);
                             }
-                            _qrCountdown = qrLifetime;
+                            _qrRefreshCountdown = qrLifetime;
                             
                             PinInput.IsEnabled = offlinePinEnabled;
                             EnrollmentInput.IsEnabled = offlinePinEnabled;
@@ -701,13 +708,24 @@ namespace AlamsClient
                             {
                                 QrCodeImage.Visibility = Visibility.Visible;
                                 QrLoaderText.Text = "Scan to authenticate student device";
+                                QrTimerPanel.Visibility = Visibility.Visible;
+
+                                if (!_isUnlocked)
+                                {
+                                    _qrTimer?.Start();
+                                    _qrCountdownTimer?.Start();
+                                    QrTimer_Tick(null, null);
+                                }
                             }
                             else
                             {
                                 QrCodeImage.Source = null;
                                 QrCodeImage.Visibility = Visibility.Collapsed;
                                 QrLoaderText.Text = "Dynamic QR Authentication is disabled by Admin.";
-                                TimerText.Text = "";
+                                QrTimerText.Text = "";
+                                QrTimerPanel.Visibility = Visibility.Collapsed;
+                                _qrTimer?.Stop();
+                                _qrCountdownTimer?.Stop();
                             }
                         });
 
@@ -800,6 +818,16 @@ namespace AlamsClient
             }
         }
 
+        private void QrCountdownTimer_Tick(object? sender, EventArgs e)
+        {
+            if (_qrRefreshCountdown > 0)
+            {
+                _qrRefreshCountdown--;
+                QrTimerText.Text = $"{_qrRefreshCountdown}s";
+                QrTimerProgressBar.Value = ((double)_qrRefreshCountdown / _qrLifetime) * 100.0;
+            }
+        }
+
         private async void QrTimer_Tick(object? sender, EventArgs? e)
         {
             if (!_qrAuthEnabled)
@@ -809,7 +837,7 @@ namespace AlamsClient
                     QrCodeImage.Source = null;
                     QrCodeImage.Visibility = Visibility.Collapsed;
                     QrLoaderText.Text = "Dynamic QR Authentication is disabled by Admin.";
-                    TimerText.Text = "";
+                    QrTimerText.Text = "";
                 });
                 return;
             }
@@ -850,11 +878,12 @@ namespace AlamsClient
                     }
                     bitmapImage.Freeze();
                     QrCodeImage.Source = bitmapImage;
+                    QrLoaderText.Visibility = Visibility.Collapsed;
                 }
 
-                _qrCountdown = 30;
-                QrProgressBar.Value = 100;
-                TimerText.Text = "30s";
+                _qrRefreshCountdown = _qrLifetime;
+                QrTimerProgressBar.Value = 100;
+                QrTimerText.Text = $"{_qrLifetime}s";
             }
             catch (Exception ex)
             {
@@ -1116,6 +1145,7 @@ namespace AlamsClient
             
             // Stop lock-screen UI timers
             _qrTimer?.Stop();
+            _qrCountdownTimer?.Stop();
             _uiCountdownTimer?.Stop();
 
             // Start heartbeat scheduler
@@ -1163,7 +1193,8 @@ namespace AlamsClient
             if (_isOnline)
             {
                 _qrTimer?.Start();
-                _uiCountdownTimer?.Start();
+                _qrCountdownTimer?.Start();
+                _uiCountdownTimer?.Stop(); // Only runs when OTP is active
                 QrTimer_Tick(null, null);
             }
         }
@@ -1197,6 +1228,7 @@ namespace AlamsClient
                         NetworkIndicatorGlow.Color = System.Windows.Media.Colors.Red;
                     }
                     _qrTimer?.Stop();
+                    _qrCountdownTimer?.Stop();
                     _uiCountdownTimer?.Stop();
                 }
             });

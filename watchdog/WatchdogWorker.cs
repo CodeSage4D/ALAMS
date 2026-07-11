@@ -291,7 +291,7 @@ namespace AlamsDaemon
 
                     using (var cmdKey = userKey.CreateSubKey(@"Software\Policies\Microsoft\Windows\System", true))
                     {
-                        if (restrict || _cmdBlocked)
+                        if (_cmdBlocked)
                         {
                             cmdKey.SetValue("DisableCMD", 1, Microsoft.Win32.RegistryValueKind.DWord);
                         }
