@@ -35,6 +35,7 @@ enum VerificationMethod {
   QR_CODE
   PIN_FALLBACK
   ADMIN_OVERRIDE
+  EMAIL_OTP
 }
 
 enum AlertSeverity {
@@ -60,6 +61,7 @@ model User {
   fullName             String    @map("full_name")
   email                String?   @map("email")
   semester             String?   @map("semester")
+  year                 String?   @map("year")
   department           String?   @map("department")
   section              String?   @map("section")
   role                 Role      @default(STUDENT)
@@ -341,4 +343,77 @@ model ScheduleRule {
   createdAt  DateTime @default(now()) @map("created_at")
 
   @@map("schedule_rules")
+}
+
+model EmailConfig {
+  id                   String   @id @default("default-email-config")
+  providerType         String   @default("SMTP") @map("provider_type") // SMTP, MS_EXCHANGE
+  smtpHost             String   @default("localhost") @map("smtp_host")
+  smtpPort             Int      @default(587) @map("smtp_port")
+  smtpSecure           Boolean  @default(false) @map("smtp_secure") // SSL/TLS
+  username             String   @default("")
+  password             String   @default("") // Encrypted AES-256-GCM string
+  senderEmail          String   @default("noreply@suas.ac.in") @map("sender_email")
+  senderName           String   @default("ALAMS Authentication") @map("sender_name")
+  pilotMode            Boolean  @default(true) @map("pilot_mode")
+  
+  // Future Exchange Settings
+  exchangeClientId     String   @default("") @map("exchange_client_id")
+  exchangeClientSecret String   @default("") @map("exchange_client_secret")
+  exchangeTenantId     String   @default("") @map("exchange_tenant_id")
+  exchangeRedirectUri  String   @default("") @map("exchange_redirect_uri")
+
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@map("email_config")
+}
+
+model OtpVerification {
+  id               String    @id @default(uuid())
+  studentId        String?   @map("student_id")
+  enrollmentNumber String    @map("enrollment_number")
+  email            String    @map("email")
+  otpHash          String    @map("otp_hash")
+  generatedTime    DateTime  @default(now()) @map("generated_time")
+  expiryTime       DateTime  @map("expiry_time")
+  verificationTime DateTime? @map("verification_time")
+  status           String    @default("PENDING") // PENDING, VERIFIED, EXPIRED, LOCKED
+  retryCount       Int       @default(0) @map("retry_count")
+  workstationId    String?   @map("workstation_id")
+  sessionId        String?   @map("session_id")
+  clientIp         String?   @map("client_ip")
+  macAddress       String?   @map("mac_address")
+
+  @@map("otp_verifications")
+}
+
+model EmailLog {
+  id           String   @id @default(uuid())
+  recipient    String
+  subject      String
+  template     String
+  status       String   // DELIVERED, FAILED
+  provider     String   // SMTP, MS_EXCHANGE
+  sentTime     DateTime @default(now()) @map("sent_time")
+  deliveryTime DateTime? @map("delivery_time")
+  errorDetails String?  @map("error_details")
+
+  @@map("email_logs")
+}
+
+model EmailQueue {
+  id             String    @id @default(uuid())
+  status         String    @default("PENDING") // PENDING, PROCESSING, SENT, FAILED, EXPIRED, CANCELLED
+  recipient      String
+  subject        String
+  template       String
+  payload        String    @map("payload") // JSON string of template arguments
+  retryCount     Int       @default(0) @map("retry_count")
+  lastAttempt    DateTime? @map("last_attempt")
+  nextRetry      DateTime? @map("next_retry")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  processedAt    DateTime? @map("processed_at")
+  errorDetails   String?   @map("error_details")
+
+  @@map("email_queue")
 }

@@ -6,7 +6,7 @@ import {
   Activity, Users, Settings, FolderClosed, 
   AlertTriangle, Play, Square, UserPlus, Plus,
   ShieldCheck, RefreshCw, LogOut, Check, X, FileSpreadsheet,
-  BarChart3, BookOpen, Clock
+  BarChart3, BookOpen, Clock, Mail
 } from "lucide-react";
 
 interface Lab {
@@ -78,7 +78,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 export default function AdminDashboard() {
   const router = useRouter();
   const [adminUser, setAdminUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<"monitor" | "students" | "labs" | "attendance" | "alerts" | "analytics" | "faculty" | "sessions" | "inventory">("monitor");
+  const [activeTab, setActiveTab] = useState<"monitor" | "students" | "labs" | "attendance" | "alerts" | "analytics" | "faculty" | "sessions" | "inventory" | "email">("monitor");
   
   // Data States
   const [labs, setLabs] = useState<Lab[]>([]);
@@ -118,6 +118,97 @@ export default function AdminDashboard() {
 
   const [feedbackMsg, setFeedbackMsg] = useState("");
   const [selectedPC, setSelectedPC] = useState<any>(null);
+
+  // Email Config State
+  const [emailConfig, setEmailConfig] = useState<any>(null);
+  const [emailStats, setEmailStats] = useState<any>(null);
+  const [testEmailAddress, setTestEmailAddress] = useState("");
+  const [testLoading, setTestLoading] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [emailSubTab, setEmailSubTab] = useState<"logs" | "otps">("logs");
+
+  const fetchEmailData = async () => {
+    const token = localStorage.getItem("admin_token");
+    const headers = { Authorization: `Bearer ${token}` };
+    try {
+      const configRes = await fetch(`${API_URL}/api/v1/admin/config/email`, { headers });
+      if (configRes.ok) {
+        const data = await configRes.json();
+        setEmailConfig(data);
+      }
+      const statsRes = await fetch(`${API_URL}/api/v1/admin/config/email/dashboard`, { headers });
+      if (statsRes.ok) {
+        const data = await statsRes.json();
+        setEmailStats(data);
+      }
+    } catch (err) {
+      console.error("Failed to pull email configs:", err);
+    }
+  };
+
+  const handleSaveEmailConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!emailConfig) return;
+    setSaveLoading(true);
+    try {
+      const token = localStorage.getItem("admin_token");
+      const res = await fetch(`${API_URL}/api/v1/admin/config/email`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(emailConfig)
+      });
+      if (res.ok) {
+        showFeedback("Configuration saved successfully!");
+        fetchEmailData();
+      } else {
+        alert("Failed to save email configuration.");
+      }
+    } catch (err) {
+      alert("Network error updating config.");
+    } finally {
+      setSaveLoading(false);
+    }
+  };
+
+  const handleSendTestEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!testEmailAddress) return;
+    setTestLoading(true);
+    try {
+      const token = localStorage.getItem("admin_token");
+      const res = await fetch(`${API_URL}/api/v1/admin/config/email/test`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ testEmail: testEmailAddress })
+      });
+      if (res.ok) {
+        showFeedback("Diagnostic test email enqueued!");
+        setTestEmailAddress("");
+        fetchEmailData();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to send test email.");
+      }
+    } catch (err) {
+      alert("Network error sending test email.");
+    } finally {
+      setTestLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "email") {
+      fetchEmailData();
+      const interval = setInterval(fetchEmailData, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     const token = localStorage.getItem("admin_token");
@@ -385,6 +476,53 @@ export default function AdminDashboard() {
     }
   };
 
+  const exportImportedPasswordsCSV = (studentList: any[]) => {
+    try {
+      const createdOnly = studentList.filter((s: any) => s.status === "CREATED" && s.tempPassword);
+      if (createdOnly.length === 0) {
+        alert("No newly created student credentials to export.");
+        return;
+      }
+
+      const headers = [
+        "Serial Number",
+        "Student Name",
+        "Enrollment Number",
+        "College Email",
+        "Generated Password",
+        "Department",
+        "Semester",
+        "Year"
+      ];
+
+      const rows = createdOnly.map((s: any, idx: number) => [
+        idx + 1,
+        s.fullName || "",
+        s.enrollmentNumber || "",
+        s.email || `${s.enrollmentNumber}@suas.ac.in`,
+        s.tempPassword || "",
+        s.department || "",
+        s.semester || "",
+        s.year || ""
+      ]);
+
+      const csvContent = "data:text/csv;charset=utf-8," 
+        + [headers.join(","), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n");
+        
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `ALAMS_Student_Passwords_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showFeedback("Passwords CSV exported successfully!");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to export credentials CSV.");
+    }
+  };
+
   const handleCsvImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -395,27 +533,43 @@ export default function AdminDashboard() {
       if (!text) return;
 
       const lines = text.split("\n");
-      const studentsList = [];
+      if (lines.length === 0) return;
 
-      for (let line of lines) {
-        line = line.trim();
+      const firstLine = lines[0].split(",");
+      const headers = firstLine.map(h => h.trim().toLowerCase());
+
+      const nameIndex = headers.findIndex(h => h.includes("name") || h.includes("fullname") || h.includes("student name"));
+      const enrollIndex = headers.findIndex(h => h.includes("enrollment") || h.includes("enrollmentnumber") || h.includes("enrollment number") || h.includes("enrollment no"));
+      const emailIndex = headers.findIndex(h => h.includes("email") || h.includes("collegeemail") || h.includes("college email"));
+      const semIndex = headers.findIndex(h => h.includes("semester") || h.includes("sem"));
+      const yearIndex = headers.findIndex(h => h.includes("year") || h.includes("yr") || h.includes("class year"));
+      const deptIndex = headers.findIndex(h => h.includes("department") || h.includes("dept") || h.includes("branch"));
+      const secIndex = headers.findIndex(h => h.includes("section") || h.includes("sec"));
+
+      if (nameIndex === -1 || enrollIndex === -1) {
+        alert("CSV must contain columns for 'Student Name' and 'Enrollment Number'.");
+        return;
+      }
+
+      const studentsList = [];
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
         if (!line) continue;
-        
-        // Skip header
-        if (line.toLowerCase().includes("enrollmentnumber") || line.toLowerCase().includes("fullname") || line.toLowerCase().includes("email")) {
-          continue;
-        }
 
         const parts = line.split(",");
-        if (parts.length < 2) continue;
+        const fullName = parts[nameIndex]?.trim();
+        const enrollmentNumber = parts[enrollIndex]?.trim();
+
+        if (!fullName || !enrollmentNumber) continue;
 
         studentsList.push({
-          enrollmentNumber: parts[0]?.trim(),
-          fullName: parts[1]?.trim(),
-          email: parts[2]?.trim() || "",
-          semester: parts[3]?.trim() || "",
-          department: parts[4]?.trim() || "",
-          section: parts[5]?.trim() || ""
+          enrollmentNumber,
+          fullName,
+          email: emailIndex !== -1 ? parts[emailIndex]?.trim() : "",
+          semester: semIndex !== -1 ? parts[semIndex]?.trim() : "",
+          year: yearIndex !== -1 ? parts[yearIndex]?.trim() : "",
+          department: deptIndex !== -1 ? parts[deptIndex]?.trim() : "",
+          section: secIndex !== -1 ? parts[secIndex]?.trim() : ""
         });
       }
 
@@ -440,6 +594,14 @@ export default function AdminDashboard() {
           setImportedCredentials(data.importedStudents);
           triggerRefresh();
           showFeedback("CSV imported and student accounts created!");
+
+          // Ask to export
+          setTimeout(() => {
+            const hasCreated = data.importedStudents.some((s: any) => s.status === "CREATED");
+            if (hasCreated && window.confirm("Bulk student import successful! Would you like to export the generated credentials to a CSV file?")) {
+              exportImportedPasswordsCSV(data.importedStudents);
+            }
+          }, 300);
         } else {
           const err = await res.json();
           alert(err.error || "Failed to import CSV.");
@@ -640,7 +802,7 @@ export default function AdminDashboard() {
           <div className="px-6 flex items-center space-x-3 mb-10">
             <div className="w-8 h-8 rounded bg-emerald-500 flex items-center justify-center text-darkBg font-black">A</div>
             <div>
-              <h2 className="font-black text-sm tracking-wide">AURXON ALAMS</h2>
+              <h2 className="font-black text-sm tracking-wide">SCSIT ALAMS</h2>
               <p className="text-xs text-gray-500 font-bold uppercase">Control Deck</p>
             </div>
           </div>
@@ -713,6 +875,13 @@ export default function AdminDashboard() {
             >
               <FileSpreadsheet size={18} />
               <span>Asset Inventory</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("email")}
+              className={`w-full flex items-center space-x-3 px-4 py-3 text-sm font-semibold rounded-xl transition duration-150 ${activeTab === "email" ? "bg-emerald-500 text-darkBg" : "text-gray-400 hover:bg-darkHover hover:text-white"}`}
+            >
+              <Mail size={18} />
+              <span>Email Gateway</span>
             </button>
           </nav>
         </div>
@@ -2249,9 +2418,411 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 <div className="p-4 bg-slate-900 border-t border-darkBorder flex justify-end">
+                  <button 
+                    onClick={() => exportImportedPasswordsCSV(importedCredentials)} 
+                    className="mr-2 px-4 py-2 bg-blue-500 hover:bg-blue-400 text-darkBg font-bold rounded-lg text-xs transition"
+                  >
+                    Export Passwords (CSV)
+                  </button>
                   <button onClick={() => setImportedCredentials(null)} className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-darkBg font-bold rounded-lg text-xs transition">
                     Done
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 11: EMAIL GATEWAY CONFIG & MONITORING */}
+          {activeTab === "email" && (
+            <div className="space-y-8 animate-fade-in">
+              {/* Header metrics summary */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div className="bg-darkCard p-6 rounded-2xl border border-darkBorder flex flex-col justify-between shadow-lg">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Gateway Status</span>
+                  <span className={`text-2xl font-black mt-2 ${emailStats?.health?.smtpConnection === "ONLINE" ? "text-emerald-400" : "text-red-400"}`}>
+                    ● {emailStats?.health?.smtpConnection || "OFFLINE"}
+                  </span>
+                </div>
+                <div className="bg-darkCard p-6 rounded-2xl border border-darkBorder flex flex-col justify-between shadow-lg">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Active Provider</span>
+                  <span className="text-xl font-black mt-2 text-white uppercase">
+                    {emailStats?.health?.activeProvider || "SMTP"}
+                  </span>
+                </div>
+                <div className="bg-darkCard p-6 rounded-2xl border border-darkBorder flex flex-col justify-between shadow-lg">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Pilot Redirection</span>
+                  <span className={`text-xs font-bold mt-2 px-2.5 py-1 rounded-lg w-fit border ${emailStats?.health?.pilotMode ? "bg-amber-500/10 text-amber-400 border-amber-500/20" : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"}`}>
+                    {emailStats?.health?.pilotMode ? "PILOT: Redirects to karan.mishra" : "PRODUCTION: Direct Recipient"}
+                  </span>
+                </div>
+                <div className="bg-darkCard p-6 rounded-2xl border border-darkBorder flex flex-col justify-between shadow-lg">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Delivery Rate (Today)</span>
+                  <span className="text-3xl font-black mt-2 text-sky-400">
+                    {emailStats ? (emailStats.sentToday + emailStats.failedToday > 0 ? Math.round((emailStats.sentToday / (emailStats.sentToday + emailStats.failedToday)) * 100) : 100) : 100}%
+                  </span>
+                </div>
+              </div>
+
+              {/* SMTP stats details */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 bg-slate-900/50 p-6 border border-darkBorder rounded-2xl shadow-xl">
+                <div className="text-center md:text-left">
+                  <span className="text-[10px] font-bold text-gray-500 uppercase">Queue Pending</span>
+                  <p className="text-xl font-bold text-gray-200 mt-0.5">{emailStats?.queue?.pending || 0}</p>
+                </div>
+                <div className="text-center md:text-left">
+                  <span className="text-[10px] font-bold text-gray-500 uppercase">Queue Failed</span>
+                  <p className="text-xl font-bold text-red-400 mt-0.5">{emailStats?.queue?.failed || 0}</p>
+                </div>
+                <div className="text-center md:text-left">
+                  <span className="text-[10px] font-bold text-gray-500 uppercase">Active OTPs</span>
+                  <p className="text-xl font-bold text-emerald-400 mt-0.5">{emailStats?.otp?.active || 0}</p>
+                </div>
+                <div className="text-center md:text-left">
+                  <span className="text-[10px] font-bold text-gray-500 uppercase">OTP Locked Accounts</span>
+                  <p className="text-xl font-bold text-amber-500 mt-0.5">{emailStats?.otp?.locked || 0}</p>
+                </div>
+              </div>
+
+              {/* Main settings split deck */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Form config panel */}
+                <div className="lg:col-span-2 bg-darkCard border border-darkBorder rounded-2xl p-6 space-y-6 shadow-xl">
+                  <div className="border-b border-darkBorder pb-3">
+                    <h3 className="text-base font-bold text-white">Email Gateway Settings & Authentication Provider</h3>
+                    <p className="text-xs text-gray-500">Select active provider and edit gateway authentication keys.</p>
+                  </div>
+
+                  {emailConfig ? (
+                    <form onSubmit={handleSaveEmailConfig} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex flex-col space-y-1.5">
+                          <label className="text-xs font-bold text-gray-400 uppercase">Email Dispatcher Provider</label>
+                          <select
+                            value={emailConfig.providerType}
+                            onChange={(e) => setEmailConfig({ ...emailConfig, providerType: e.target.value })}
+                            className="px-3 py-2.5 bg-darkBg border border-darkBorder rounded-xl text-sm w-full focus:outline-none focus:border-emerald-500 text-white"
+                          >
+                            <option value="SMTP">Pilot SMTP (Standard Mail Gateway)</option>
+                            <option value="MS_EXCHANGE">Microsoft Exchange (Azure Graph Integration)</option>
+                          </select>
+                        </div>
+
+                        <div className="flex items-center space-x-2 mt-6">
+                          <input
+                            type="checkbox"
+                            id="pilotModeCheck"
+                            checked={emailConfig.pilotMode}
+                            onChange={(e) => setEmailConfig({ ...emailConfig, pilotMode: e.target.checked })}
+                            className="w-4 h-4 text-emerald-500 bg-darkBg border-darkBorder rounded focus:ring-emerald-500"
+                          />
+                          <label htmlFor="pilotModeCheck" className="text-xs font-bold text-amber-400 uppercase cursor-pointer">
+                            Enable Pilot Mode Override
+                          </label>
+                        </div>
+                      </div>
+
+                      {emailConfig.providerType === "SMTP" ? (
+                        <div className="space-y-4 pt-2 border-t border-darkBorder/40">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="flex flex-col space-y-1.5">
+                              <label className="text-xs font-bold text-gray-400 uppercase">SMTP Mail Host</label>
+                              <input
+                                type="text"
+                                value={emailConfig.smtpHost || ""}
+                                onChange={(e) => setEmailConfig({ ...emailConfig, smtpHost: e.target.value })}
+                                className="px-3 py-2 bg-darkBg border border-darkBorder rounded-xl text-sm focus:outline-none focus:border-emerald-500 text-white"
+                                placeholder="smtp.gmail.com"
+                              />
+                            </div>
+                            <div className="flex flex-col space-y-1.5">
+                              <label className="text-xs font-bold text-gray-400 uppercase">SMTP Gateway Port</label>
+                              <input
+                                type="number"
+                                value={emailConfig.smtpPort || 587}
+                                onChange={(e) => setEmailConfig({ ...emailConfig, smtpPort: parseInt(e.target.value) || 587 })}
+                                className="px-3 py-2 bg-darkBg border border-darkBorder rounded-xl text-sm focus:outline-none focus:border-emerald-500 text-white"
+                                placeholder="587"
+                              />
+                            </div>
+                            <div className="flex items-center space-x-2 mt-6">
+                              <input
+                                type="checkbox"
+                                id="smtpSecureCheck"
+                                checked={emailConfig.smtpSecure || false}
+                                onChange={(e) => setEmailConfig({ ...emailConfig, smtpSecure: e.target.checked })}
+                                className="w-4 h-4 text-emerald-500 bg-darkBg border-darkBorder rounded focus:ring-emerald-500"
+                              />
+                              <label htmlFor="smtpSecureCheck" className="text-xs font-bold text-gray-400 uppercase cursor-pointer">
+                                Force SSL / TLS Secure
+                              </label>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex flex-col space-y-1.5">
+                              <label className="text-xs font-bold text-gray-400 uppercase">SMTP Username</label>
+                              <input
+                                type="text"
+                                value={emailConfig.username || ""}
+                                onChange={(e) => setEmailConfig({ ...emailConfig, username: e.target.value })}
+                                className="px-3 py-2 bg-darkBg border border-darkBorder rounded-xl text-sm focus:outline-none focus:border-emerald-500 text-white"
+                                placeholder="auth@suas.ac.in"
+                              />
+                            </div>
+                            <div className="flex flex-col space-y-1.5">
+                              <label className="text-xs font-bold text-gray-400 uppercase">SMTP Password / API Key</label>
+                              <input
+                                type="password"
+                                value={emailConfig.passwordSet && !emailConfig.password ? "••••••••" : emailConfig.password || ""}
+                                onChange={(e) => setEmailConfig({ ...emailConfig, password: e.target.value })}
+                                className="px-3 py-2 bg-darkBg border border-darkBorder rounded-xl text-sm focus:outline-none focus:border-emerald-500 text-white"
+                                placeholder="••••••••"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex flex-col space-y-1.5">
+                              <label className="text-xs font-bold text-gray-400 uppercase">Sender Email Address</label>
+                              <input
+                                type="email"
+                                value={emailConfig.senderEmail || ""}
+                                onChange={(e) => setEmailConfig({ ...emailConfig, senderEmail: e.target.value })}
+                                className="px-3 py-2 bg-darkBg border border-darkBorder rounded-xl text-sm focus:outline-none focus:border-emerald-500 text-white"
+                                placeholder="noreply@suas.ac.in"
+                              />
+                            </div>
+                            <div className="flex flex-col space-y-1.5">
+                              <label className="text-xs font-bold text-gray-400 uppercase">Sender Display Name</label>
+                              <input
+                                type="text"
+                                value={emailConfig.senderName || ""}
+                                onChange={(e) => setEmailConfig({ ...emailConfig, senderName: e.target.value })}
+                                className="px-3 py-2 bg-darkBg border border-darkBorder rounded-xl text-sm focus:outline-none focus:border-emerald-500 text-white"
+                                placeholder="ALAMS Authentication"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-4 pt-2 border-t border-darkBorder/40">
+                          <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs space-y-1.5 animate-fade-in">
+                            <strong>💡 Microsoft Exchange Active Integration Ready:</strong>
+                            <p>This panel configures Microsoft Azure Identity API credentials. The application remains loosely coupled and will instantly deploy when Exchange config is selected.</p>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex flex-col space-y-1.5">
+                              <label className="text-xs font-bold text-gray-400 uppercase">Application (Client) ID</label>
+                              <input
+                                type="text"
+                                value={emailConfig.exchangeClientId || ""}
+                                onChange={(e) => setEmailConfig({ ...emailConfig, exchangeClientId: e.target.value })}
+                                className="px-3 py-2 bg-darkBg border border-darkBorder rounded-xl text-sm focus:outline-none focus:border-emerald-500 text-white font-mono text-xs"
+                                placeholder="00000000-0000-0000-0000-000000000000"
+                              />
+                            </div>
+                            <div className="flex flex-col space-y-1.5">
+                              <label className="text-xs font-bold text-gray-400 uppercase">Directory (Tenant) ID</label>
+                              <input
+                                type="text"
+                                value={emailConfig.exchangeTenantId || ""}
+                                onChange={(e) => setEmailConfig({ ...emailConfig, exchangeTenantId: e.target.value })}
+                                className="px-3 py-2 bg-darkBg border border-darkBorder rounded-xl text-sm focus:outline-none focus:border-emerald-500 text-white font-mono text-xs"
+                                placeholder="00000000-0000-0000-0000-000000000000"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex flex-col space-y-1.5">
+                              <label className="text-xs font-bold text-gray-400 uppercase">Client Secret Credential Key</label>
+                              <input
+                                type="password"
+                                value={emailConfig.exchangeClientSecretSet && !emailConfig.exchangeClientSecret ? "••••••••" : emailConfig.exchangeClientSecret || ""}
+                                onChange={(e) => setEmailConfig({ ...emailConfig, exchangeClientSecret: e.target.value })}
+                                className="px-3 py-2 bg-darkBg border border-darkBorder rounded-xl text-sm focus:outline-none focus:border-emerald-500 text-white"
+                                placeholder="••••••••"
+                              />
+                            </div>
+                            <div className="flex flex-col space-y-1.5">
+                              <label className="text-xs font-bold text-gray-400 uppercase">OAuth Redirect Callback URI</label>
+                              <input
+                                type="text"
+                                value={emailConfig.exchangeRedirectUri || ""}
+                                onChange={(e) => setEmailConfig({ ...emailConfig, exchangeRedirectUri: e.target.value })}
+                                className="px-3 py-2 bg-darkBg border border-darkBorder rounded-xl text-sm focus:outline-none focus:border-emerald-500 text-white text-xs font-mono"
+                                placeholder="http://localhost:5000/api/v1/auth/exchange/callback"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex justify-end pt-4 border-t border-darkBorder/40">
+                        <button
+                          type="submit"
+                          disabled={saveLoading}
+                          className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-darkBg font-black rounded-xl text-xs transition duration-150 flex items-center space-x-2"
+                        >
+                          {saveLoading ? <RefreshCw size={14} className="animate-spin" /> : null}
+                          <span>Save Configuration Settings</span>
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="text-center py-10 text-gray-500">Loading Configuration Data...</div>
+                  )}
+                </div>
+
+                {/* Validation check right pane */}
+                <div className="bg-darkCard border border-darkBorder rounded-2xl p-6 space-y-6 shadow-xl h-fit">
+                  <div className="border-b border-darkBorder pb-3">
+                    <h3 className="text-base font-bold text-white">SMTP Gateway Diagnostic Tool</h3>
+                    <p className="text-xs text-gray-500">Send an instant test email to verify DNS, socket handshake, and SMTP routing.</p>
+                  </div>
+
+                  <form onSubmit={handleSendTestEmail} className="space-y-4">
+                    <div className="flex flex-col space-y-1.5">
+                      <label className="text-xs font-bold text-gray-400 uppercase">Recipient Target Email</label>
+                      <input
+                        type="email"
+                        required
+                        value={testEmailAddress}
+                        onChange={(e) => setTestEmailAddress(e.target.value)}
+                        className="px-3 py-2.5 bg-darkBg border border-darkBorder rounded-xl text-sm focus:outline-none focus:border-emerald-500 text-white w-full font-semibold"
+                        placeholder="karan.mishra@suas.ac.in"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={testLoading}
+                      className="w-full py-2.5 bg-blue-500 hover:bg-blue-400 text-darkBg font-black rounded-xl text-xs transition duration-150 flex items-center justify-center space-x-2"
+                    >
+                      {testLoading ? <RefreshCw size={14} className="animate-spin" /> : null}
+                      <span>Send Diagnostics Test Email</span>
+                    </button>
+                  </form>
+
+                  {emailStats?.health?.smtpConnection === "ONLINE" ? (
+                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs text-center font-bold">
+                      ✔ Mail Gateway is fully reachable and verified.
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs text-center font-bold">
+                      ✖ Connection unreachable. Check ports, host, SSL configs.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Logs Audit panel */}
+              <div className="bg-darkCard border border-darkBorder rounded-2xl overflow-hidden shadow-xl">
+                <div className="p-6 border-b border-darkBorder bg-slate-900 flex flex-col md:flex-row justify-between items-center gap-4">
+                  <div>
+                    <h3 className="text-base font-bold text-white">Email Gateway Logs & Verification History</h3>
+                    <p className="text-xs text-gray-500">Delivery audits, fail details, and OTP authentication timelines.</p>
+                  </div>
+                  <div className="flex bg-darkBg border border-darkBorder p-1 rounded-xl">
+                    <button
+                      onClick={() => setEmailSubTab("logs")}
+                      className={`px-4 py-1.5 text-xs font-bold rounded-lg transition ${emailSubTab === "logs" ? "bg-emerald-500 text-darkBg" : "text-gray-400 hover:text-white"}`}
+                    >
+                      SMTP Dispatch Logs
+                    </button>
+                    <button
+                      onClick={() => setEmailSubTab("otps")}
+                      className={`px-4 py-1.5 text-xs font-bold rounded-lg transition ${emailSubTab === "otps" ? "bg-emerald-500 text-darkBg" : "text-gray-400 hover:text-white"}`}
+                    >
+                      OTP Verification History
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-6 overflow-x-auto max-h-[400px] overflow-y-auto">
+                  {emailSubTab === "logs" ? (
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="text-gray-500 border-b border-darkBorder font-bold uppercase">
+                          <th className="pb-3">Recipient Address</th>
+                          <th className="pb-3">Subject</th>
+                          <th className="pb-3">Template</th>
+                          <th className="pb-3">Provider</th>
+                          <th className="pb-3">Status</th>
+                          <th className="pb-3">Dispatch Time</th>
+                          <th className="pb-3">Error logs</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-darkBorder/40">
+                        {emailStats?.logs?.emails?.length > 0 ? (
+                          emailStats.logs.emails.map((log: any) => (
+                            <tr key={log.id} className="text-gray-300 hover:bg-darkHover/20">
+                              <td className="py-3 font-semibold text-white">{log.recipient}</td>
+                              <td className="py-3 font-medium">{log.subject}</td>
+                              <td className="py-3 font-mono text-[10px] text-gray-400">{log.template}</td>
+                              <td className="py-3 font-mono text-gray-400">{log.provider}</td>
+                              <td className="py-3">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${log.status === "DELIVERED" ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"}`}>
+                                  {log.status}
+                                </span>
+                              </td>
+                              <td className="py-3 text-gray-500">{new Date(log.sentTime).toLocaleString()}</td>
+                              <td className="py-3 font-mono text-[10px] text-red-400 truncate max-w-[200px]" title={log.errorDetails || ""}>
+                                {log.errorDetails || "—"}
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={7} className="text-center py-6 text-gray-500">No email logs discovered.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="text-gray-500 border-b border-darkBorder font-bold uppercase">
+                          <th className="pb-3">Enrollment Number</th>
+                          <th className="pb-3">Email Address</th>
+                          <th className="pb-3">Verification Status</th>
+                          <th className="pb-3">Retries</th>
+                          <th className="pb-3">Created At</th>
+                          <th className="pb-3">Verified At</th>
+                          <th className="pb-3">Workstation IP</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-darkBorder/40">
+                        {emailStats?.logs?.otps?.length > 0 ? (
+                          emailStats.logs.otps.map((otp: any) => (
+                            <tr key={otp.id} className="text-gray-300 hover:bg-darkHover/20">
+                              <td className="py-3 font-bold text-white">{otp.enrollmentNumber}</td>
+                              <td className="py-3 font-medium text-gray-400">{otp.email}</td>
+                              <td className="py-3">
+                                <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold ${
+                                  otp.status === "VERIFIED" ? "bg-emerald-500/10 text-emerald-400" :
+                                  otp.status === "PENDING" ? "bg-amber-500/10 text-amber-400 animate-pulse" :
+                                  otp.status === "EXPIRED" ? "bg-gray-500/10 text-gray-400" :
+                                  "bg-red-500/10 text-red-400"
+                                }`}>
+                                  {otp.status}
+                                </span>
+                              </td>
+                              <td className="py-3 font-mono font-bold text-center w-12">{otp.retryCount} / 3</td>
+                              <td className="py-3 text-gray-500">{new Date(otp.generatedTime).toLocaleString()}</td>
+                              <td className="py-3 text-gray-400">
+                                {otp.verificationTime ? new Date(otp.verificationTime).toLocaleString() : "—"}
+                              </td>
+                              <td className="py-3 font-mono text-[10px] text-gray-500">{otp.clientIp || "N/A"}</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={7} className="text-center py-6 text-gray-500">No OTP verification records discovered.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  )}
                 </div>
               </div>
             </div>

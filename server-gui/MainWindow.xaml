@@ -161,7 +161,9 @@
                                         <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style></Button.Resources>
                                     </Button>
 
-                                    <Button x:Name="ForceShutdownAllBtn" Content="🛑 Remote Shutdown All PCs" Background="#7F1D1D" Foreground="#FCA5A5" FontWeight="Bold" Height="40" Margin="0,15,0,0" Click="ForceShutdownAllBtn_Click" Cursor="Hand" BorderThickness="0">
+                                    <CheckBox x:Name="AutoHealCheckBox" Content="🛡️ Enable Auto-Healing (Auto-Start)" Foreground="#94A3B8" FontWeight="SemiBold" Margin="0,12,0,4" IsChecked="True" Cursor="Hand" Checked="AutoHeal_Checked" Unchecked="AutoHeal_Unchecked"/>
+
+                                    <Button x:Name="ForceShutdownAllBtn" Content="🛑 Remote Shutdown All PCs" Background="#7F1D1D" Foreground="#FCA5A5" FontWeight="Bold" Height="40" Margin="0,8,0,0" Click="ForceShutdownAllBtn_Click" Cursor="Hand" BorderThickness="0">
                                         <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style></Button.Resources>
                                     </Button>
                                 </StackPanel>

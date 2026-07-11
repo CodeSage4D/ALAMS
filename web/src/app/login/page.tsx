@@ -107,10 +107,10 @@ function LoginFormContent() {
             <ShieldCheck size={38} />
           </div>
           <h1 className="text-4xl font-extrabold tracking-tight text-white">
-            Aurxon <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">ALAMS</span>
+            SCSIT <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">ALAMS</span>
           </h1>
           <p className="text-slate-400 text-sm max-w-sm mx-auto">
-            Student Access Gateway — Scan dynamic lab workstation QRs to authenticate your local session.
+            Student Access Gateway — Authenticate to unlock computer workstations and track session attendance.
           </p>
         </div>
 
@@ -192,7 +192,7 @@ function LoginFormContent() {
             {/* Enrollment Number */}
             <div className="space-y-2">
               <label htmlFor="enrollment" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                Enrollment Number (Username)
+                Enrollment Number or College Email
               </label>
               <div className="relative">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500">
@@ -203,7 +203,7 @@ function LoginFormContent() {
                   name="enrollment"
                   type="text"
                   required
-                  placeholder="e.g. ENR2026001"
+                  placeholder="e.g. ENR2026001 or name@suas.ac.in"
                   value={enrollmentNumber}
                   onChange={(e) => setEnrollmentNumber(e.target.value)}
                   className="block w-full rounded-2xl bg-slate-950/50 border border-slate-800/80 focus:border-emerald-500/50 py-3.5 pl-12 pr-4 text-white placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-all duration-300 text-base"
@@ -273,7 +273,7 @@ function LoginFormContent() {
             Real test credentials: <code className="bg-slate-950 px-1.5 py-0.5 rounded text-slate-500 border border-slate-900">ENR2026001</code> / <code className="bg-slate-950 px-1.5 py-0.5 rounded text-slate-500 border border-slate-900">Student@2026!</code>
           </p>
           <p className="text-[11px] text-slate-700">
-            Aurxon Lab Access Management System — Version 1.0.0
+            Symbiosis University of Applied Sciences • SCSIT ALAMS Portal • Version 1.1.0
           </p>
         </div>
       </div>

@@ -59,6 +59,10 @@ import { initWebSocketServer, requestDiagnosticsFromClient } from "./websocket";
 import { startUdpBeacon } from "./utils/udpBeacon";
 import prisma from "./prisma";
 
+import { requestOTP, verifyOTP } from "./controllers/otpController";
+import { getEmailConfig, updateEmailConfig, testEmailConnection, getEmailDashboardStats } from "./controllers/emailConfigController";
+import { startBackgroundWorkers } from "./services/queueProcessor";
+
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -174,6 +178,15 @@ app.post("/api/v1/client/failed-login", recordFailedLogin);
 app.post("/api/v1/client/verify-admin-pin", verifyAdminPIN);
 app.post("/api/v1/client/enroll", enrollClient);
 
+app.post("/api/v1/client/request-otp", requestOTP);
+app.post("/api/v1/client/verify-otp", verifyOTP);
+
+// Email Config APIs
+app.get("/api/v1/admin/config/email", authenticateJWT, authorizeRoles("ADMIN"), getEmailConfig);
+app.put("/api/v1/admin/config/email", authenticateJWT, authorizeRoles("ADMIN"), updateEmailConfig);
+app.post("/api/v1/admin/config/email/test", authenticateJWT, authorizeRoles("ADMIN"), testEmailConnection);
+app.get("/api/v1/admin/config/email/dashboard", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR"), getEmailDashboardStats);
+
 // Analytics / Reporting APIs
 app.get("/api/v1/admin/analytics/pilot", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR", "FACULTY"), getPilotAnalytics);
 
@@ -216,5 +229,7 @@ warmupDatabase().then(() => {
     console.log(`====================================================`);
     // Start UDP Discovery Beacon
     startUdpBeacon(port);
+    // Start Background workers
+    startBackgroundWorkers();
   });
 });

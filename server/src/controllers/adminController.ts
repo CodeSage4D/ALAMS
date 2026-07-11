@@ -4,6 +4,7 @@ import { AuthenticatedRequest } from "../middleware/auth";
 import { unlockComputer, lockComputer, sendApprovalToClient, sendRemoteCommand, sendProfileConfigToConnectedClients } from "../websocket";
 import { AttendanceStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 export function isIpInSubnet(ip: string, cidr: string): boolean {
   try {
@@ -680,6 +681,13 @@ async function hashValue(value: string): Promise<string> {
   return bcrypt.hash(value, salt);
 }
 
+function generateSecurePassword(enrollment: string): string {
+  const randomSalt = crypto.randomBytes(16).toString("hex");
+  const hash = crypto.createHash("sha256").update(enrollment + randomSalt).digest("base64");
+  const cleanPass = hash.replace(/[^a-zA-Z0-9]/g, "");
+  return cleanPass.substring(0, 6);
+}
+
 // Bulk import students
 export async function importStudents(req: AuthenticatedRequest, res: Response) {
   const studentsList = req.body;
@@ -694,7 +702,7 @@ export async function importStudents(req: AuthenticatedRequest, res: Response) {
     const defaultPinHash = await hashValue("123456");
 
     for (const student of studentsList) {
-      const { enrollmentNumber, fullName, email, semester, department, section } = student;
+      const { enrollmentNumber, fullName, email, semester, year, department, section } = student;
       if (!enrollmentNumber || !fullName) {
         skippedCount++;
         continue;
@@ -711,15 +719,19 @@ export async function importStudents(req: AuthenticatedRequest, res: Response) {
       }
 
       // Generate secure temporary password
-      const tempPassword = Math.random().toString(36).slice(-8);
+      const tempPassword = generateSecurePassword(enrollmentNumber);
       const passwordHash = await hashValue(tempPassword);
+
+      // Auto generate email if not provided
+      const finalEmail = email || `${enrollmentNumber}@suas.ac.in`;
 
       await prisma.user.create({
         data: {
           enrollmentNumber,
           fullName,
-          email: email || null,
+          email: finalEmail,
           semester: semester || null,
+          year: year || null,
           department: department || null,
           section: section || null,
           passwordHash,
@@ -731,6 +743,7 @@ export async function importStudents(req: AuthenticatedRequest, res: Response) {
       });
 
       student.tempPassword = tempPassword;
+      student.email = finalEmail;
       student.status = "CREATED";
       createdCount++;
     }

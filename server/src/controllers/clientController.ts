@@ -310,9 +310,8 @@ export async function verifyLocalPINAuth(req: Request, res: Response) {
     return res.status(400).json({ error: "Invalid Enrollment Number format" });
   }
 
-  const pinRegex = /^\d{6}$/;
-  if (!pinRegex.test(pin)) {
-    return res.status(400).json({ error: "PIN must be exactly a 6-digit numeric code" });
+  if (pin.length < 6) {
+    return res.status(400).json({ error: "Password or PIN must be at least 6 characters long" });
   }
 
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -407,11 +406,14 @@ export async function verifyLocalPINAuth(req: Request, res: Response) {
       });
     }
 
-    // ── CHECK 2: Permanent PIN Fallback ──
-    const isPinValid = await compareValue(pin, user.pinHash);
+    // ── CHECK 2: Permanent PIN or Password Fallback ──
+    let isCredentialValid = await compareValue(pin, user.pinHash);
+    if (!isCredentialValid) {
+      isCredentialValid = await compareValue(pin, user.passwordHash);
+    }
 
-    if (!isPinValid) {
-      return res.status(401).json({ error: "Invalid PIN" });
+    if (!isCredentialValid) {
+      return res.status(401).json({ error: "Invalid password or PIN" });
     }
 
     // Ensure student does not have another active session elsewhere
@@ -887,10 +889,10 @@ export async function verifyAdminPIN(req: Request, res: Response) {
     });
 
     for (const admin of admins) {
-      if (admin.password) {
-        const isMatch = await bcrypt.compare(pin, admin.password);
+      if (admin.passwordHash) {
+        const isMatch = await bcrypt.compare(pin, admin.passwordHash);
         if (isMatch) {
-          return res.json({ success: true, user: admin.username });
+          return res.json({ success: true, user: admin.enrollmentNumber });
         }
       }
     }

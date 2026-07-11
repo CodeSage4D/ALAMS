@@ -78,7 +78,7 @@
                     <ColumnDefinition Width="0.9*"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- Left Pane: Dynamic QR Authentication -->
+                <!-- Left Pane: Email OTP Authentication -->
                 <Border Grid.Column="0" Background="#FFFFFF" CornerRadius="16" BorderBrush="#E2E8F0" BorderThickness="1" Margin="0,0,30,0">
                     <Border.Effect>
                         <DropShadowEffect BlurRadius="25" ShadowDepth="4" Direction="270" Color="#93C5FD" Opacity="0.2"/>
@@ -96,36 +96,55 @@
                             <TextBlock x:Name="DeviceNameText" Text="Loading workstation configurations..." Foreground="#475569" FontSize="16" Margin="0,5,0,0"/>
                         </StackPanel>
 
-                        <!-- QR Code Area -->
-                        <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <Border Background="#F8FAFC" Padding="20" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1">
-                                <Grid Width="260" Height="260">
-                                    <Image x:Name="QrCodeImage" Stretch="Uniform" />
-                                    <!-- Fallback Loader while offline or syncing -->
-                                    <TextBlock x:Name="QrLoaderText" Text="Connecting to central server..." Foreground="#475569" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"/>
-                                </Grid>
+                        <!-- Email OTP Authentication Panel -->
+                        <StackPanel Grid.Row="1" VerticalAlignment="Center">
+                            <TextBlock Text="Email OTP Login" Foreground="#0F172A" FontSize="26" FontWeight="Bold"/>
+                            <TextBlock Text="Receive verification code on your registered email" Foreground="#475569" FontSize="15" Margin="0,5,0,30"/>
+
+                            <!-- Student Enrollment / Email Input -->
+                            <TextBlock Text="ENROLLMENT NUMBER / EMAIL" Foreground="#475569" FontSize="12" FontWeight="Bold" Margin="0,0,0,8"/>
+                            <Border Background="#F8FAFC" CornerRadius="8" Padding="12,4" BorderBrush="#CBD5E1" BorderThickness="1" Margin="0,0,0,15">
+                                <TextBox x:Name="OtpEnrollmentInput" Background="Transparent" Foreground="#0F172A" BorderThickness="0" FontSize="18" VerticalAlignment="Center"/>
                             </Border>
 
-                            <TextBlock Text="Scan QR to Unlock with Phone" Foreground="#0F172A" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,20,0,5"/>
-                            <TextBlock Text="Use your standard mobile camera application" Foreground="#64748B" FontSize="14" HorizontalAlignment="Center"/>
-
-                            <Button x:Name="ShowPinOverlayButton" Content="Enter Session PIN" Width="200" Height="40" Background="#F1F5F9" Foreground="#0284C7" BorderBrush="#0284C7" BorderThickness="1.5" FontWeight="Bold" FontSize="14" Margin="0,20,0,0" Click="ShowPinOverlayButton_Click">
+                            <!-- Send OTP Action -->
+                            <Button x:Name="RequestOtpButton" Content="Request Verification Code" Background="#0284C7" Foreground="#FFFFFF" FontSize="16" FontWeight="Bold" Height="50" BorderThickness="0" Cursor="Hand" Click="RequestOtpButton_Click">
                                 <Button.Resources>
                                     <Style TargetType="Border">
                                         <Setter Property="CornerRadius" Value="8" />
                                     </Style>
                                 </Button.Resources>
                             </Button>
+
+                            <!-- Verification Section (Hidden Initially) -->
+                            <StackPanel x:Name="OtpVerificationPanel" Visibility="Collapsed" Margin="0,20,0,0">
+                                <TextBlock Text="ENTER 6-DIGIT VERIFICATION CODE" Foreground="#475569" FontSize="12" FontWeight="Bold" Margin="0,0,0,8"/>
+                                <Border Background="#F8FAFC" CornerRadius="8" Padding="12,4" BorderBrush="#CBD5E1" BorderThickness="1" Margin="0,0,0,20">
+                                    <TextBox x:Name="OtpCodeInput" MaxLength="6" Background="Transparent" Foreground="#0F172A" BorderThickness="0" FontSize="20" TextAlignment="Center" FontWeight="Bold" VerticalAlignment="Center"/>
+                                </Border>
+
+                                <Button x:Name="VerifyOtpButton" Content="Verify &amp; Unlock Workstation" Background="#10B981" Foreground="#FFFFFF" FontSize="16" FontWeight="Bold" Height="50" BorderThickness="0" Cursor="Hand" Click="VerifyOtpButton_Click">
+                                    <Button.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="8" />
+                                        </Style>
+                                    </Button.Resources>
+                                </Button>
+                            </StackPanel>
                         </StackPanel>
 
-                        <!-- Refresh countdown -->
-                        <StackPanel Grid.Row="2">
+                        <!-- Expiry Countdown Indicator -->
+                        <StackPanel Grid.Row="2" x:Name="OtpTimerPanel" Visibility="Collapsed">
                             <Grid Margin="0,0,0,8">
-                                <TextBlock Text="QR Code security lifecycle" Foreground="#475569" FontSize="13"/>
-                                <TextBlock x:Name="TimerText" Text="30s" Foreground="#0284C7" FontSize="13" HorizontalAlignment="Right" FontWeight="Bold"/>
+                                <TextBlock Text="Verification code active lifetime" Foreground="#475569" FontSize="13"/>
+                                <TextBlock x:Name="TimerText" Text="60s" Foreground="#10B981" FontSize="13" HorizontalAlignment="Right" FontWeight="Bold"/>
                             </Grid>
-                            <ProgressBar x:Name="QrProgressBar" Height="4" Background="#E2E8F0" Foreground="#0284C7" BorderThickness="0" Value="100" Maximum="100"/>
+                            <ProgressBar x:Name="QrProgressBar" Height="4" Background="#E2E8F0" Foreground="#10B981" BorderThickness="0" Value="100" Maximum="100"/>
                         </StackPanel>
+
+                        <!-- Hidden controls to ensure compilation compatibility -->
+                        <Image x:Name="QrCodeImage" Visibility="Collapsed"/>
+                        <TextBlock x:Name="QrLoaderText" Visibility="Collapsed"/>
                     </Grid>
                 </Border>
 
@@ -145,10 +164,10 @@
                                 <TextBox x:Name="EnrollmentInput" Background="Transparent" Foreground="#0F172A" BorderThickness="0" FontSize="18" VerticalAlignment="Center"/>
                             </Border>
 
-                            <!-- PIN Input -->
-                            <TextBlock Text="6-DIGIT PASSCODE / PIN" Foreground="#475569" FontSize="12" FontWeight="Bold" Margin="0,0,0,8"/>
+                            <!-- Password Input -->
+                            <TextBlock Text="ACCOUNT PASSWORD" Foreground="#475569" FontSize="12" FontWeight="Bold" Margin="0,0,0,8"/>
                             <Border Background="#F8FAFC" CornerRadius="8" Padding="12,4" BorderBrush="#CBD5E1" BorderThickness="1" Margin="0,0,0,30">
-                                <PasswordBox x:Name="PinInput" Background="Transparent" Foreground="#0F172A" BorderThickness="0" FontSize="18" VerticalAlignment="Center" MaxLength="6"/>
+                                <PasswordBox x:Name="PinInput" Background="Transparent" Foreground="#0F172A" BorderThickness="0" FontSize="18" VerticalAlignment="Center"/>
                             </Border>
 
                             <!-- Login Action -->

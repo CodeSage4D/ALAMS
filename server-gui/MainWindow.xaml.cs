@@ -21,6 +21,11 @@ namespace AlamsServerConsole
         private bool _isServerRunning = false;
         private bool _isClosingAllowed = false;
         private bool _isWebViewInitialized = false;
+        private bool _isServerShutdownManually = false;
+        private int _autoStartAttempts = 0;
+        private DateTime _lastAutoStartAttempt = DateTime.MinValue;
+        private const int MaxAutoStartAttempts = 3;
+        private static readonly TimeSpan AutoStartCooldown = TimeSpan.FromSeconds(20);
 
         public MainWindow()
         {
@@ -86,27 +91,70 @@ namespace AlamsServerConsole
             try
             {
                 var response = await _httpClient.GetAsync("http://localhost:5000/health");
-                if (response.IsSuccessStatusCode)
+                // If we got any HTTP response, the process is active on port 5000
+                string json = await response.Content.ReadAsStringAsync();
+                int activeClients = 0;
+                int activeSessions = 0;
+                string dbStatus = "DISCONNECTED";
+
+                try
                 {
-                    string json = await response.Content.ReadAsStringAsync();
                     using var doc = JsonDocument.Parse(json);
                     var root = doc.RootElement;
+                    activeClients = root.TryGetProperty("activeClients", out var acVal) ? acVal.GetInt32() : 0;
+                    activeSessions = root.TryGetProperty("activeSessions", out var asVal) ? asVal.GetInt32() : 0;
+                    dbStatus = root.TryGetProperty("dbStatus", out var dbVal) ? (dbVal.GetString() ?? "CONNECTED") : "CONNECTED";
+                }
+                catch
+                {
+                    dbStatus = "UNKNOWN";
+                }
 
-                    int activeClients = root.TryGetProperty("activeClients", out var acVal) ? acVal.GetInt32() : 0;
-                    int activeSessions = root.TryGetProperty("activeSessions", out var asVal) ? asVal.GetInt32() : 0;
-                    string dbStatus = root.TryGetProperty("dbStatus", out var dbVal) ? (dbVal.GetString() ?? "CONNECTED") : "CONNECTED";
+                UpdateServerStatusUI(true, activeClients, activeSessions, dbStatus);
+                if (dbStatus == "CONNECTED")
+                {
+                    _autoStartAttempts = 0; // Reset auto start attempts when database is fully online
+                }
+            }
+            catch (HttpRequestException)
+            {
+                // Connection refused/failed - process is offline
+                UpdateServerStatusUI(false, 0, 0, "OFFLINE");
+                HandleAutoStart();
+            }
+            catch (Exception)
+            {
+                // Other unexpected errors
+                UpdateServerStatusUI(false, 0, 0, "OFFLINE");
+                HandleAutoStart();
+            }
+        }
 
-                    UpdateServerStatusUI(true, activeClients, activeSessions, dbStatus);
+        private void HandleAutoStart()
+        {
+            if (_isServerShutdownManually) return;
+            if (AutoHealCheckBox != null && AutoHealCheckBox.IsChecked == false) return;
+
+            if (_autoStartAttempts >= MaxAutoStartAttempts)
+            {
+                if (DateTime.Now - _lastAutoStartAttempt > TimeSpan.FromMinutes(2))
+                {
+                    AppendLog("[AUTO-HEAL] Resetting auto-start lockout block after time elapsed.");
+                    _autoStartAttempts = 0;
                 }
                 else
                 {
-                    UpdateServerStatusUI(false, 0, 0, "OFFLINE");
+                    return;
                 }
             }
-            catch
-            {
-                UpdateServerStatusUI(false, 0, 0, "OFFLINE");
-            }
+
+            if (DateTime.Now - _lastAutoStartAttempt < AutoStartCooldown) return;
+
+            _lastAutoStartAttempt = DateTime.Now;
+            _autoStartAttempts++;
+            AppendLog($"[AUTO-HEAL] Server is OFFLINE. Triggering self-healing startup sequence (Attempt {_autoStartAttempts}/{MaxAutoStartAttempts})...");
+            
+            Task.Run(() => Dispatcher.Invoke(() => StartServerInternal()));
         }
 
         private void UpdateServerStatusUI(bool online, int activeClients, int activeSessions, string dbStatus)
@@ -202,7 +250,19 @@ namespace AlamsServerConsole
         }
 
         // --- SERVER LIFECYCLE MANAGEMENT ---
+        // --- SERVER LIFECYCLE MANAGEMENT ---
         private void StartServerBtn_Click(object sender, RoutedEventArgs e)
+        {
+            _isServerShutdownManually = false;
+            _autoStartAttempts = 0;
+            if (AutoHealCheckBox != null)
+            {
+                AutoHealCheckBox.IsChecked = true;
+            }
+            StartServerInternal();
+        }
+
+        private void StartServerInternal()
         {
             if (_isServerRunning)
             {
@@ -214,14 +274,43 @@ namespace AlamsServerConsole
             try
             {
                 string serverDir = FindServerDirectory();
-                string scriptPath = Path.Combine(serverDir, "..\\scripts\\start_server.bat");
                 
-                AppendLog($"[INFO] Triggering script: {scriptPath}");
+                // Construct absolute script paths dynamically
+                string scriptPath = Path.GetFullPath(Path.Combine(serverDir, "..\\scripts\\start_server.bat"));
+                if (!File.Exists(scriptPath))
+                {
+                    string parent = Directory.GetParent(serverDir)?.FullName ?? "";
+                    string alternatePath = Path.Combine(parent, "scripts\\start_server.bat");
+                    if (File.Exists(alternatePath))
+                    {
+                        scriptPath = alternatePath;
+                    }
+                }
+
+                AppendLog($"[INFO] Target Working Directory: {serverDir}");
+                AppendLog($"[INFO] Resolved Startup Script: {scriptPath}");
+
+                if (!Directory.Exists(serverDir))
+                {
+                    AppendLog($"[ERROR] Invalid configuration: Working directory does not exist on disk: {serverDir}");
+                    return;
+                }
 
                 _serverProcess = new Process();
-                _serverProcess.StartInfo.FileName = "cmd.exe";
-                _serverProcess.StartInfo.Arguments = $"/c \"{scriptPath}\"";
                 _serverProcess.StartInfo.WorkingDirectory = serverDir;
+
+                if (File.Exists(scriptPath))
+                {
+                    _serverProcess.StartInfo.FileName = "cmd.exe";
+                    _serverProcess.StartInfo.Arguments = $"/c \"{scriptPath}\"";
+                }
+                else
+                {
+                    AppendLog("[WARN] start_server.bat was not found. Launching server forcefully with 'npm run start'...");
+                    _serverProcess.StartInfo.FileName = "cmd.exe";
+                    _serverProcess.StartInfo.Arguments = "/c npm run start";
+                }
+
                 _serverProcess.StartInfo.UseShellExecute = false;
                 _serverProcess.StartInfo.RedirectStandardOutput = true;
                 _serverProcess.StartInfo.RedirectStandardError = true;
@@ -234,7 +323,7 @@ namespace AlamsServerConsole
                 _serverProcess.BeginOutputReadLine();
                 _serverProcess.BeginErrorReadLine();
 
-                AppendLog("[SUCCESS] Node daemon runner spawned successfully.");
+                AppendLog("[SUCCESS] Node server daemon execution process spawned.");
             }
             catch (Exception ex)
             {
@@ -244,7 +333,12 @@ namespace AlamsServerConsole
 
         private void StopServerBtn_Click(object sender, RoutedEventArgs e)
         {
-            AppendLog("[INFO] Shutting down ALAMS Central Server process trees...");
+            _isServerShutdownManually = true;
+            if (AutoHealCheckBox != null)
+            {
+                AutoHealCheckBox.IsChecked = false;
+            }
+            AppendLog("[INFO] Shutting down ALAMS Central Server process trees manually...");
             KillNodeProcesses();
             AppendLog("[SUCCESS] Server process terminated.");
         }
@@ -252,12 +346,39 @@ namespace AlamsServerConsole
         private void RestartServerBtn_Click(object sender, RoutedEventArgs e)
         {
             AppendLog("[INFO] Restarting server...");
-            StopServerBtn_Click(sender, e);
-            Task.Delay(2000).ContinueWith(_ => Dispatcher.Invoke(() => StartServerBtn_Click(sender, e)));
+            _isServerShutdownManually = false;
+            _autoStartAttempts = 0;
+            if (AutoHealCheckBox != null)
+            {
+                AutoHealCheckBox.IsChecked = true;
+            }
+            KillNodeProcesses();
+            Task.Delay(2000).ContinueWith(_ => Dispatcher.Invoke(() => StartServerInternal()));
         }
 
         private string FindServerDirectory()
         {
+            // Walk up from current directory to find directory containing "server" and "scripts"
+            string current = AppDomain.CurrentDomain.BaseDirectory;
+            while (!string.IsNullOrEmpty(current))
+            {
+                string possibleServer = Path.Combine(current, "server");
+                if (Directory.Exists(possibleServer) && File.Exists(Path.Combine(possibleServer, "package.json")))
+                {
+                    return Path.GetFullPath(possibleServer);
+                }
+                
+                if (File.Exists(Path.Combine(current, "package.json")) && string.Equals(Path.GetFileName(current.TrimEnd('\\', '/')), "server", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Path.GetFullPath(current);
+                }
+                
+                string? parent = Directory.GetParent(current)?.FullName;
+                if (parent == current || string.IsNullOrEmpty(parent)) break;
+                current = parent;
+            }
+            
+            // Backup static check
             string[] possiblePaths = new[]
             {
                 Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..\\..\\..\\..\\server"),
@@ -276,6 +397,19 @@ namespace AlamsServerConsole
                 }
             }
             return Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "server"));
+        }
+
+        private void AutoHeal_Checked(object sender, RoutedEventArgs e)
+        {
+            _isServerShutdownManually = false;
+            _autoStartAttempts = 0;
+            AppendLog("[SYSTEM] Auto-Healing and Auto-Startup enabled.");
+        }
+
+        private void AutoHeal_Unchecked(object sender, RoutedEventArgs e)
+        {
+            _isServerShutdownManually = true;
+            AppendLog("[SYSTEM] Auto-Healing disabled. Server will remain in manual control mode.");
         }
 
         private void KillNodeProcesses()

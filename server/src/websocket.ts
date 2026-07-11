@@ -222,12 +222,12 @@ export function initWebSocketServer(server: Server) {
 
             const adminUsers = await prisma.user.findMany({
               where: { role: { in: ["ADMIN", "SUPERVISOR", "FACULTY"] } },
-              select: { username: true, password: true }
+              select: { enrollmentNumber: true, passwordHash: true }
             });
             const adminCredentials = adminUsers.map(u => ({
-              username: u.username,
-              pinHash: u.password,
-              passcodeHash: u.password
+              username: u.enrollmentNumber,
+              pinHash: u.passwordHash,
+              passcodeHash: u.passwordHash
             }));
 
             ws.send(
@@ -518,12 +518,12 @@ export async function sendProfileConfigToConnectedClients(profileId: string) {
       if (ws && ws.readyState === 1) { // 1 = OPEN
         const adminUsers = await prisma.user.findMany({
           where: { role: { in: ["ADMIN", "SUPERVISOR", "FACULTY"] } },
-          select: { username: true, password: true }
+          select: { enrollmentNumber: true, passwordHash: true }
         });
         const adminCredentials = adminUsers.map(u => ({
-          username: u.username,
-          pinHash: u.password,
-          passcodeHash: u.password
+          username: u.enrollmentNumber,
+          pinHash: u.passwordHash,
+          passcodeHash: u.passwordHash
         }));
 
         ws.send(

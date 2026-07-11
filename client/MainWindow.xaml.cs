@@ -594,14 +594,16 @@ namespace AlamsClient
                 
                 // Allow offline input if server offline
                 PcNumberText.Text = "OFFLINE MODE";
-                DeviceNameText.Text = "Please enter enrollment and PIN credentials to unlock.";
-                QrLoaderText.Text = "Workstation Offline";
+                DeviceNameText.Text = "Please enter enrollment and password credentials to unlock.";
 
                 Dispatcher.Invoke(() =>
                 {
                     EnrollmentInput.IsEnabled = true;
                     PinInput.IsEnabled = true;
                     UnlockButton.IsEnabled = true;
+                    
+                    OtpEnrollmentInput.IsEnabled = false;
+                    RequestOtpButton.IsEnabled = false;
                 });
             }
         }
@@ -643,6 +645,8 @@ namespace AlamsClient
                             EnrollmentInput.IsEnabled = false;
                             PinInput.IsEnabled = false;
                             UnlockButton.IsEnabled = false;
+                            OtpEnrollmentInput.IsEnabled = false;
+                            RequestOtpButton.IsEnabled = false;
                         });
                     }
                     else if (type == "registered")
@@ -660,18 +664,14 @@ namespace AlamsClient
                         {
                             PcNumberText.Text = _pcNumber;
                             DeviceNameText.Text = $"{_deviceName} | Online";
-                            QrLoaderText.Visibility = Visibility.Collapsed;
 
                             // Unlock inputs
                             EnrollmentInput.IsEnabled = true;
                             PinInput.IsEnabled = true;
                             UnlockButton.IsEnabled = true;
+                            OtpEnrollmentInput.IsEnabled = true;
+                            RequestOtpButton.IsEnabled = true;
                         });
-
-                        // Start QR generator loop
-                        _qrTimer?.Start();
-                        _uiCountdownTimer?.Start();
-                        QrTimer_Tick(null, null); // Load first QR immediately
                     }
                     else if (type == "config_profile")
                     {
@@ -868,7 +868,19 @@ namespace AlamsClient
             {
                 _qrCountdown--;
                 TimerText.Text = $"{_qrCountdown}s";
-                QrProgressBar.Value = (_qrCountdown / 30.0) * 100.0;
+                QrProgressBar.Value = (_qrCountdown / 60.0) * 100.0;
+            }
+            else
+            {
+                _uiCountdownTimer?.Stop();
+                Dispatcher.Invoke(() =>
+                {
+                    OtpVerificationPanel.Visibility = Visibility.Collapsed;
+                    OtpTimerPanel.Visibility = Visibility.Collapsed;
+                    RequestOtpButton.IsEnabled = true;
+                    OtpEnrollmentInput.IsEnabled = true;
+                    UpdateStatus("Verification code has expired. Please request a new OTP.", isError: true);
+                });
             }
         }
 
@@ -901,7 +913,7 @@ namespace AlamsClient
 
             if (string.IsNullOrEmpty(enrollment) || string.IsNullOrEmpty(pin))
             {
-                UpdateStatus("Please enter enrollment and passcode", isError: true);
+                UpdateStatus("Please enter enrollment and password", isError: true);
                 return;
             }
 
@@ -927,7 +939,7 @@ namespace AlamsClient
                     {
                         string errBody = await response.Content.ReadAsStringAsync();
                         var doc = JsonDocument.Parse(errBody);
-                        string err = doc.RootElement.TryGetProperty("error", out var val) ? val.GetString() ?? "Invalid PIN" : "Invalid PIN";
+                        string err = doc.RootElement.TryGetProperty("error", out var val) ? val.GetString() ?? "Invalid Password/PIN" : "Invalid Password/PIN";
                         UpdateStatus(err, isError: true);
 
                         // Call failed-login API to record audit logs
@@ -952,7 +964,7 @@ namespace AlamsClient
             {
                 // Resilient Offline PIN fallback validation (mocking database hash decrypt match)
                 // In production, this decrypts the local SQLCipher cache matching the enrollment.
-                if (enrollment.StartsWith("ENR") && pin == "123456")
+                if (enrollment.StartsWith("ENR") && (pin == "123456" || pin == "Student@2026!"))
                 {
                     _activeSessionId = Guid.NewGuid().ToString();
                     UnlockWorkstation(enrollment + " (OFFLINE)");
@@ -961,6 +973,110 @@ namespace AlamsClient
                 {
                     UpdateStatus("Invalid credentials or user not cached locally.", isError: true);
                 }
+            }
+        }
+
+        private async void RequestOtpButton_Click(object sender, RoutedEventArgs e)
+        {
+            string enrollment = OtpEnrollmentInput.Text.Trim();
+            if (string.IsNullOrEmpty(enrollment))
+            {
+                UpdateStatus("Please enter enrollment or email address", isError: true);
+                return;
+            }
+
+            UpdateStatus("Requesting verification code...", isError: false);
+            RequestOtpButton.IsEnabled = false;
+            OtpEnrollmentInput.IsEnabled = false;
+
+            try
+            {
+                var payload = new { enrollmentNumber = enrollment, computerId = _computerId };
+                string json = JsonSerializer.Serialize(payload);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync($"{ServerHttpUrl}/api/v1/client/request-otp", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    UpdateStatus("Verification OTP sent successfully!", isError: false);
+                    
+                    OtpVerificationPanel.Visibility = Visibility.Visible;
+                    OtpTimerPanel.Visibility = Visibility.Visible;
+                    
+                    _qrCountdown = 60;
+                    QrProgressBar.Value = 100;
+                    TimerText.Text = "60s";
+                    _uiCountdownTimer?.Start();
+                }
+                else
+                {
+                    string errBody = await response.Content.ReadAsStringAsync();
+                    using var doc = JsonDocument.Parse(errBody);
+                    string err = doc.RootElement.TryGetProperty("error", out var val) ? val.GetString() ?? "Failed to request OTP" : "Failed to request OTP";
+                    UpdateStatus(err, isError: true);
+                    
+                    RequestOtpButton.IsEnabled = true;
+                    OtpEnrollmentInput.IsEnabled = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Connection error: {ex.Message}", isError: true);
+                RequestOtpButton.IsEnabled = true;
+                OtpEnrollmentInput.IsEnabled = true;
+            }
+        }
+
+        private async void VerifyOtpButton_Click(object sender, RoutedEventArgs e)
+        {
+            string enrollment = OtpEnrollmentInput.Text.Trim();
+            string otp = OtpCodeInput.Text.Trim();
+
+            if (string.IsNullOrEmpty(enrollment) || string.IsNullOrEmpty(otp))
+            {
+                UpdateStatus("Please enter enrollment and verification code", isError: true);
+                return;
+            }
+
+            UpdateStatus("Verifying code...", isError: false);
+            VerifyOtpButton.IsEnabled = false;
+
+            try
+            {
+                var payload = new { enrollmentNumber = enrollment, otp = otp, computerId = _computerId };
+                string json = JsonSerializer.Serialize(payload);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync($"{ServerHttpUrl}/api/v1/client/verify-otp", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    string body = await response.Content.ReadAsStringAsync();
+                    using var doc = JsonDocument.Parse(body);
+                    _activeSessionId = doc.RootElement.GetProperty("sessionId").GetString() ?? "";
+                    
+                    OtpVerificationPanel.Visibility = Visibility.Collapsed;
+                    OtpTimerPanel.Visibility = Visibility.Collapsed;
+                    RequestOtpButton.IsEnabled = true;
+                    OtpEnrollmentInput.IsEnabled = true;
+                    OtpCodeInput.Text = "";
+                    OtpEnrollmentInput.Text = "";
+
+                    UnlockWorkstation(enrollment);
+                }
+                else
+                {
+                    string errBody = await response.Content.ReadAsStringAsync();
+                    using var doc = JsonDocument.Parse(errBody);
+                    string err = doc.RootElement.TryGetProperty("error", out var val) ? val.GetString() ?? "Invalid code" : "Invalid code";
+                    UpdateStatus(err, isError: true);
+                    
+                    VerifyOtpButton.IsEnabled = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Connection error: {ex.Message}", isError: true);
+                VerifyOtpButton.IsEnabled = true;
             }
         }
 
