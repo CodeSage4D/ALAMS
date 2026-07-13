@@ -9,6 +9,8 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Security.Cryptography;
+using System.Net.NetworkInformation;
 using Microsoft.Extensions.Hosting;
 
 namespace AlamsDaemon
@@ -43,13 +45,140 @@ namespace AlamsDaemon
             LoadPlugins();
         }
 
+        private string? _cachedFingerprint;
+        private string GetFingerprint()
+        {
+            if (_cachedFingerprint != null) return _cachedFingerprint;
+            try
+            {
+                string motherboardSerial = GetWmiProperty("Win32_BaseBoard", "SerialNumber") ?? "";
+                string biosSerial = GetWmiProperty("Win32_BIOS", "SerialNumber") ?? "";
+                string cpuId = GetWmiProperty("Win32_Processor", "ProcessorId") ?? "";
+                string machineGuid = Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Cryptography", "MachineGuid", "")?.ToString() ?? "N/A";
+                _cachedFingerprint = GenerateDeviceFingerprint(motherboardSerial, biosSerial, cpuId, machineGuid);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to generate WMI fingerprint in daemon: {ex.Message}");
+                _cachedFingerprint = "FALLBACK_HARDWARE_FINGERPRINT_2026";
+            }
+            return _cachedFingerprint;
+        }
+
+        private byte[] GetConfigEncryptionKey()
+        {
+            string fingerprint = GetFingerprint();
+            string installSecret = "ALAMS_Enterprise_Deploy_Secret_SUAS_2026!";
+            byte[] ikm = Encoding.UTF8.GetBytes(installSecret + "_" + fingerprint);
+            byte[] info = Encoding.UTF8.GetBytes("ALAMS_Local_Encrypted_Config_Storage");
+            return HKDF.DeriveKey(HashAlgorithmName.SHA256, ikm, 32, null, info);
+        }
+
+        private static string DecryptAesGcm(string cipherText, byte[] key)
+        {
+            byte[] fullBytes = Convert.FromBase64String(cipherText);
+            if (fullBytes.Length < 28)
+                throw new ArgumentException("Ciphertext is too short.");
+
+            byte[] nonce = new byte[12];
+            byte[] tag = new byte[16];
+            byte[] cipherBytes = new byte[fullBytes.Length - 28];
+
+            Buffer.BlockCopy(fullBytes, 0, nonce, 0, 12);
+            Buffer.BlockCopy(fullBytes, 12, tag, 0, 16);
+            Buffer.BlockCopy(fullBytes, 28, cipherBytes, 0, cipherBytes.Length);
+
+            byte[] plainBytes = new byte[cipherBytes.Length];
+            using (var aesGcm = new AesGcm(key, 16))
+            {
+                aesGcm.Decrypt(nonce, cipherBytes, tag, plainBytes);
+            }
+
+            return Encoding.UTF8.GetString(plainBytes);
+        }
+
+        private string GetWmiProperty(string wmiClass, string propertyName)
+        {
+            try
+            {
+                using (var searcher = new ManagementObjectSearcher($"SELECT {propertyName} FROM {wmiClass}"))
+                {
+                    foreach (var obj in searcher.Get())
+                    {
+                        var val = obj[propertyName]?.ToString();
+                        if (!string.IsNullOrEmpty(val))
+                        {
+                            return val.Trim();
+                        }
+                    }
+                }
+            }
+            catch
+            {
+            }
+            return "N/A";
+        }
+
+        private string GetMacAddress()
+        {
+            try
+            {
+                string mac = NetworkInterface.GetAllNetworkInterfaces()
+                    .Where(nic => nic.OperationalStatus == OperationalStatus.Up && 
+                                  nic.NetworkInterfaceType != NetworkInterfaceType.Loopback)
+                    .Select(nic => nic.GetPhysicalAddress().ToString())
+                    .FirstOrDefault() ?? "001A2B3C4D5E";
+
+                if (mac.Length == 12)
+                {
+                    mac = string.Join(":", Enumerable.Range(0, 6).Select(i => mac.Substring(i * 2, 2)));
+                }
+                return mac;
+            }
+            catch
+            {
+                return "00:1A:2B:3C:4D:5E";
+            }
+        }
+
+        private string GenerateDeviceFingerprint(string motherboardSerial, string biosSerial, string cpuId, string machineGuid)
+        {
+            try
+            {
+                string mac = GetMacAddress();
+                string combined = $"{motherboardSerial}|{biosSerial}|{cpuId}|{machineGuid}|{mac}";
+
+                using (var sha256 = SHA256.Create())
+                {
+                    byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(combined));
+                    return string.Concat(bytes.Select(b => b.ToString("x2")));
+                }
+            }
+            catch
+            {
+                return Guid.NewGuid().ToString().Replace("-", "");
+            }
+        }
+
         private void LoadConfiguration()
         {
             try
             {
                 if (File.Exists(ConfigPath))
                 {
-                    string json = File.ReadAllText(ConfigPath);
+                    string rawContent = File.ReadAllText(ConfigPath);
+                    string json = "";
+
+                    if (rawContent.TrimStart().StartsWith("{"))
+                    {
+                        json = rawContent;
+                    }
+                    else
+                    {
+                        byte[] key = GetConfigEncryptionKey();
+                        json = DecryptAesGcm(rawContent, key);
+                    }
+
                     using (JsonDocument doc = JsonDocument.Parse(json))
                     {
                         var root = doc.RootElement;
@@ -64,9 +193,9 @@ namespace AlamsDaemon
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Fall back to default
+                Console.WriteLine($"[DAEMON] Failed to load configuration: {ex.Message}");
             }
         }
 
