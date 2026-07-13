@@ -1,33 +1,61 @@
 @echo off
 setlocal EnableDelayedExpansion
-title ALAMS — Student Bulk Import
+title ALAMS - Student Bulk Import
 color 0A
 cls
 
 echo.
 echo  =====================================================================
-echo   ALAMS - Student Bulk Import Tool  v1.1
+echo   ALAMS - Student Bulk Import Tool  v1.2
 echo   Aurxon Lab Access Management System
 echo  =====================================================================
 echo.
 
-:: ─── Set working directory to this script's folder ────────────────────────────
-cd /d "%~dp0"
-echo  Working directory: %~dp0
+:: ─── Force-set working directory to THIS bat file's folder ───────────────────
+:: This fixes "cannot find path" when double-clicked from Explorer
+set "SCRIPT_DIR=%~dp0"
+:: Remove trailing backslash
+if "%SCRIPT_DIR:~-1%"=="\" set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
+
+set "SERVER_DIR=%SCRIPT_DIR%\..\server"
+set "WEB_DIR=%SCRIPT_DIR%\..\web"
+set "EXCEL_FILE=%SCRIPT_DIR%\SCSIT DATA STUD.xlsx"
+set "IMPORT_JS=%SCRIPT_DIR%\import_students.js"
+
+echo  Script folder : %SCRIPT_DIR%
+echo  Server folder : %SERVER_DIR%
+echo  Excel file    : %EXCEL_FILE%
 echo.
 
-:: ─── STEP 1: Check Node.js ────────────────────────────────────────────────────
-echo  [STEP 1/5]  Checking Node.js installation...
+:: ─── STEP 1: Verify Excel file exists ────────────────────────────────────────
+echo  [STEP 1/5]  Checking Excel file...
+if not exist "%EXCEL_FILE%" (
+    echo.
+    echo  ERROR: Excel file NOT found!
+    echo.
+    echo  Looking for:
+    echo    %EXCEL_FILE%
+    echo.
+    echo  The file "SCSIT DATA STUD.xlsx" must be placed inside:
+    echo    %SCRIPT_DIR%\
+    echo.
+    echo  Current files in this folder:
+    dir "%SCRIPT_DIR%" /b
+    echo.
+    pause
+    exit /b 1
+)
+echo  OK  Excel file found.
+echo.
+
+:: ─── STEP 2: Check Node.js ───────────────────────────────────────────────────
+echo  [STEP 2/5]  Checking Node.js...
 node --version >nul 2>&1
 if %errorlevel% neq 0 (
     echo.
-    echo  ERROR: Node.js is NOT installed or not in PATH.
-    echo.
-    echo  To install Node.js:
-    echo    1. Open browser  ^>  https://nodejs.org/en/download
-    echo    2. Download the Windows Installer (.msi)  LTS version
-    echo    3. Install with default settings
-    echo    4. RESTART this CMD window and run this BAT again
+    echo  ERROR: Node.js is NOT installed.
+    echo  Download: https://nodejs.org  (LTS version)
+    echo  After install, restart CMD and run this BAT again.
     echo.
     pause
     exit /b 1
@@ -36,94 +64,65 @@ for /f "tokens=*" %%v in ('node --version') do set NODE_VER=%%v
 echo  OK  Node.js %NODE_VER%
 echo.
 
-:: ─── STEP 2: Check server folder ─────────────────────────────────────────────
-echo  [STEP 2/5]  Checking server folder...
-if not exist "..\server\package.json" (
-    echo.
-    echo  ERROR: server\package.json not found.
-    echo  Make sure this script is inside the Student-Data\ folder of ALAMS.
-    echo.
-    pause
-    exit /b 1
-)
-echo  OK  server\ folder found
-echo.
-
-:: ─── STEP 3: Install server npm packages ──────────────────────────────────────
-echo  [STEP 3/5]  Installing server packages (npm install)...
-cd /d "%~dp0..\server"
-call npm install --prefer-offline --loglevel error 2>&1
+:: ─── STEP 3: Install server npm packages ─────────────────────────────────────
+echo  [STEP 3/5]  Installing server packages...
+cd /d "%SERVER_DIR%"
 if %errorlevel% neq 0 (
-    echo.
-    echo  WARNING: npm install had issues. Trying again with verbose output...
-    call npm install
-)
-
-:: Install xlsx specifically
-call npm install xlsx --prefer-offline --loglevel error 2>&1
-echo  OK  Packages installed
-cd /d "%~dp0"
-echo.
-
-:: ─── STEP 4: Check Excel file ─────────────────────────────────────────────────
-echo  [STEP 4/5]  Checking student Excel file...
-if not exist "SCSIT DATA STUD.xlsx" (
-    echo.
-    echo  ERROR: Excel file not found!
-    echo.
-    echo  Expected file:
-    echo    %~dp0SCSIT DATA STUD.xlsx
-    echo.
-    echo  Place the student data Excel file in this folder and run again.
-    echo.
+    echo  ERROR: Cannot navigate to server folder: %SERVER_DIR%
     pause
     exit /b 1
 )
-echo  OK  "SCSIT DATA STUD.xlsx" found
+echo  Running npm install in: %CD%
+call npm install --loglevel error
+if %errorlevel% neq 0 (
+    echo  WARNING: npm install reported errors. Continuing...
+)
+call npm install xlsx --loglevel error
+echo  OK  Packages ready.
 echo.
 
-:: ─── STEP 5: Run import script ────────────────────────────────────────────────
-echo  [STEP 5/5]  Running student import script...
+:: ─── STEP 4: Generate Prisma client ──────────────────────────────────────────
+echo  [STEP 4/5]  Generating Prisma client...
+call npx prisma generate --schema="%SERVER_DIR%\prisma\schema.prisma" 2>&1
+echo  OK  Prisma client generated.
+echo.
+
+:: ─── STEP 5: Run import ──────────────────────────────────────────────────────
+echo  [STEP 5/5]  Running student import...
+echo  ---------------------------------------------------------------------
+echo.
+cd /d "%SCRIPT_DIR%"
+node "%IMPORT_JS%"
+set IMPORT_CODE=%errorlevel%
+
+echo.
 echo  ---------------------------------------------------------------------
 echo.
 
-node "%~dp0import_students.js"
-set IMPORT_EXIT=%errorlevel%
-
-echo.
-echo  ---------------------------------------------------------------------
-echo.
-
-if %IMPORT_EXIT% neq 0 (
-    echo  IMPORT FAILED with error code %IMPORT_EXIT%
+if %IMPORT_CODE% neq 0 (
+    echo  *** IMPORT FAILED (exit code: %IMPORT_CODE%) ***
     echo.
-    echo  Common fixes:
-    echo    ^> Check your internet connection (PostgreSQL is on Neon cloud)
-    echo    ^> Make sure server\.env has the correct DATABASE_URL
-    echo    ^> Run:  cd ..\server  ^&^&  npx prisma generate
+    echo  Troubleshooting:
+    echo   1. Check internet connection (database is on Neon cloud)
+    echo   2. Verify DATABASE_URL in: %SERVER_DIR%\.env
+    echo   3. Run manually: node "%IMPORT_JS%"
     echo.
 ) else (
-    echo  =====================================================================
-    echo   IMPORT COMPLETED SUCCESSFULLY!
-    echo  =====================================================================
+    echo  *** IMPORT SUCCESSFUL! ***
     echo.
-    echo   1. Students are now saved in PostgreSQL database
-    echo   2. Credentials CSV file saved in this folder
-    echo   3. Import JSON record saved in this folder
+    echo  Students saved to PostgreSQL database.
+    echo  Credentials CSV and JSON saved in: %SCRIPT_DIR%
     echo.
-    echo   NEXT STEPS - REBUILD AND RESTART THE WEB PORTAL:
-    echo   -------------------------------------------------
-    echo   Open a new CMD and run these commands in order:
+    echo  -------------------------------------------------------
+    echo  TO SEE STUDENTS ON THE WEB - REBUILD WEB PORTAL:
+    echo  -------------------------------------------------------
+    echo  Run these commands in CMD:
     echo.
-    echo     cd /d "%~dp0..\web"
-    echo     npm run build
-    echo     :: Then stop and restart the web server (pm2 or node)
+    echo    cd /d "%WEB_DIR%"
+    echo    npm run build
+    echo    pm2 restart alams-web    (if using pm2)
     echo.
-    echo   OR if using pm2:
-    echo     pm2 restart alams-web
-    echo     pm2 restart alams-server
-    echo.
-    echo   Then open the admin dashboard and click "Refresh Deck".
+    echo  Then open admin dashboard and click "Refresh Deck".
     echo.
 )
 

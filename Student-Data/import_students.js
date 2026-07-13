@@ -86,11 +86,17 @@ const prismaPaths = [
   path.join(__dirname, "../server/node_modules/@prisma/client"),
   path.join(__dirname, "node_modules/@prisma/client"),
 ];
+
+// IMPORTANT: Use DIRECT_URL (not DATABASE_URL which uses pgbouncer pooler)
+// pgbouncer pooled connections only work inside the Express server runtime.
+// For standalone scripts, the direct connection URL must be used.
+const directUrl = process.env.DIRECT_URL || process.env.DATABASE_URL;
+
 for (const p of prismaPaths) {
   try {
     const { PrismaClient } = require(p);
     prisma = new PrismaClient({
-      datasources: { db: { url: process.env.DATABASE_URL } }
+      datasources: { db: { url: directUrl } }
     });
     break;
   } catch {}
@@ -133,10 +139,23 @@ function detectColumns(headerRow) {
 
 // ─── MAIN ────────────────────────────────────────────────────────────────────
 async function main() {
-  const EXCEL_PATH = path.join(__dirname, "SCSIT DATA STUD.xlsx");
-  if (!fs.existsSync(EXCEL_PATH)) {
-    console.error("FATAL: Excel file not found: " + EXCEL_PATH);
-    console.error("       Place 'SCSIT DATA STUD.xlsx' in the Student-Data\\ folder.");
+  // Try to find the Excel file in several possible locations
+  const candidatePaths = [
+    path.join(__dirname, "SCSIT DATA STUD.xlsx"),          // same folder as this script
+    path.join(process.cwd(), "SCSIT DATA STUD.xlsx"),       // wherever CMD is currently running from
+    path.join(process.cwd(), "Student-Data", "SCSIT DATA STUD.xlsx"), // if run from ALAMS root
+  ];
+
+  let EXCEL_PATH = null;
+  for (const p of candidatePaths) {
+    if (fs.existsSync(p)) { EXCEL_PATH = p; break; }
+  }
+
+  if (!EXCEL_PATH) {
+    console.error("\nFATAL: Cannot find the Excel file. Searched in:");
+    candidatePaths.forEach(p => console.error("  - " + p));
+    console.error("\nFix: Make sure 'SCSIT DATA STUD.xlsx' is in the Student-Data\\ folder.");
+    console.error("     Then run the BAT file by double-clicking it.");
     process.exit(1);
   }
 
@@ -184,14 +203,14 @@ async function main() {
   }
   console.log("Parsed " + students.length + " valid student records.\n");
 
-  // Test DB connection first
+  // Test DB connection using a lightweight Prisma model query (not raw SQL)
   console.log("Testing database connection...");
   try {
-    await prisma.$queryRaw`SELECT 1`;
-    console.log("✓  Database connection OK\n");
+    const existingCount = await prisma.user.count({ where: { role: "STUDENT" } });
+    console.log("✓  Database connection OK  (existing students in DB: " + existingCount + ")\n");
   } catch (e) {
-    console.error("FATAL: Cannot connect to PostgreSQL: " + e.message);
-    console.error("       Check DATABASE_URL in server/.env");
+    console.error("FATAL: Cannot connect to PostgreSQL.\n  " + e.message);
+    console.error("\nCheck DIRECT_URL in server/.env — it must be the non-pooled direct connection.");
     process.exit(1);
   }
 

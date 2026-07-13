@@ -1,0 +1,3661 @@
+{
+  "importedAt": "2026-07-13T11:50:35.071Z",
+  "created": 406,
+  "skipped": 0,
+  "results": [
+    {
+      "enrollmentNumber": "2021BTCS024",
+      "fullName": "Vishvaraj Singh Chouhan",
+      "email": "vishvraj.chouhan@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "j3DrpiQZ"
+    },
+    {
+      "enrollmentNumber": "2022BTCS001",
+      "fullName": "Aanya Jain",
+      "email": "2022BTCS001@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "W8VGYUu7"
+    },
+    {
+      "enrollmentNumber": "2022BTCS002",
+      "fullName": "Abhijeet Singh Gour",
+      "email": "2022BTCS002@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Q5vzcwwQ"
+    },
+    {
+      "enrollmentNumber": "2022BTCS003",
+      "fullName": "Adarsh Muvvala",
+      "email": "2022BTCS003@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "NiaUoHpn"
+    },
+    {
+      "enrollmentNumber": "2022BTCS004",
+      "fullName": "Aditi Pachori",
+      "email": "2022BTCS004@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "lSUMoQTc"
+    },
+    {
+      "enrollmentNumber": "2022BTCS006",
+      "fullName": "Aishwarya Chourey",
+      "email": "2022BTCS006@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "ojnAsmC1"
+    },
+    {
+      "enrollmentNumber": "2022BTCS007",
+      "fullName": "Ajay Singh Soner",
+      "email": "2022BTCS007@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "DJYL9P7M"
+    },
+    {
+      "enrollmentNumber": "2022BTCS008",
+      "fullName": "Akshat Thakkar",
+      "email": "2022BTCS008@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "qL6jl7g4"
+    },
+    {
+      "enrollmentNumber": "2022BTCS009",
+      "fullName": "Alisha Soni",
+      "email": "2022BTCS009@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "XOya7J6V"
+    },
+    {
+      "enrollmentNumber": "2022BTCS010",
+      "fullName": "Aman Jain",
+      "email": "2022BTCS010@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "0GxStyG5"
+    },
+    {
+      "enrollmentNumber": "2022BTCS011",
+      "fullName": "Amber Suner",
+      "email": "2022BTCS011@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "lzUOGbn7"
+    },
+    {
+      "enrollmentNumber": "2022BTCS013",
+      "fullName": "Atharva Gour",
+      "email": "2022BTCS013@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "S4btTyaG"
+    },
+    {
+      "enrollmentNumber": "2022BTCS014",
+      "fullName": "Ayushi Patel",
+      "email": "2022BTCS014@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "iXsnSaM0"
+    },
+    {
+      "enrollmentNumber": "2022BTCS015",
+      "fullName": "Chayan Biyani",
+      "email": "2022BTCS015@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "LFL3rKYt"
+    },
+    {
+      "enrollmentNumber": "2022BTCS017",
+      "fullName": "Dhaval Jain",
+      "email": "2022BTCS017@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "QhDfXpMC"
+    },
+    {
+      "enrollmentNumber": "2022BTCS018",
+      "fullName": "Harshit Kushwah",
+      "email": "2022BTCS018@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "sVujWe0t"
+    },
+    {
+      "enrollmentNumber": "2022BTCS019",
+      "fullName": "Harshita Maheshwari",
+      "email": "2022BTCS019@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "OWKB2jJf"
+    },
+    {
+      "enrollmentNumber": "2022BTCS021",
+      "fullName": "Hitansh Bhagtani",
+      "email": "2022BTCS021@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "cEFKCX1N"
+    },
+    {
+      "enrollmentNumber": "2022BTCS023",
+      "fullName": "Jay Jain",
+      "email": "2022BTCS023@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "nasGresc"
+    },
+    {
+      "enrollmentNumber": "2022BTCS024",
+      "fullName": "Kalash Kumar Tiwari",
+      "email": "2022BTCS024@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "pkNsp9Dg"
+    },
+    {
+      "enrollmentNumber": "2022BTCS025",
+      "fullName": "Kartik Raghuvanshi",
+      "email": "2022BTCS025@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "nIIdsFBC"
+    },
+    {
+      "enrollmentNumber": "2022BTCS026",
+      "fullName": "Kartikay Sharma",
+      "email": "2022BTCS026@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "YPTLemxz"
+    },
+    {
+      "enrollmentNumber": "2022BTCS027",
+      "fullName": "Khushi Choudhary",
+      "email": "2022BTCS027@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "7vA0LkMY"
+    },
+    {
+      "enrollmentNumber": "2022BTCS028",
+      "fullName": "Kunal Sharma",
+      "email": "2022BTCS028@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "y7PSUgd2"
+    },
+    {
+      "enrollmentNumber": "2022BTCS029",
+      "fullName": "Kushagra Rathore",
+      "email": "2022BTCS029@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "1445pCcj"
+    },
+    {
+      "enrollmentNumber": "2022BTCS030",
+      "fullName": "Meet Kapadia",
+      "email": "2022BTCS030@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "gVVA96Bm"
+    },
+    {
+      "enrollmentNumber": "2022BTCS031",
+      "fullName": "Mohammad Arham Khan",
+      "email": "2022BTCS031@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Q26rPJxg"
+    },
+    {
+      "enrollmentNumber": "2022BTCS032",
+      "fullName": "Mohd Hamza Khokar",
+      "email": "2022BTCS032@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "rzfNRwfe"
+    },
+    {
+      "enrollmentNumber": "2022BTCS033",
+      "fullName": "Nagesh Gupta",
+      "email": "2022BTCS033@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "yFKO18lS"
+    },
+    {
+      "enrollmentNumber": "2022BTCS034",
+      "fullName": "Neha Sahu",
+      "email": "2022BTCS034@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "bk5RWB4A"
+    },
+    {
+      "enrollmentNumber": "2022BTCS035",
+      "fullName": "Oshmi Nahar",
+      "email": "2022BTCS035@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "uWj2uYYV"
+    },
+    {
+      "enrollmentNumber": "2022BTCS036",
+      "fullName": "Parshv Kothari",
+      "email": "2022BTCS036@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "f7aOuy4A"
+    },
+    {
+      "enrollmentNumber": "2022BTCS037",
+      "fullName": "Pratik Vekariya",
+      "email": "2022BTCS037@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "AMRsnjk5"
+    },
+    {
+      "enrollmentNumber": "2022BTCS038",
+      "fullName": "Raghav Narendra Maheshwari",
+      "email": "2022BTCS038@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "cDHYS9UA"
+    },
+    {
+      "enrollmentNumber": "2022BTCS041",
+      "fullName": "Riddhi Bhawsar",
+      "email": "2022BTCS041@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "RfqzxcwV"
+    },
+    {
+      "enrollmentNumber": "2022BTCS042",
+      "fullName": "Rikin Ranka",
+      "email": "2022BTCS042@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "ZbhjnrRc"
+    },
+    {
+      "enrollmentNumber": "2022BTCS043",
+      "fullName": "Rohan Pandey",
+      "email": "2022BTCS043@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "0c7EZxX4"
+    },
+    {
+      "enrollmentNumber": "2022BTCS044",
+      "fullName": "Rohit Manna",
+      "email": "2022BTCS044@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "9XipjPNE"
+    },
+    {
+      "enrollmentNumber": "2022BTCS045",
+      "fullName": "Sakshi Mishra",
+      "email": "2022BTCS045@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Ixa1zzcU"
+    },
+    {
+      "enrollmentNumber": "2022BTCS046",
+      "fullName": "Sarthak Agrawal",
+      "email": "2022BTCS046@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "6vAKybUF"
+    },
+    {
+      "enrollmentNumber": "2022BTCS047",
+      "fullName": "Savi Sethi",
+      "email": "2022BTCS047@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Tbzv6nsY"
+    },
+    {
+      "enrollmentNumber": "2022BTCS048",
+      "fullName": "Shinjini Sarkar",
+      "email": "2022BTCS048@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "3jaezvap"
+    },
+    {
+      "enrollmentNumber": "2022BTCS049",
+      "fullName": "Shivalika Singh",
+      "email": "2022BTCS049@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "tv2tBseB"
+    },
+    {
+      "enrollmentNumber": "2022BTCS050",
+      "fullName": "Ms Shriya Soni",
+      "email": "2022BTCS050@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "z92bpVbm"
+    },
+    {
+      "enrollmentNumber": "2022BTCS051",
+      "fullName": "Siddharth Vinod Kumar",
+      "email": "2022BTCS051@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "plKfTCdO"
+    },
+    {
+      "enrollmentNumber": "2022BTCS052",
+      "fullName": "Somya Jaiswal",
+      "email": "2022BTCS052@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "qp4sR2nI"
+    },
+    {
+      "enrollmentNumber": "2022BTCS053",
+      "fullName": "Somya Shukla",
+      "email": "2022BTCS053@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "7UzTbbBw"
+    },
+    {
+      "enrollmentNumber": "2022BTCS054",
+      "fullName": "Swapndeep Singh Tomar",
+      "email": "2022BTCS054@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "9nCzcoNS"
+    },
+    {
+      "enrollmentNumber": "2022BTCS056",
+      "fullName": "Tanushka Upadhyay",
+      "email": "2022BTCS056@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "kf1Uo82F"
+    },
+    {
+      "enrollmentNumber": "2022BTCS057",
+      "fullName": "Singh Utkarsh Umesh",
+      "email": "2022BTCS057@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "CII6GB74"
+    },
+    {
+      "enrollmentNumber": "2022BTCS058",
+      "fullName": "Vaidik Dubey",
+      "email": "2022BTCS058@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "78GUVksQ"
+    },
+    {
+      "enrollmentNumber": "2022BTCS060",
+      "fullName": "Vedansh Yadav",
+      "email": "2022BTCS060@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Sr2AmI2a"
+    },
+    {
+      "enrollmentNumber": "2022BTCS061",
+      "fullName": "Vinayak Sharma",
+      "email": "2022BTCS061@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "DUQzCslZ"
+    },
+    {
+      "enrollmentNumber": "2023BTCSC01",
+      "fullName": "Prakhar Singh",
+      "email": "2023BTCSC01@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "JmaZKMvS"
+    },
+    {
+      "enrollmentNumber": "2023BTCSC02",
+      "fullName": "Pratyaksha Joshi",
+      "email": "2023BTCSC02@student.suas.ac.in",
+      "semester": "7",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "TK1FeYEf"
+    },
+    {
+      "enrollmentNumber": "2022BTCS022",
+      "fullName": "Ishit Sharma",
+      "email": "2022BTCS022@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "fZgSTuQJ"
+    },
+    {
+      "enrollmentNumber": "2022BTCS040",
+      "fullName": "Rajat Pawar",
+      "email": "2022BTCS040@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Xl3RECCM"
+    },
+    {
+      "enrollmentNumber": "2023BTCS001",
+      "fullName": "Aaryaa Athavale",
+      "email": "2023BTCS001@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "u8zcRbON"
+    },
+    {
+      "enrollmentNumber": "2023BTCS002",
+      "fullName": "Abhimanyu Tiwari",
+      "email": "2023BTCS002@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "lC5cklS9"
+    },
+    {
+      "enrollmentNumber": "2023BTCS003",
+      "fullName": "Aditya Vyas",
+      "email": "2023BTCS003@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "4m0o2JG6"
+    },
+    {
+      "enrollmentNumber": "2023BTCS004",
+      "fullName": "Anirudh Saboo",
+      "email": "2023BTCS004@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "7XJ25iYx"
+    },
+    {
+      "enrollmentNumber": "2023BTCS006",
+      "fullName": "Anshika Pandey",
+      "email": "2023BTCS006@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "IElcES5E"
+    },
+    {
+      "enrollmentNumber": "2023BTCS007",
+      "fullName": "Anshul Kumar Maravi",
+      "email": "2023BTCS007@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "objjCRd2"
+    },
+    {
+      "enrollmentNumber": "2023BTCS008",
+      "fullName": "Arpana Bhayal",
+      "email": "2023BTCS008@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "SFcnQ8Qa"
+    },
+    {
+      "enrollmentNumber": "2023BTCS009",
+      "fullName": "Arya Kothari",
+      "email": "2023BTCS009@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Vvv3t2PL"
+    },
+    {
+      "enrollmentNumber": "2023BTCS010",
+      "fullName": "Ashwin Singh",
+      "email": "2023BTCS010@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "i87ZnTk3"
+    },
+    {
+      "enrollmentNumber": "2023BTCS011",
+      "fullName": "Daksh Joshi",
+      "email": "2023BTCS011@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "VWE0erLn"
+    },
+    {
+      "enrollmentNumber": "2023BTCS012",
+      "fullName": "Darshil Khandelwal",
+      "email": "2023BTCS012@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "P2J3gZkt"
+    },
+    {
+      "enrollmentNumber": "2023BTCS013",
+      "fullName": "Deepshikha Vajpayee",
+      "email": "2023BTCS013@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "FAZIaJNy"
+    },
+    {
+      "enrollmentNumber": "2023BTCS015",
+      "fullName": "Dhwani Jain",
+      "email": "2023BTCS015@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "hLWIjv0U"
+    },
+    {
+      "enrollmentNumber": "2023BTCS016",
+      "fullName": "Divyansh Baghela",
+      "email": "2023BTCS016@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "pvVM5v2Z"
+    },
+    {
+      "enrollmentNumber": "2023BTCS017",
+      "fullName": "Geet Chaudhary",
+      "email": "2023BTCS017@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "aqTfdl0R"
+    },
+    {
+      "enrollmentNumber": "2023BTCS018",
+      "fullName": "Ghratachi Rathore",
+      "email": "2023BTCS018@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "JbIRqnqt"
+    },
+    {
+      "enrollmentNumber": "2023BTCS019",
+      "fullName": "Harshwardhan Trivedi",
+      "email": "2023BTCS019@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "EJldrHSZ"
+    },
+    {
+      "enrollmentNumber": "2023BTCS020",
+      "fullName": "Isha Singh Bhadouria",
+      "email": "2023BTCS020@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "4c2SRywF"
+    },
+    {
+      "enrollmentNumber": "2023BTCS021",
+      "fullName": "Ishan Thakur",
+      "email": "2023BTCS021@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "BEO1EiNO"
+    },
+    {
+      "enrollmentNumber": "2023BTCS022",
+      "fullName": "Jagrat Bharati",
+      "email": "2023BTCS022@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "y0TQqJIf"
+    },
+    {
+      "enrollmentNumber": "2023BTCS023",
+      "fullName": "Jayvrat Singh Rathore",
+      "email": "2023BTCS023@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "S5Fh1NXT"
+    },
+    {
+      "enrollmentNumber": "2023BTCS024",
+      "fullName": "Karan Prithiani",
+      "email": "2023BTCS024@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "kdl3jg8I"
+    },
+    {
+      "enrollmentNumber": "2023BTCS025",
+      "fullName": "Kavya Joshi",
+      "email": "2023BTCS025@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "qphlvAFh"
+    },
+    {
+      "enrollmentNumber": "2023BTCS026",
+      "fullName": "Khushraj Choudhary",
+      "email": "2023BTCS026@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "OWyI5qAf"
+    },
+    {
+      "enrollmentNumber": "2023BTCS027",
+      "fullName": "Kirt Dev Singh",
+      "email": "2023BTCS027@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "f5QsWsrk"
+    },
+    {
+      "enrollmentNumber": "2023BTCS028",
+      "fullName": "Komal Kanwar",
+      "email": "2023BTCS028@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "VIbwZQqV"
+    },
+    {
+      "enrollmentNumber": "2023BTCS029",
+      "fullName": "Krishna Yadav",
+      "email": "2023BTCS029@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "IsXUjsCV"
+    },
+    {
+      "enrollmentNumber": "2023BTCS030",
+      "fullName": "Krishnakant Yadav",
+      "email": "2023BTCS030@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "AeRO01CP"
+    },
+    {
+      "enrollmentNumber": "2023BTCS031",
+      "fullName": "Lakshya Agrawal",
+      "email": "2023BTCS031@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "97o9asRw"
+    },
+    {
+      "enrollmentNumber": "2023BTCS032",
+      "fullName": "Lakshya Belani",
+      "email": "2023BTCS032@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "HIUH5xYn"
+    },
+    {
+      "enrollmentNumber": "2023BTCS033",
+      "fullName": "Nakul Parwal",
+      "email": "2023BTCS033@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "vpPo7KWd"
+    },
+    {
+      "enrollmentNumber": "2023BTCS034",
+      "fullName": "Narendra Natha Mishra",
+      "email": "2023BTCS034@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "BNsDfi9M"
+    },
+    {
+      "enrollmentNumber": "2023BTCS035",
+      "fullName": "Pammi Nandanwar",
+      "email": "2023BTCS035@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "2z0xYou3"
+    },
+    {
+      "enrollmentNumber": "2023BTCS036",
+      "fullName": "Parth Lahoti",
+      "email": "2023BTCS036@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "iextvmhk"
+    },
+    {
+      "enrollmentNumber": "2023BTCS037",
+      "fullName": "Pranay Mishra",
+      "email": "2023BTCS037@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "XvOVM1mt"
+    },
+    {
+      "enrollmentNumber": "2023BTCS039",
+      "fullName": "Rajveer Singh Jawara",
+      "email": "2023BTCS039@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "1nOOgKai"
+    },
+    {
+      "enrollmentNumber": "2023BTCS040",
+      "fullName": "Raman Mishra",
+      "email": "2023BTCS040@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "f3q4pFp7"
+    },
+    {
+      "enrollmentNumber": "2023BTCS041",
+      "fullName": "Rammi Nandanwar",
+      "email": "2023BTCS041@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "px2LiJuU"
+    },
+    {
+      "enrollmentNumber": "2023BTCS042",
+      "fullName": "Raunak Singh",
+      "email": "2023BTCS042@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "JaAajrAL"
+    },
+    {
+      "enrollmentNumber": "2023BTCS043",
+      "fullName": "Ritika Choudhary",
+      "email": "2023BTCS043@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "GQjs4sK3"
+    },
+    {
+      "enrollmentNumber": "2023BTCS044",
+      "fullName": "Rivam Nahar",
+      "email": "2023BTCS044@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "u7EEuAI2"
+    },
+    {
+      "enrollmentNumber": "2023BTCS045",
+      "fullName": "Riya Sisodiya",
+      "email": "2023BTCS045@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "jwoRR8cP"
+    },
+    {
+      "enrollmentNumber": "2023BTCS046",
+      "fullName": "Ronak Patel",
+      "email": "2023BTCS046@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "qIrITq7H"
+    },
+    {
+      "enrollmentNumber": "2023BTCS047",
+      "fullName": "Ronit Jain",
+      "email": "2023BTCS047@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Dgqy7dGf"
+    },
+    {
+      "enrollmentNumber": "2023BTCS048",
+      "fullName": "Sahil Shillare",
+      "email": "2023BTCS048@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "BljRCEOM"
+    },
+    {
+      "enrollmentNumber": "2023BTCS050",
+      "fullName": "Shubhi Jain",
+      "email": "2023BTCS050@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "DkFJBrd8"
+    },
+    {
+      "enrollmentNumber": "2023BTCS051",
+      "fullName": "Soham Chatterjee",
+      "email": "2023BTCS051@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "CP8mSJdj"
+    },
+    {
+      "enrollmentNumber": "2023BTCS052",
+      "fullName": "Somya Soni",
+      "email": "2023BTCS052@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "yV31qgZh"
+    },
+    {
+      "enrollmentNumber": "2023BTCS053",
+      "fullName": "Sudeep Tripathi",
+      "email": "2023BTCS053@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "0M8n0efp"
+    },
+    {
+      "enrollmentNumber": "2023BTCS054",
+      "fullName": "Suhani Changan",
+      "email": "2023BTCS054@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "aHCpPMur"
+    },
+    {
+      "enrollmentNumber": "2023BTCS055",
+      "fullName": "Ujjwal Kumar Mandloi",
+      "email": "2023BTCS055@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "z0P9zPm1"
+    },
+    {
+      "enrollmentNumber": "2023BTCS056",
+      "fullName": "Vaishnavi Rathore",
+      "email": "2023BTCS056@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "BHbmvR99"
+    },
+    {
+      "enrollmentNumber": "2023BTCS057",
+      "fullName": "Vijay Chouhan",
+      "email": "2023BTCS057@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "iZYd2P4l"
+    },
+    {
+      "enrollmentNumber": "2023BTCS058",
+      "fullName": "Vishantan Singh Parihar",
+      "email": "2023BTCS058@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "EbwBatfk"
+    },
+    {
+      "enrollmentNumber": "2023BTCS059",
+      "fullName": "Vishesh Bagherwal",
+      "email": "2023BTCS059@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "1rhjSbGz"
+    },
+    {
+      "enrollmentNumber": "2023BTCS061",
+      "fullName": "Yashika Hidau",
+      "email": "2023BTCS061@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "VOjI2aFh"
+    },
+    {
+      "enrollmentNumber": "2023BTCS062",
+      "fullName": "Yashwant Guttulla",
+      "email": "2023BTCS062@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "mHRFSYCI"
+    },
+    {
+      "enrollmentNumber": "2023BTCS063",
+      "fullName": "Yatharth Pareta",
+      "email": "2023BTCS063@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "qazoknIv"
+    },
+    {
+      "enrollmentNumber": "2023BTCS064",
+      "fullName": "Anant Jain",
+      "email": "2023BTCS064@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "pyGPoNJG"
+    },
+    {
+      "enrollmentNumber": "2023MBTC001",
+      "fullName": "Addvit Mishra",
+      "email": "2023MBTC001@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "elQu74bx"
+    },
+    {
+      "enrollmentNumber": "2023MBTC003",
+      "fullName": "Aryan Singh Bhadouriya",
+      "email": "2023MBTC003@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "efoMlkLe"
+    },
+    {
+      "enrollmentNumber": "2023MBTC004",
+      "fullName": "Bhoomi Sharma",
+      "email": "2023MBTC004@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "zVnlPfSi"
+    },
+    {
+      "enrollmentNumber": "2023MBTC005",
+      "fullName": "Ishita Bhadoriya",
+      "email": "2023MBTC005@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "I868TidR"
+    },
+    {
+      "enrollmentNumber": "2023MBTC006",
+      "fullName": "Prisha Jain",
+      "email": "2023MBTC006@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "NkkYdO2p"
+    },
+    {
+      "enrollmentNumber": "2023MBTC007",
+      "fullName": "Sarthak Singh",
+      "email": "2023MBTC007@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "8LA6VGKI"
+    },
+    {
+      "enrollmentNumber": "2023MBTC008",
+      "fullName": "Srijan Mishra",
+      "email": "2023MBTC008@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Xuf3Af04"
+    },
+    {
+      "enrollmentNumber": "2023MBTC009",
+      "fullName": "Vidhi Tiwari",
+      "email": "2023MBTC009@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "6GgJnRa0"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS121",
+      "fullName": "Anisha dawani",
+      "email": "PU02324EUGBTCS121@student.suas.ac.in",
+      "semester": "5",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "k71FSE2b"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS001",
+      "fullName": "Aakash Rathore",
+      "email": "PU02324EUGBTCS001@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "agah7i0J"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS003",
+      "fullName": "Aanya Mishra",
+      "email": "PU02324EUGBTCS003@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "ZHCOE8aE"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS004",
+      "fullName": "Aarna Vyas",
+      "email": "PU02324EUGBTCS004@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "QkBMRkD6"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS005",
+      "fullName": "Aarushi Sharma",
+      "email": "PU02324EUGBTCS005@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "EaiFuqsA"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS006",
+      "fullName": "Aaryan Malodiya",
+      "email": "PU02324EUGBTCS006@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "U93UgJLR"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS007",
+      "fullName": "Abhinav Rai",
+      "email": "PU02324EUGBTCS007@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "8Iprtg8S"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS008",
+      "fullName": "Abhisar Sharma",
+      "email": "PU02324EUGBTCS008@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "glc6eWcx"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS009",
+      "fullName": "Adeesh Jain",
+      "email": "PU02324EUGBTCS009@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "ezpGXNDU"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS010",
+      "fullName": "Adish Chhabra",
+      "email": "PU02324EUGBTCS010@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "VQI45DJr"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS011",
+      "fullName": "Aditi Nigam",
+      "email": "PU02324EUGBTCS011@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "DRNh2aVH"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS012",
+      "fullName": "Akriti Jain",
+      "email": "PU02324EUGBTCS012@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "i8y1CiD9"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS013",
+      "fullName": "Akshat Raj Singh Rathore",
+      "email": "PU02324EUGBTCS013@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "B2ZSuPEq"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS014",
+      "fullName": "Anadi Vaidya",
+      "email": "PU02324EUGBTCS014@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "BL65Ri3J"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS015",
+      "fullName": "Anikesh Sharma",
+      "email": "PU02324EUGBTCS015@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "4cohkQzr"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS016",
+      "fullName": "Anjali Thakur",
+      "email": "PU02324EUGBTCS016@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "4MJi2We5"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS017",
+      "fullName": "Ansh Chadokar",
+      "email": "PU02324EUGBTCS017@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "a9BVaSe7"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS018",
+      "fullName": "Anushka Sharma",
+      "email": "PU02324EUGBTCS018@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "73C4OyOy"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS019",
+      "fullName": "Aarav Wadhwani",
+      "email": "PU02324EUGBTCS019@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "WmedM75a"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS020",
+      "fullName": "Aryaman Singh Chouhan",
+      "email": "PU02324EUGBTCS020@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "2sZmwEao"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS021",
+      "fullName": "Aryansh Bajpai",
+      "email": "PU02324EUGBTCS021@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "O9ZtK4Ia"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS022",
+      "fullName": "Asmi Jain",
+      "email": "PU02324EUGBTCS022@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "ydb18fbG"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS023",
+      "fullName": "Atharva Bhandari",
+      "email": "PU02324EUGBTCS023@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "fA3mVFUp"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS024",
+      "fullName": "Atharva Vyas",
+      "email": "PU02324EUGBTCS024@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "VSMpaADu"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS025",
+      "fullName": "Aval Raghuwanshi",
+      "email": "PU02324EUGBTCS025@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "NbwfsEZS"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS026",
+      "fullName": "Avani Jain",
+      "email": "PU02324EUGBTCS026@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "6MX5Madq"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS027",
+      "fullName": "Ayush Singh Choudhary",
+      "email": "PU02324EUGBTCS027@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "24RbGz8K"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS028",
+      "fullName": "Bhagyashri Sharma",
+      "email": "PU02324EUGBTCS028@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "xrtqlCtr"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS029",
+      "fullName": "Bilal Ahmad Khan",
+      "email": "PU02324EUGBTCS029@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "PHlJPirg"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS030",
+      "fullName": "Charvi Bhawsar",
+      "email": "PU02324EUGBTCS030@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "OeDl4MEx"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS032",
+      "fullName": "Chirayu Soni",
+      "email": "PU02324EUGBTCS032@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "jS3z4Y1s"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS033",
+      "fullName": "Deshna Jain",
+      "email": "PU02324EUGBTCS033@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "OXSsCZVR"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS034",
+      "fullName": "Deshna Jain",
+      "email": "PU02324EUGBTCS034@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Pvuw2B8z"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS035",
+      "fullName": "Dheemahi Sharma",
+      "email": "PU02324EUGBTCS035@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "PEIr6fL9"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS036",
+      "fullName": "Astha Padmawar",
+      "email": "PU02324EUGBTCS036@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "twixvG5I"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS037",
+      "fullName": "Aryan Choudhary",
+      "email": "PU02324EUGBTCS037@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "azD84Qp5"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS038",
+      "fullName": "Dhruv Sharma",
+      "email": "PU02324EUGBTCS038@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "GI8PJ6fE"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS039",
+      "fullName": "Dhruvi Namdeo",
+      "email": "PU02324EUGBTCS039@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "EppJXbcX"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS040",
+      "fullName": "Divyanshu Dave",
+      "email": "PU02324EUGBTCS040@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Fb5bBOQM"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS041",
+      "fullName": "Divyanshi Pal",
+      "email": "PU02324EUGBTCS041@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "1vLRfJEW"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS042",
+      "fullName": "Gargi Mittal",
+      "email": "PU02324EUGBTCS042@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "2YRFayf9"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS043",
+      "fullName": "Garima Tilwankar",
+      "email": "PU02324EUGBTCS043@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "xGTBZY3c"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS044",
+      "fullName": "Garv Sharma",
+      "email": "PU02324EUGBTCS044@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "jN39Dt1m"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS045",
+      "fullName": "Garvit Gupta",
+      "email": "PU02324EUGBTCS045@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "IYIcoN2q"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS046",
+      "fullName": "Goutam Mandloi",
+      "email": "PU02324EUGBTCS046@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "oPw7VnKB"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS047",
+      "fullName": "Haider Jagirdar",
+      "email": "PU02324EUGBTCS047@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "3rt00NKL"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS048",
+      "fullName": "Hardik Vyas",
+      "email": "PU02324EUGBTCS048@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "NW12oL6V"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS049",
+      "fullName": "Harsh Kale",
+      "email": "PU02324EUGBTCS049@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "g8mBcUEr"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS050",
+      "fullName": "Hasnain Siddiqui",
+      "email": "PU02324EUGBTCS050@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "suGkxP1n"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS051",
+      "fullName": "Herbal Sahu",
+      "email": "PU02324EUGBTCS051@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "jhJs27y8"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS052",
+      "fullName": "Hitanshi Garg",
+      "email": "PU02324EUGBTCS052@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "z7sBHMSf"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS053",
+      "fullName": "Ishita Sharma",
+      "email": "PU02324EUGBTCS053@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "n2cQzr0S"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS054",
+      "fullName": "Janvi Gupta",
+      "email": "PU02324EUGBTCS054@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "4Wk5z0wC"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS056",
+      "fullName": "Kabir Umer Khan",
+      "email": "PU02324EUGBTCS056@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "0eI6B3fk"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS058",
+      "fullName": "Kartik Harichandra Kashyap",
+      "email": "PU02324EUGBTCS058@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "bBPltQJc"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS059",
+      "fullName": "Neeraj Goyal",
+      "email": "PU02324EUGBTCS059@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "SdNcjla1"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS060",
+      "fullName": "Khanak Goud",
+      "email": "PU02324EUGBTCS060@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "1WNfjDTl"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS061",
+      "fullName": "Kunal Van Goswami",
+      "email": "PU02324EUGBTCS061@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "nZwk0zaY"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS062",
+      "fullName": "Lavya Bansal",
+      "email": "PU02324EUGBTCS062@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "02MgIwP4"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS063",
+      "fullName": "Maitri Patangiya",
+      "email": "PU02324EUGBTCS063@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "zSsPrG1v"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS065",
+      "fullName": "Medhanash Dharmesh Rathod",
+      "email": "PU02324EUGBTCS065@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "5P1GU5AF"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS066",
+      "fullName": "Mehul Meena",
+      "email": "PU02324EUGBTCS066@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "U7hWo82e"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS067",
+      "fullName": "Milin Panchal",
+      "email": "PU02324EUGBTCS067@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "e6NKo58a"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS068",
+      "fullName": "Naman Raghuwanshi",
+      "email": "PU02324EUGBTCS068@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "rcy5Ud2h"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS069",
+      "fullName": "Naman Singh Chouhan",
+      "email": "PU02324EUGBTCS069@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Uzx1s212"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS070",
+      "fullName": "Nilesh Patidar",
+      "email": "PU02324EUGBTCS070@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "gmEhJf44"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS071",
+      "fullName": "Nishita Raghavendra",
+      "email": "PU02324EUGBTCS071@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "86PWcrQb"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS072",
+      "fullName": "Nitin Raghuwanshi",
+      "email": "PU02324EUGBTCS072@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "skiiRAkG"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS073",
+      "fullName": "Ojasav Thakur",
+      "email": "PU02324EUGBTCS073@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "W3W99KRU"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS074",
+      "fullName": "Om Bende",
+      "email": "PU02324EUGBTCS074@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "BOnxPGy9"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS076",
+      "fullName": "Parth Sharma",
+      "email": "PU02324EUGBTCS076@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "e7rLVjNf"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS077",
+      "fullName": "Pavitra Chouhan",
+      "email": "PU02324EUGBTCS077@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "G40igr8G"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS078",
+      "fullName": "Pranav Sethia",
+      "email": "PU02324EUGBTCS078@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "ofH37TDI"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS079",
+      "fullName": "Prashasti Verma",
+      "email": "PU02324EUGBTCS079@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "hddlgLts"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS080",
+      "fullName": "Preet Miradwal",
+      "email": "PU02324EUGBTCS080@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "gDGPKehh"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS081",
+      "fullName": "Priyal Agrawal",
+      "email": "PU02324EUGBTCS081@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "KfHVaIc4"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS082",
+      "fullName": "Rachit Diwan",
+      "email": "PU02324EUGBTCS082@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "9yholu0H"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS083",
+      "fullName": "Rishabh Patel",
+      "email": "PU02324EUGBTCS083@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "y94SELrx"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS084",
+      "fullName": "Riyansh Patil",
+      "email": "PU02324EUGBTCS084@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "EWdJLjyB"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS085",
+      "fullName": "Rohit Singh",
+      "email": "PU02324EUGBTCS085@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "1v5vdBuJ"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS086",
+      "fullName": "Roshni Yadav",
+      "email": "PU02324EUGBTCS086@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "fkxXGq7n"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS087",
+      "fullName": "Ruchika Nandi",
+      "email": "PU02324EUGBTCS087@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "7eQNkcY2"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS088",
+      "fullName": "Samrat Singh Thakur",
+      "email": "PU02324EUGBTCS088@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "TZxOcP3c"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS089",
+      "fullName": "Sandarbh Bhasin",
+      "email": "PU02324EUGBTCS089@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "3gIwb2Rv"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS090",
+      "fullName": "Sanjana Yadav",
+      "email": "PU02324EUGBTCS090@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "L381Na1I"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS091",
+      "fullName": "Shashwat Sharma",
+      "email": "PU02324EUGBTCS091@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "85SGUV2t"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS092",
+      "fullName": "Shashwat Yadav",
+      "email": "PU02324EUGBTCS092@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "N0RBh37G"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS093",
+      "fullName": "Shivank Raghuwanshi",
+      "email": "PU02324EUGBTCS093@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "VOSkutzE"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS094",
+      "fullName": "Shubham Kumar Ojha",
+      "email": "PU02324EUGBTCS094@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "aSjCDSO3"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS095",
+      "fullName": "Shubham Shukla",
+      "email": "PU02324EUGBTCS095@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "ae2p3NVt"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS096",
+      "fullName": "Soumya Ojha",
+      "email": "PU02324EUGBTCS096@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "iAhlKm8S"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS097",
+      "fullName": "Suyash Sharma",
+      "email": "PU02324EUGBTCS097@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "NyatJOlp"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS099",
+      "fullName": "Suyash Vasal",
+      "email": "PU02324EUGBTCS099@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "dsKGg5na"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS100",
+      "fullName": "Taksha Patidar",
+      "email": "PU02324EUGBTCS100@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "ybmR0Tzt"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS101",
+      "fullName": "Tanisha Patidar",
+      "email": "PU02324EUGBTCS101@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "dgZbWujq"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS102",
+      "fullName": "Tanisha Prajapat",
+      "email": "PU02324EUGBTCS102@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "7WG9enq9"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS103",
+      "fullName": "Tanishka Gupta",
+      "email": "PU02324EUGBTCS103@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Me02KYLk"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS104",
+      "fullName": "Taskeen Warsi",
+      "email": "PU02324EUGBTCS104@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "gIiAG3UG"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS105",
+      "fullName": "Tanishka Sablok",
+      "email": "PU02324EUGBTCS105@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "5h33drVZ"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS107",
+      "fullName": "Twinkle Ramchandani",
+      "email": "PU02324EUGBTCS107@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Wcs9As8x"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS108",
+      "fullName": "Utkarsh Gupta",
+      "email": "PU02324EUGBTCS108@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "WC4XcAVh"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS109",
+      "fullName": "Varun Adlakha",
+      "email": "PU02324EUGBTCS109@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "d5uFTTyu"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS110",
+      "fullName": "Ved Paliwal",
+      "email": "PU02324EUGBTCS110@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "w75gtahE"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS111",
+      "fullName": "Vinay Pratap Singh",
+      "email": "PU02324EUGBTCS111@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "7cupoe3Z"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS112",
+      "fullName": "Yash Upadhyay",
+      "email": "PU02324EUGBTCS112@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "cTNEPQWG"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS113",
+      "fullName": "Yashika Makhija",
+      "email": "PU02324EUGBTCS113@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Vi9uIp3B"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS114",
+      "fullName": "Yuvanshi Jain",
+      "email": "PU02324EUGBTCS114@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "ZpMEvmDe"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS115",
+      "fullName": "Yuvika Purohit",
+      "email": "PU02324EUGBTCS115@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "fdYTqmD5"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS116",
+      "fullName": "Pihu Saraf",
+      "email": "PU02324EUGBTCS116@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "pMPAOVuh"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS117",
+      "fullName": "Harshit Vijay",
+      "email": "PU02324EUGBTCS117@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "8TzfiuRB"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS118",
+      "fullName": "Abhinav Agrawal",
+      "email": "PU02324EUGBTCS118@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "JePbBdla"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS119",
+      "fullName": "Gurmukh Bhambhani",
+      "email": "PU02324EUGBTCS119@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "NZZDKa4z"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS120",
+      "fullName": "Angel Sharma",
+      "email": "PU02324EUGBTCS120@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "YR81ilT5"
+    },
+    {
+      "enrollmentNumber": "PU02324EUGBTCS122",
+      "fullName": "Anshul Mishra",
+      "email": "PU02324EUGBTCS122@student.suas.ac.in",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "8DrWOYAV"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS104",
+      "fullName": "Samiksha saxena",
+      "email": "saxenasamiksha03@gmail.com",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "nS4Nf0qL"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS231",
+      "fullName": "Bhoomi Mishra",
+      "email": "trulybhoomimishra@gmail.com",
+      "semester": "3",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "s6n7n9Tc"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS002",
+      "fullName": "Sanjeevni mahajan",
+      "email": "PU02325EUGBTCS002@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "uT8fU9D6"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS003",
+      "fullName": "Veeral Jain",
+      "email": "PU02325EUGBTCS003@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "S2ek2sqP"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS005",
+      "fullName": "Purvi agrawal",
+      "email": "PU02325EUGBTCS005@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "L45IrNJu"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS007",
+      "fullName": "Saarakshi Tiwari",
+      "email": "PU02325EUGBTCS007@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "z7artSpG"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS008",
+      "fullName": "Kushal Palya",
+      "email": "PU02325EUGBTCS008@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "h0XIe6HY"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS017",
+      "fullName": "Pritha Singh",
+      "email": "PU02325EUGBTCS017@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "I8LQ0kUe"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS019",
+      "fullName": "Keshavi vyas",
+      "email": "PU02325EUGBTCS019@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Bn4syGKb"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS023",
+      "fullName": "Prathmesh rai",
+      "email": "PU02325EUGBTCS023@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "IGMT36YB"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS024",
+      "fullName": "Nancy Soni",
+      "email": "PU02325EUGBTCS024@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "6GRcwyWp"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS028",
+      "fullName": "Avineet chourasia",
+      "email": "PU02325EUGBTCS028@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "94yvx3fZ"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS031",
+      "fullName": "Viraj Bakshi",
+      "email": "PU02325EUGBTCS031@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "aPlBOka3"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS032",
+      "fullName": "Pranjal Gehlot",
+      "email": "PU02325EUGBTCS032@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "rZpFM9cS"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS037",
+      "fullName": "Kidambi Rajan Surya",
+      "email": "PU02325EUGBTCS037@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "DYJCqaKl"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS038",
+      "fullName": "Atharva shivrastav",
+      "email": "PU02325EUGBTCS038@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "VIhK2kgm"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS042",
+      "fullName": "Nikhil mandloi",
+      "email": "PU02325EUGBTCS042@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "ORlGebeQ"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS043",
+      "fullName": "Manish Patel",
+      "email": "PU02325EUGBTCS043@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "GRTUlch5"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS047",
+      "fullName": "vidit gupta",
+      "email": "PU02325EUGBTCS047@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "7J8GoIHy"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS048",
+      "fullName": "Aditya Bajpai",
+      "email": "PU02325EUGBTCS048@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "OZQcKQH7"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS049",
+      "fullName": "Krishiv Jha",
+      "email": "PU02325EUGBTCS049@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Xa47V5xX"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS052",
+      "fullName": "emon yadav",
+      "email": "PU02325EUGBTCS052@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "qe1INTGL"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS055",
+      "fullName": "Bhavishya Thakkar",
+      "email": "PU02325EUGBTCS055@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "bohHmKa1"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS056",
+      "fullName": "Mohd Faizan",
+      "email": "PU02325EUGBTCS056@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "BPd0Tqo2"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS058",
+      "fullName": "Akshat Pandey",
+      "email": "PU02325EUGBTCS058@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "eJ0ACw9h"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS062",
+      "fullName": "chandramouli singh",
+      "email": "PU02325EUGBTCS062@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "YO18XSRl"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS064",
+      "fullName": "Ayush mishra",
+      "email": "PU02325EUGBTCS064@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "EC4Hyb2c"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS065",
+      "fullName": "Naman Khatri",
+      "email": "PU02325EUGBTCS065@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "WgFhKtaL"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS069",
+      "fullName": "Yash Marathe",
+      "email": "PU02325EUGBTCS069@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Uj4S64X7"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS072",
+      "fullName": "Aradhya Jain",
+      "email": "PU02325EUGBTCS072@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "ecsSgVKC"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS076",
+      "fullName": "Aashish Kumar",
+      "email": "PU02325EUGBTCS076@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "sBbTYNoR"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS077",
+      "fullName": "Atiksh mishra",
+      "email": "PU02325EUGBTCS077@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "zQMbBqga"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS078",
+      "fullName": "Divyansh chouhan",
+      "email": "PU02325EUGBTCS078@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "TEFE2y5J"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS079",
+      "fullName": "Tanishka Thorat",
+      "email": "PU02325EUGBTCS079@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Vu8kwFSu"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS081",
+      "fullName": "Chetna Lokhande",
+      "email": "PU02325EUGBTCS081@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "JgY2IWvD"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS083",
+      "fullName": "Mustafa Aliasgar",
+      "email": "PU02325EUGBTCS083@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "j1dIvuHW"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS086",
+      "fullName": "Chayan Soni",
+      "email": "PU02325EUGBTCS086@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Uowfe7Jv"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS087",
+      "fullName": "Shreya Rai",
+      "email": "PU02325EUGBTCS087@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "nNYxAcTk"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS088",
+      "fullName": "Ishika Bhargava",
+      "email": "PU02325EUGBTCS088@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "1gsmIE3K"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS089",
+      "fullName": "Soumya Tiwari",
+      "email": "PU02325EUGBTCS089@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "TXZJlVF7"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS091",
+      "fullName": "Jisha Salariya",
+      "email": "PU02325EUGBTCS091@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "l5icwMnB"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS093",
+      "fullName": "pravardha gupta",
+      "email": "PU02325EUGBTCS093@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "picauJeT"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS097",
+      "fullName": "Niharika Sankhala",
+      "email": "PU02325EUGBTCS097@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "zy086f6r"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS099",
+      "fullName": "Syed Zainul",
+      "email": "PU02325EUGBTCS099@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "s2ablapA"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS102",
+      "fullName": "Nishita Chawla",
+      "email": "PU02325EUGBTCS102@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "e3Cq9i8k"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS106",
+      "fullName": "Abhishek Giri",
+      "email": "PU02325EUGBTCS106@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "DG0UHGuP"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS108",
+      "fullName": "Aryan Singh Moree",
+      "email": "PU02325EUGBTCS108@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "IqgEbNS1"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS113",
+      "fullName": "Devasya tripathi",
+      "email": "PU02325EUGBTCS113@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "qzpkCI3V"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS114",
+      "fullName": "Suhani  kotiwal",
+      "email": "PU02325EUGBTCS114@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "wMu93f6B"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS115",
+      "fullName": "Yatharth Chauhan",
+      "email": "PU02325EUGBTCS115@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "urq67pV0"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS116",
+      "fullName": "Garvisha Agrawal",
+      "email": "PU02325EUGBTCS116@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "M4EnOUGa"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS117",
+      "fullName": "Safal Sen",
+      "email": "PU02325EUGBTCS117@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "p3qkMdo3"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS118",
+      "fullName": "Sarthak Sen",
+      "email": "PU02325EUGBTCS118@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "El4WM0nw"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS119",
+      "fullName": "Anugrah tiwari",
+      "email": "PU02325EUGBTCS119@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "MFuk0Iev"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS121",
+      "fullName": "Tanisha Joshi",
+      "email": "PU02325EUGBTCS121@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "YrtAIjIC"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS122",
+      "fullName": "Sachin Porwal",
+      "email": "PU02325EUGBTCS122@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "gz91XK9B"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS125",
+      "fullName": "Kabir Choudhary",
+      "email": "PU02325EUGBTCS125@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "qDXrmfuf"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS129",
+      "fullName": "SANDHYA PAL",
+      "email": "PU02325EUGBTCS129@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "7YptrnkY"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS130",
+      "fullName": "Aditya Gehlot",
+      "email": "PU02325EUGBTCS130@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "XevGJlX0"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS134",
+      "fullName": "Yashika Patel",
+      "email": "PU02325EUGBTCS134@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "lJgqDOnf"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS135",
+      "fullName": "Manushri Bhardwaj",
+      "email": "PU02325EUGBTCS135@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Xjuvzohe"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS140",
+      "fullName": "Aditya Pratap Singh bundela",
+      "email": "PU02325EUGBTCS140@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "EsDWItCG"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS148",
+      "fullName": "Harshvardhan Rajput",
+      "email": "PU02325EUGBTCS148@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "QZdkxPAb"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS149",
+      "fullName": "Aaradhya Singh Sisodiya",
+      "email": "PU02325EUGBTCS149@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "fsQi5usK"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS150",
+      "fullName": "Sanant Sharma",
+      "email": "PU02325EUGBTCS150@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "1GBIcBTG"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS153",
+      "fullName": "Shagun Agrawal",
+      "email": "PU02325EUGBTCS153@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "PFxfqsqw"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS154",
+      "fullName": "Angel Ravi Agrawal",
+      "email": "PU02325EUGBTCS154@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "LSzfkzZr"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS155",
+      "fullName": "Hitesh sherwani",
+      "email": "PU02325EUGBTCS155@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "BcHxe31O"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS158",
+      "fullName": "Anay tare",
+      "email": "PU02325EUGBTCS158@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "DUVs8Wtn"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS160",
+      "fullName": "Archita Jar",
+      "email": "PU02325EUGBTCS160@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "608L17mo"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS161",
+      "fullName": "Chinmay Bhide",
+      "email": "PU02325EUGBTCS161@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "GqCfPLrx"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS162",
+      "fullName": "Manish Mali",
+      "email": "PU02325EUGBTCS162@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "bcvQi5CU"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS163",
+      "fullName": "Ramesh Kumar Mali",
+      "email": "PU02325EUGBTCS163@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "NVnufOPa"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS165",
+      "fullName": "Divyansh Gupta",
+      "email": "PU02325EUGBTCS165@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Wf5VsyEJ"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS166",
+      "fullName": "P Naga Gayatri Rao",
+      "email": "PU02325EUGBTCS166@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "k0MFbYsn"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS167",
+      "fullName": "Roshni Gurjar",
+      "email": "PU02325EUGBTCS167@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "0tJgGjMI"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS168",
+      "fullName": "Maharishi Bopche",
+      "email": "PU02325EUGBTCS168@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "xyMQfIXX"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS169",
+      "fullName": "Divyansh Gehlot",
+      "email": "PU02325EUGBTCS169@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "PTYwKOkQ"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS170",
+      "fullName": "Lokpriya Jain",
+      "email": "PU02325EUGBTCS170@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "mwebdOhl"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS171",
+      "fullName": "Dravya Rishi Nayak",
+      "email": "PU02325EUGBTCS171@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "84h6vWgZ"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS172",
+      "fullName": "Aarav Maheshwari",
+      "email": "PU02325EUGBTCS172@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "JxOtYW7u"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS173",
+      "fullName": "Aradhya Joshi",
+      "email": "PU02325EUGBTCS173@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "IXuYBdB1"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS175",
+      "fullName": "Sarthak Choudhary",
+      "email": "PU02325EUGBTCS175@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Mc5o29RN"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS176",
+      "fullName": "Aabhas Pal",
+      "email": "PU02325EUGBTCS176@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "hkrVV5r9"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS178",
+      "fullName": "Jagrati Kale",
+      "email": "PU02325EUGBTCS178@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "I0HJEanj"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS179",
+      "fullName": "Diksha Dubey",
+      "email": "PU02325EUGBTCS179@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "nAHqyaKQ"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS180",
+      "fullName": "Nishika Jain",
+      "email": "PU02325EUGBTCS180@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "P176nReK"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS181",
+      "fullName": "Nancy Dawani",
+      "email": "PU02325EUGBTCS181@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "86jtxsdl"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS182",
+      "fullName": "Anusha Idrees",
+      "email": "PU02325EUGBTCS182@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "iGkK4CTW"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS185",
+      "fullName": "Pavani Bhatti",
+      "email": "PU02325EUGBTCS185@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "wQhnFT01"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS186",
+      "fullName": "Shreya yadav",
+      "email": "PU02325EUGBTCS186@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "vDCMYmHY"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS187",
+      "fullName": "Shivam upadhaya",
+      "email": "PU02325EUGBTCS187@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "DsltmJxV"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS188",
+      "fullName": "Ishika Parmar",
+      "email": "PU02325EUGBTCS188@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "GTYcsA3F"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS189",
+      "fullName": "Tanay Surana",
+      "email": "PU02325EUGBTCS189@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Ik2WclA8"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS190",
+      "fullName": "Tanishka Kingrani",
+      "email": "PU02325EUGBTCS190@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "PkB66dLN"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS191",
+      "fullName": "Nimish dongre",
+      "email": "PU02325EUGBTCS191@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "tkacizil"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS192",
+      "fullName": "Rishi Dhakad",
+      "email": "PU02325EUGBTCS192@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "1ahjgZZs"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS193",
+      "fullName": "YUG KASAR",
+      "email": "PU02325EUGBTCS193@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "hlyzK01k"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS194",
+      "fullName": "Radhika bharuka",
+      "email": "PU02325EUGBTCS194@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "3gLivME9"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS195",
+      "fullName": "Abhinav Sheetal",
+      "email": "PU02325EUGBTCS195@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "mBQKp8cO"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS196",
+      "fullName": "Ali sahal khan",
+      "email": "PU02325EUGBTCS196@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "qE9Y6ykJ"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS197",
+      "fullName": "Sanskar Gupta",
+      "email": "PU02325EUGBTCS197@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "37Oiku5K"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS198",
+      "fullName": "Vanshika Tiwari",
+      "email": "PU02325EUGBTCS198@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "qnq4PiAF"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS199",
+      "fullName": "Veera Dosi",
+      "email": "PU02325EUGBTCS199@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "EffKnU5g"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS200",
+      "fullName": "Akshat Kushwah",
+      "email": "PU02325EUGBTCS200@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Ke3rayHC"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS201",
+      "fullName": "Amogh Srivastava",
+      "email": "PU02325EUGBTCS201@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Nka9K8Ib"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS202",
+      "fullName": "Anish Tripathi",
+      "email": "PU02325EUGBTCS202@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "xRwBLtKB"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS204",
+      "fullName": "Arya Pathak",
+      "email": "PU02325EUGBTCS204@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "MxW4d3P1"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS205",
+      "fullName": "Varit Neema",
+      "email": "PU02325EUGBTCS205@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "KNKMdNpr"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS207",
+      "fullName": "Mohd umar nagori",
+      "email": "PU02325EUGBTCS207@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "FGNxevfF"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS208",
+      "fullName": "Nishant Shil",
+      "email": "PU02325EUGBTCS208@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "ohyo9Y1K"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS209",
+      "fullName": "Divya Kumar Ojha",
+      "email": "PU02325EUGBTCS209@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "fBUSaYaZ"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS210",
+      "fullName": "Gaurav Singh Chouhan",
+      "email": "PU02325EUGBTCS210@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "d256LoJ3"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS211",
+      "fullName": "Tanishk Bhatia",
+      "email": "PU02325EUGBTCS211@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "RB4KD9gR"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS212",
+      "fullName": "Avika badkul",
+      "email": "PU02325EUGBTCS212@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Ixoy4ndW"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS213",
+      "fullName": "Kartik Arya",
+      "email": "PU02325EUGBTCS213@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "EnuuKLLM"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS214",
+      "fullName": "nehal jain",
+      "email": "PU02325EUGBTCS214@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "TkLbARty"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS215",
+      "fullName": "gargi sonkar",
+      "email": "PU02325EUGBTCS215@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "UEoehNUg"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS216",
+      "fullName": "srasthi arya",
+      "email": "PU02325EUGBTCS216@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Q8scndJA"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS217",
+      "fullName": "KRISHNA KANT TIWARI",
+      "email": "PU02325EUGBTCS217@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "KdA4eMjl"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS218",
+      "fullName": "tanishq pathak",
+      "email": "PU02325EUGBTCS218@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "P8Z66WXe"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS220",
+      "fullName": "Akshita mahajan",
+      "email": "PU02325EUGBTCS220@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "8MpFHy9a"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS222",
+      "fullName": "Darshan Patidar",
+      "email": "PU02325EUGBTCS222@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "fthNqKAV"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS223",
+      "fullName": "ADARSH HAZARI",
+      "email": "PU02325EUGBTCS223@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "tbD6vSEQ"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS224",
+      "fullName": "Angel motwani",
+      "email": "PU02325EUGBTCS224@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Oq5MiYxe"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS225",
+      "fullName": "Pari Khandelwal",
+      "email": "PU02325EUGBTCS225@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "6HLGnhOh"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS226",
+      "fullName": "Raunak Jangid",
+      "email": "PU02325EUGBTCS226@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "7v8LuRnA"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS227",
+      "fullName": "lavanya",
+      "email": "PU02325EUGBTCS227@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "Sbg5XG7e"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS228",
+      "fullName": "Anant Jain",
+      "email": "PU02325EUGBTCS228@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "PV04jWE3"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS229",
+      "fullName": "Bhavishya Sahu",
+      "email": "PU02325EUGBTCS229@suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "dlUozYin"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTCS230",
+      "fullName": "Mayank Raj",
+      "email": "PU02325EUGBTCS230@suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech-CSIT",
+      "status": "CREATED",
+      "tempPassword": "bjy3tRTX"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI009",
+      "fullName": "Manan maheshwari",
+      "email": "PU02325EUGBTAI009@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "oWCtW6PS"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI010",
+      "fullName": "mahi mandora",
+      "email": "PU02325EUGBTAI010@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "1vNaHMUQ"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI016",
+      "fullName": "Sanidhya Vijayvargiya",
+      "email": "PU02325EUGBTAI016@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "oUvyAocD"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI017",
+      "fullName": "Rashi Oundhkar",
+      "email": "PU02325EUGBTAI017@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "rFsOCWqV"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI018",
+      "fullName": "Safal Jain",
+      "email": "PU02325EUGBTAI018@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "PogW0nQ7"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI020",
+      "fullName": "Mradul mahajan",
+      "email": "PU02325EUGBTAI020@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "bqFC9BlH"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI029",
+      "fullName": "Prayag pal",
+      "email": "PU02325EUGBTAI029@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "Vbyd3DHB"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI031",
+      "fullName": "Rudraksh Bende",
+      "email": "PU02325EUGBTAI031@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "iiw320LA"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI033",
+      "fullName": "soumya shastri",
+      "email": "PU02325EUGBTAI033@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "SC3RW059"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI034",
+      "fullName": "Panshul pandey",
+      "email": "PU02325EUGBTAI034@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "xMdqRmLG"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI039",
+      "fullName": "Riddhima Moonat",
+      "email": "PU02325EUGBTAI039@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "GGjb6sJ9"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI050",
+      "fullName": "Chayan jain",
+      "email": "PU02325EUGBTAI050@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "zdmQGz64"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI051",
+      "fullName": "Arnav shahi",
+      "email": "PU02325EUGBTAI051@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "swssnQJn"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI052",
+      "fullName": "Piyush brajwasi",
+      "email": "PU02325EUGBTAI052@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "z77MXmRV"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI053",
+      "fullName": "Ojas Jain",
+      "email": "PU02325EUGBTAI053@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "0wCF7yQd"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI054",
+      "fullName": "DARSHIL YADAV",
+      "email": "PU02325EUGBTAI054@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "13V3CryN"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI056",
+      "fullName": "JASHNADEEP SINGH BHATIA",
+      "email": "PU02325EUGBTAI056@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "y48TIMYJ"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI057",
+      "fullName": "Manash Thakur",
+      "email": "PU02325EUGBTAI057@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "PFCQQFLe"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI058",
+      "fullName": "SHIVAM MATHUR",
+      "email": "PU02325EUGBTAI058@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "k5Mvv5Je"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI064",
+      "fullName": "Sainandan Gupta",
+      "email": "PU02325EUGBTAI064@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "3wdgFB1R"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI066",
+      "fullName": "Mohit Sapkal",
+      "email": "PU02325EUGBTAI066@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "59e8QdFD"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI069",
+      "fullName": "Shreya Patidar",
+      "email": "PU02325EUGBTAI069@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "k0goxjk3"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI071",
+      "fullName": "Kritika Bairagi",
+      "email": "PU02325EUGBTAI071@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "1zn7V3FN"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI076",
+      "fullName": "Vanshul Verma",
+      "email": "PU02325EUGBTAI076@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "cWNZpARP"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI077",
+      "fullName": "devansh kumar patidar",
+      "email": "PU02325EUGBTAI077@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "tYta2VDm"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI080",
+      "fullName": "Aditya Karnik",
+      "email": "PU02325EUGBTAI080@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "J9qvnFDU"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI081",
+      "fullName": "Avtansh Vatsa",
+      "email": "PU02325EUGBTAI081@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "0lb3qSWR"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI082",
+      "fullName": "Atharv joshi",
+      "email": "PU02325EUGBTAI082@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "qIctZnyH"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI083",
+      "fullName": "Hasan kalal",
+      "email": "PU02325EUGBTAI083@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "ggzGk4Id"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI084",
+      "fullName": "Farhaan Khan",
+      "email": "PU02325EUGBTAI084@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "lXCRPsEj"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI085",
+      "fullName": "Shruti Baghel",
+      "email": "PU02325EUGBTAI085@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "Vf0s3AVQ"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI086",
+      "fullName": "Anany Pandit",
+      "email": "PU02325EUGBTAI086@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "JZ1mCMRW"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI087",
+      "fullName": "Shubh Shrivastava",
+      "email": "PU02325EUGBTAI087@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "gZm7XrRK"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI088",
+      "fullName": "Jagmeet Singh",
+      "email": "PU02325EUGBTAI088@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "fEWhV9Ba"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI089",
+      "fullName": "Aadish badjatiya",
+      "email": "PU02325EUGBTAI089@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "nVin8hqk"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI090",
+      "fullName": "Ranveer Singh",
+      "email": "PU02325EUGBTAI090@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "CpWpJ4ht"
+    },
+    {
+      "enrollmentNumber": "PU02325EUGBTAI091",
+      "fullName": "Divyansh Nayak",
+      "email": "PU02325EUGBTAI091@student.suas.ac.in",
+      "semester": "1",
+      "department": "B.Tech in AI&ML",
+      "status": "CREATED",
+      "tempPassword": "587E6bkb"
+    }
+  ]
+}
