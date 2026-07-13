@@ -682,10 +682,15 @@ async function hashValue(value: string): Promise<string> {
 }
 
 function generateSecurePassword(enrollment: string): string {
-  const randomSalt = crypto.randomBytes(16).toString("hex");
-  const hash = crypto.createHash("sha256").update(enrollment + randomSalt).digest("base64");
-  const cleanPass = hash.replace(/[^a-zA-Z0-9]/g, "");
-  return cleanPass.substring(0, 6);
+  // Produces an 8-character alphanumeric password (6–8 digit range)
+  const randomSalt = crypto.randomBytes(20).toString("hex");
+  const hash = crypto
+    .createHash("sha256")
+    .update(enrollment + randomSalt + Date.now().toString())
+    .digest("base64")
+    .replace(/[^a-zA-Z0-9]/g, "");
+  // Pick 8 chars for uniform secure length
+  return hash.substring(0, 8);
 }
 
 // Bulk import students
@@ -764,6 +769,78 @@ export async function importStudents(req: AuthenticatedRequest, res: Response) {
   }
 }
 
+// Bulk generate passwords for ALL students who still have mustChangePassword=true
+// AND have never been individually visited by admin (passwordChangedAt is null)
+export async function bulkGeneratePasswords(req: AuthenticatedRequest, res: Response) {
+  try {
+    // Find all students whose passwords have never been manually set
+    const pendingStudents = await prisma.user.findMany({
+      where: {
+        role: "STUDENT",
+        mustChangePassword: true,
+        passwordChangedAt: null,
+      },
+      select: {
+        id: true,
+        enrollmentNumber: true,
+        fullName: true,
+        email: true,
+        semester: true,
+        department: true,
+      }
+    });
+
+    if (pendingStudents.length === 0) {
+      return res.json({
+        message: "All students already have passwords set. No action taken.",
+        generated: [],
+        count: 0
+      });
+    }
+
+    const generated: any[] = [];
+
+    for (const student of pendingStudents) {
+      const tempPassword = generateSecurePassword(student.enrollmentNumber);
+      const passwordHash = await hashValue(tempPassword);
+
+      await prisma.user.update({
+        where: { id: student.id },
+        data: {
+          passwordHash,
+          mustChangePassword: true,
+          // Do NOT set passwordChangedAt — keeps tracking that admin hasn't visited
+        }
+      });
+
+      generated.push({
+        enrollmentNumber: student.enrollmentNumber,
+        fullName: student.fullName,
+        email: student.email,
+        semester: student.semester,
+        department: student.department,
+        tempPassword,
+        status: "PASSWORD_GENERATED"
+      });
+    }
+
+    await createAuditLog(
+      "BULK_PASSWORD_GENERATION",
+      `Admin bulk-generated passwords for ${generated.length} student accounts.`,
+      req.user?.userId
+    );
+
+    return res.json({
+      message: `Generated passwords for ${generated.length} students.`,
+      count: generated.length,
+      generated
+    });
+  } catch (err: any) {
+    console.error("Bulk password generation failed:", err);
+    return res.status(500).json({ error: err.message || "Bulk password generation failed" });
+  }
+}
+
 // Reset student password
 export async function adminResetStudentPassword(req: AuthenticatedRequest, res: Response) {
   const { id } = req.params;
@@ -777,8 +854,8 @@ export async function adminResetStudentPassword(req: AuthenticatedRequest, res: 
       return res.status(404).json({ error: "Student profile not found" });
     }
 
-    // Generate secure temporary password
-    const tempPassword = Math.random().toString(36).slice(-8);
+    // Generate secure 8-character temporary password
+    const tempPassword = generateSecurePassword(student.enrollmentNumber);
     const newPasswordHash = await hashValue(tempPassword);
 
     await prisma.user.update({

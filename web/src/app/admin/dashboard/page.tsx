@@ -126,6 +126,8 @@ export default function AdminDashboard() {
   const [importedCredentials, setImportedCredentials] = useState<any[] | null>(null);
   const [resetResult, setResetResult] = useState<any | null>(null);
   const [qrAuthEnabled, setQrAuthEnabled] = useState(true);
+  const [bulkGenLoading, setBulkGenLoading] = useState(false);
+  const [bulkGenResult, setBulkGenResult] = useState<any[] | null>(null);
 
   const [feedbackMsg, setFeedbackMsg] = useState("");
   const [studentSearch, setStudentSearch] = useState("");
@@ -1726,32 +1728,34 @@ export default function AdminDashboard() {
                   </form>
                 </div>
 
-                {/* CSV File Upload Card */}
-                <div className="bg-darkCard border border-darkBorder rounded-2xl p-6 shadow-xl space-y-6">
+                {/* Excel / CSV File Upload Card */}
+                <div className="bg-darkCard border border-darkBorder rounded-2xl p-6 shadow-xl space-y-5">
                   <div className="flex items-center space-x-2 text-emerald-400 border-b border-darkBorder pb-4">
                     <FileSpreadsheet size={20} />
-                    <h3 className="font-bold text-base text-white">CSV Student Import</h3>
+                    <h3 className="font-bold text-base text-white">Excel / CSV Student Import</h3>
                   </div>
                   <p className="text-xs text-gray-400 leading-relaxed">
-                    Upload a comma-separated value (CSV) file containing student records to perform a bulk import.
+                    Upload your institution Excel or CSV file. Columns auto-detected: <span className="text-emerald-400 font-bold">Semester, Course/Branch, Enrollment No., Name, Student Email Id</span>.
                   </p>
 
-                  <div className="space-y-4">
+                  <div className="space-y-3">
+                    {/* Drop zone — accepts both xlsx and csv */}
                     <div className="border border-dashed border-darkBorder rounded-xl p-6 text-center hover:border-emerald-500/40 transition cursor-pointer relative bg-darkBg/10">
                       <input
                         type="file"
-                        accept=".csv"
+                        id="excel_import_input"
+                        accept=".csv,.xlsx,.xls"
                         onChange={handleCsvImport}
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                       />
-                      <FileSpreadsheet className="mx-auto text-gray-500 mb-2" size={32} />
-                      <span className="text-xs text-gray-400 block font-semibold">Choose CSV File</span>
-                      <span className="text-[10px] text-gray-500 block mt-1">Accepts .csv up to 10MB</span>
+                      <FileSpreadsheet className="mx-auto text-emerald-500/50 mb-2" size={32} />
+                      <span className="text-xs text-gray-300 block font-bold">Drop Excel or CSV here</span>
+                      <span className="text-[10px] text-gray-500 block mt-1">Accepts .xlsx · .xls · .csv</span>
                     </div>
 
                     <button
                       onClick={() => {
-                        const csv = "enrollmentNumber,fullName,email,semester,department,section\nENR2026011,Rahul Kumar,rahul@suas.ac.in,3,Computer Science,A\nENR2026012,Sneha Jain,sneha@suas.ac.in,3,Computer Science,B";
+                        const csv = "Semester,Course/ Branch,Enrollment No.,Name,Student Contact No.,Student Email Id\n3,B.Tech-CSIT,2022BTCS001,Aanya Jain,8349330770,2022BTCS001@student.suas.ac.in";
                         const blob = new Blob([csv], { type: "text/csv" });
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement("a");
@@ -1761,9 +1765,49 @@ export default function AdminDashboard() {
                         a.click();
                         document.body.removeChild(a);
                       }}
-                      className="w-full py-2 bg-darkCard border border-darkBorder hover:border-emerald-500/20 text-gray-300 font-bold rounded-xl text-xs transition"
+                      className="w-full py-2 bg-darkCard border border-darkBorder hover:border-emerald-500/20 text-gray-400 font-bold rounded-xl text-xs transition"
                     >
-                      Download CSV Template
+                      ⬇ Download Sample Template
+                    </button>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="border-t border-darkBorder pt-4">
+                    <p className="text-xs text-gray-500 mb-3 leading-relaxed">
+                      After importing students, generate secure 8-character passwords for all new accounts in one click. Existing accounts with manually-set passwords are skipped.
+                    </p>
+                    <button
+                      id="bulk_gen_passwords_btn"
+                      disabled={bulkGenLoading}
+                      onClick={async () => {
+                        if (!confirm(`This will generate 8-character passwords for ALL newly-imported students who don't have a manually-set password yet.\n\nProceed?`)) return;
+                        setBulkGenLoading(true);
+                        try {
+                          const token = localStorage.getItem("admin_token");
+                          const res = await fetch(`${API_URL}/api/v1/admin/students/bulk-generate-passwords`, {
+                            method: "POST",
+                            headers: { Authorization: `Bearer ${token}` }
+                          });
+                          const data = await res.json();
+                          if (res.ok) {
+                            setBulkGenResult(data.generated);
+                            showFeedback(`Passwords generated for ${data.count} students!`);
+                          } else {
+                            alert(data.error || "Bulk generation failed.");
+                          }
+                        } catch (e) {
+                          alert("Network error during bulk password generation.");
+                        } finally {
+                          setBulkGenLoading(false);
+                        }
+                      }}
+                      className="w-full py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:opacity-50 text-white font-black rounded-xl text-sm transition shadow-lg shadow-violet-500/20 flex items-center justify-center space-x-2"
+                    >
+                      {bulkGenLoading ? (
+                        <><RefreshCw size={14} className="animate-spin" /><span>Generating...</span></>
+                      ) : (
+                        <><ShieldCheck size={14} /><span>Generate Passwords for All New Students</span></>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -3272,6 +3316,62 @@ export default function AdminDashboard() {
                   <button onClick={() => setImportedCredentials(null)} className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-darkBg font-bold rounded-lg text-xs transition">
                     Done
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* BULK PASSWORD GENERATION RESULT MODAL */}
+          {bulkGenResult && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 animate-fade-in backdrop-blur-sm">
+              <div className="bg-darkCard border border-darkBorder rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                <div className="p-6 border-b border-darkBorder flex justify-between items-center bg-gradient-to-r from-violet-900/50 to-indigo-900/50">
+                  <div>
+                    <h3 className="font-bold text-lg text-white">🔐 Bulk Password Generation Complete</h3>
+                    <p className="text-xs text-violet-300 mt-0.5">{bulkGenResult.length} student passwords generated</p>
+                  </div>
+                  <button onClick={() => setBulkGenResult(null)} className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-darkHover transition">
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="overflow-y-auto flex-1 p-4 space-y-2">
+                  {bulkGenResult.length === 0 ? (
+                    <p className="text-center text-gray-400 py-10">All students already have passwords set. Nothing to generate.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {/* Summary header */}
+                      <div className="grid grid-cols-4 text-[10px] font-bold text-gray-500 uppercase tracking-wider px-3 py-2 border-b border-darkBorder">
+                        <span>Enrollment</span>
+                        <span>Name</span>
+                        <span>Dept / Sem</span>
+                        <span className="text-right">Password</span>
+                      </div>
+                      {bulkGenResult.map((s: any, idx: number) => (
+                        <div key={idx} className="grid grid-cols-4 items-center p-3 bg-darkBg/40 border border-violet-500/10 hover:border-violet-500/30 rounded-xl text-xs font-mono transition">
+                          <span className="text-emerald-400 font-bold truncate">{s.enrollmentNumber}</span>
+                          <span className="text-gray-200 truncate">{s.fullName}</span>
+                          <span className="text-gray-400">{s.department || "—"} / Sem {s.semester || "?"}</span>
+                          <code className="text-right text-violet-300 font-black bg-violet-500/10 px-2 py-1 rounded select-all select-text tracking-widest">{s.tempPassword}</code>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-4 bg-slate-900 border-t border-darkBorder flex justify-between items-center">
+                  <span className="text-xs text-amber-400 font-semibold">⚠ Save these passwords! Students must change them on first login.</span>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => exportImportedPasswordsCSV(bulkGenResult.map(s => ({ ...s, status: "CREATED" })))}
+                      className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-lg text-xs transition"
+                    >
+                      Export CSV
+                    </button>
+                    <button onClick={() => setBulkGenResult(null)} className="px-4 py-2 bg-darkCard hover:bg-darkHover text-gray-300 border border-darkBorder font-bold rounded-lg text-xs transition">
+                      Close
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

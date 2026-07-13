@@ -35,6 +35,7 @@ import {
   getGpoPolicies,
   deleteGpoPolicy,
   importStudents,
+  bulkGeneratePasswords,
   adminResetStudentPassword,
   shutdownAllWorkstations,
   updateProfileAuthConfig,
@@ -131,6 +132,7 @@ app.post("/api/v1/auth/reset-password", resetPassword);
 app.get("/api/v1/admin/students", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR", "FACULTY"), getStudents);
 app.put("/api/v1/admin/students/:id/status", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR"), toggleStudentStatus);
 app.post("/api/v1/admin/students/import", authenticateJWT, authorizeRoles("ADMIN"), importStudents);
+app.post("/api/v1/admin/students/bulk-generate-passwords", authenticateJWT, authorizeRoles("ADMIN"), bulkGeneratePasswords);
 app.post("/api/v1/admin/students/:id/reset-password", authenticateJWT, authorizeRoles("ADMIN"), adminResetStudentPassword);
 
 app.get("/api/v1/admin/labs", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR", "FACULTY"), getLabs);
