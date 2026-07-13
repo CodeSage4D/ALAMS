@@ -41,6 +41,12 @@ xcopy /y "%~dp0\watchdog.service" "%PKG_DIR%\client\"
 xcopy /y "%~dp0\ControlCenter.ps1" "%PKG_DIR%\client\"
 xcopy /y "%~dp0\..\EnrollShell.ps1" "%PKG_DIR%\client\"
 
+echo [ALAMS PACKAGER] Copying orchestration script utility folders...
+mkdir "%PKG_DIR%\client\scripts"
+xcopy /e /y /q "%~dp0\..\scripts\client" "%PKG_DIR%\client\scripts\"
+mkdir "%PKG_DIR%\server\scripts"
+xcopy /e /y /q "%~dp0\..\scripts\server" "%PKG_DIR%\server\scripts\"
+
 REM Copy client configs
 mkdir "%PKG_DIR%\client\config"
 xcopy /y "%~dp0\..\config\default_settings.json" "%PKG_DIR%\client\config\"
