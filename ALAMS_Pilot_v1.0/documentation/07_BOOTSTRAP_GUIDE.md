@@ -57,3 +57,4 @@ Once the script completes successfully, the workstation client UI will load show
 3.  Locate the new machine (matched by Hostname and Hardware Fingerprint).
 4.  Click **Approve**, and assign the Lab Zone and Seat Number.
 5.  The workstation lock screen will immediately receive the configuration, display the assigned seat number, and begin rendering active QR code logins.
+

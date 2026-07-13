@@ -47,7 +47,7 @@ async function main() {
   const engProfile = await prisma.profile.create({
     data: {
       name: "Engineering Lab Profile",
-      qrLifetime: 60,
+      qrLifetime: 30,
       heartbeatInterval: 30,
       offlinePinEnabled: true,
       sessionTimeout: 120,
@@ -58,7 +58,7 @@ async function main() {
   const generalProfile = await prisma.profile.create({
     data: {
       name: "General Lab Profile",
-      qrLifetime: 60,
+      qrLifetime: 30,
       heartbeatInterval: 30,
       offlinePinEnabled: true,
       sessionTimeout: 120,
@@ -71,9 +71,11 @@ async function main() {
   console.log("\n[4/6] Creating pilot administrative, faculty, and student accounts...");
 
   const adminAccounts = [
+    { email: "ADMIN01", name: "Administrator Default", role: Role.ADMIN },
     { email: "karan.mishra@suas.ac.in", name: "Karan Mishra", role: Role.ADMIN },
     { email: "nitin.panchal@suas.ac.in", name: "Nitin Panchal", role: Role.ADMIN },
     { email: "prashant.patil@suas.ac.in", name: "Prashant Patil", role: Role.ADMIN },
+    { email: "mrityunjay@suas.ac.in", name: "Mrityunjay", role: Role.ADMIN },
     { email: "monark.riakwar@suas.ac.in", name: "Monark Riakwar", role: Role.SUPERVISOR },
     { email: "salman.khan@suas.ac.in", name: "Salman Khan", role: Role.SUPERVISOR },
     { email: "faculty.member@suas.ac.in", name: "Dr. Faculty Member", role: Role.FACULTY }
@@ -87,7 +89,7 @@ async function main() {
       data: {
         enrollmentNumber: admin.email,
         fullName: admin.name,
-        passwordHash: adminPasswordHash,
+        passwordHash: admin.email === "ADMIN01" ? await hashValue("Admin@ALAMS2026!") : adminPasswordHash,
         pinHash: adminPinHash,
         role: admin.role,
         isActive: true,
