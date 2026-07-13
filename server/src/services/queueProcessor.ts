@@ -60,22 +60,7 @@ async function processEmailQueue() {
         const payload: EmailTemplatePayload = JSON.parse(item.payload);
         const { html } = EmailGateway.compileTemplate(item.template, payload);
 
-        let sent = false;
-        if (config.providerType === "SMTP") {
-          const smtpConfig = {
-            smtpHost: config.smtpHost,
-            smtpPort: config.smtpPort,
-            smtpSecure: config.smtpSecure,
-            username: config.username,
-            passwordEncrypted: config.password,
-            senderEmail: config.senderEmail,
-            senderName: config.senderName
-          };
-          sent = await SmtpGateway.sendMailDirect(smtpConfig, recipient, item.subject, html);
-        } else {
-          console.log(`[Exchange Gateway Mock] Dispatching email to: ${recipient} | Subject: ${item.subject}`);
-          sent = true;
-        }
+        const sent = await EmailGateway.sendMailThroughProvider(config, recipient, item.subject, html);
 
         if (sent) {
           await prisma.emailQueue.update({
@@ -150,24 +135,9 @@ async function cleanupExpiredOtps() {
 async function runSmtpHealthCheck() {
   try {
     const config = await EmailGateway.getActiveConfig();
-    if (config.providerType !== "SMTP") {
-      console.log("[Health] Email active provider: MS_EXCHANGE (Mock mode active). Status: OK");
-      return;
-    }
-
-    const smtpConfig = {
-      smtpHost: config.smtpHost,
-      smtpPort: config.smtpPort,
-      smtpSecure: config.smtpSecure,
-      username: config.username,
-      passwordEncrypted: config.password,
-      senderEmail: config.senderEmail,
-      senderName: config.senderName
-    };
-
-    const isHealthy = await SmtpGateway.verifyConnection(smtpConfig);
-    console.log(`[Health] SMTP Gateway Health Check: ${isHealthy ? "ONLINE (Connected)" : "OFFLINE (Unreachable)"}`);
+    const isHealthy = await EmailGateway.verifyProviderConnection(config);
+    console.log(`[Health] Active Provider (${config.providerType}) Health Check: ${isHealthy ? "ONLINE (Connected)" : "OFFLINE (Unreachable)"}`);
   } catch (err) {
-    console.error("[Health] SMTP Connection test failed:", err);
+    console.error("[Health] Connection test failed:", err);
   }
 }

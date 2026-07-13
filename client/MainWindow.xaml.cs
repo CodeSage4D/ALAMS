@@ -35,11 +35,23 @@ namespace AlamsClient
         private System.IO.StreamWriter? _ipcWriter;
         private CancellationTokenSource? _ipcCts;
 
-        public string ServerHttpUrl { get; private set; } = "http://localhost:5000";
-        public string ServerWsUrl { get; private set; } = "ws://localhost:5000";
+        // Telemetry & Offline Verification variables
+        private DateTime? _lastSyncTime;
+        private DateTime? _lastHeartbeatTime;
+        private int _latencyMs = 0;
+        private DateTime _heartbeatSendTime;
+        private List<StudentCredential> _studentCredentials = new List<StudentCredential>();
+        private DispatcherTimer? _journalCheckTimer;
+        private DispatcherTimer? _offlineActiveTimer;
+        private string _activeOfflineTransactionId = "";
+        private bool _clockTamperingAnomalyDetected = false;
+
+        public string ServerHttpUrl { get; private set; } = "http://192.168.128.73:5000";
+        public string ServerWsUrl { get; private set; } = "ws://192.168.128.73:5000";
         private const string ConfigPath = @"C:\ProgramData\ALAMS\config.json";
         
         private string _computerId = "";
+        private string _machineToken = "";
         private string _deviceName = "";
         private string _pcNumber = "";
         private string _qrSeed = "";
@@ -76,6 +88,116 @@ namespace AlamsClient
             _reconnectTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
             _reconnectTimer.Tick += ReconnectTimer_Tick;
             _reconnectTimer.Start();
+
+            // Offline Verification timers
+            _journalCheckTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(15) };
+            _journalCheckTimer.Tick += JournalCheckTimer_Tick;
+            _journalCheckTimer.Start();
+
+            _offlineActiveTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(60) };
+            _offlineActiveTimer.Tick += OfflineActiveTimer_Tick;
+
+            // Run self-healing recovery for interrupted offline sessions
+            RecoverJournal();
+        }
+
+        private string? _cachedFingerprint;
+        private string GetFingerprint()
+        {
+            if (_cachedFingerprint != null) return _cachedFingerprint;
+            try
+            {
+                string motherboardSerial = GetWmiProperty("Win32_BaseBoard", "SerialNumber") ?? "";
+                string biosSerial = GetWmiProperty("Win32_BIOS", "SerialNumber") ?? "";
+                string cpuId = GetWmiProperty("Win32_Processor", "ProcessorId") ?? "";
+                string machineGuid = Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Cryptography", "MachineGuid", "")?.ToString() ?? "N/A";
+                _cachedFingerprint = GenerateDeviceFingerprint(motherboardSerial, biosSerial, cpuId, machineGuid);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to generate WMI fingerprint: {ex.Message}");
+                _cachedFingerprint = "FALLBACK_HARDWARE_FINGERPRINT_2026";
+            }
+            return _cachedFingerprint;
+        }
+
+        private byte[] GetConfigEncryptionKey()
+        {
+            string fingerprint = GetFingerprint();
+            string installSecret = "ALAMS_Enterprise_Deploy_Secret_SUAS_2026!";
+            byte[] ikm = Encoding.UTF8.GetBytes(installSecret + "_" + fingerprint);
+            byte[] info = Encoding.UTF8.GetBytes("ALAMS_Local_Encrypted_Config_Storage");
+            return HKDF.DeriveKey(HashAlgorithmName.SHA256, ikm, 32, null, info);
+        }
+
+        private byte[] GetJournalEncryptionKey()
+        {
+            string fingerprint = GetFingerprint();
+            string installSecret = "ALAMS_Enterprise_Deploy_Secret_SUAS_2026!";
+            byte[] ikm = Encoding.UTF8.GetBytes(installSecret + "_" + fingerprint);
+            byte[] salt = Encoding.UTF8.GetBytes(string.IsNullOrEmpty(_machineToken) ? "ALAMS_DEFAULT_JOURNAL_SALT_2026" : _machineToken);
+            byte[] info = Encoding.UTF8.GetBytes("ALAMS_Local_Encrypted_Journal_Storage");
+            return HKDF.DeriveKey(HashAlgorithmName.SHA256, ikm, 32, salt, info);
+        }
+
+        private static string EncryptAesGcm(string plainText, byte[] key)
+        {
+            byte[] plainBytes = Encoding.UTF8.GetBytes(plainText);
+            byte[] nonce = new byte[12];
+            RandomNumberGenerator.Fill(nonce);
+            byte[] tag = new byte[16];
+            byte[] cipherBytes = new byte[plainBytes.Length];
+
+            using (var aesGcm = new AesGcm(key, 16))
+            {
+                aesGcm.Encrypt(nonce, plainBytes, cipherBytes, tag);
+            }
+
+            byte[] result = new byte[nonce.Length + tag.Length + cipherBytes.Length];
+            Buffer.BlockCopy(nonce, 0, result, 0, nonce.Length);
+            Buffer.BlockCopy(tag, 0, result, nonce.Length, tag.Length);
+            Buffer.BlockCopy(cipherBytes, 0, result, nonce.Length + tag.Length, cipherBytes.Length);
+
+            return Convert.ToBase64String(result);
+        }
+
+        private static string DecryptAesGcm(string cipherText, byte[] key)
+        {
+            byte[] fullBytes = Convert.FromBase64String(cipherText);
+            if (fullBytes.Length < 28)
+                throw new ArgumentException("Ciphertext is too short.");
+
+            byte[] nonce = new byte[12];
+            byte[] tag = new byte[16];
+            byte[] cipherBytes = new byte[fullBytes.Length - 28];
+
+            Buffer.BlockCopy(fullBytes, 0, nonce, 0, 12);
+            Buffer.BlockCopy(fullBytes, 12, tag, 0, 16);
+            Buffer.BlockCopy(fullBytes, 28, cipherBytes, 0, cipherBytes.Length);
+
+            byte[] plainBytes = new byte[cipherBytes.Length];
+            using (var aesGcm = new AesGcm(key, 16))
+            {
+                aesGcm.Decrypt(nonce, cipherBytes, tag, plainBytes);
+            }
+
+            return Encoding.UTF8.GetString(plainBytes);
+        }
+
+        private string ComputeHmac(string data, string secret)
+        {
+            try
+            {
+                using (var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(secret)))
+                {
+                    byte[] hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(data));
+                    return Convert.ToHexString(hash).ToLower();
+                }
+            }
+            catch
+            {
+                return "";
+            }
         }
 
         private void LoadConfiguration()
@@ -84,13 +206,27 @@ namespace AlamsClient
             {
                 if (System.IO.File.Exists(ConfigPath))
                 {
-                    string json = System.IO.File.ReadAllText(ConfigPath);
+                    string rawContent = System.IO.File.ReadAllText(ConfigPath);
+                    string json = "";
+
+                    if (rawContent.TrimStart().StartsWith("{"))
+                    {
+                        // Migrating legacy configuration file
+                        json = rawContent;
+                        SaveConfiguration();
+                    }
+                    else
+                    {
+                        byte[] key = GetConfigEncryptionKey();
+                        json = DecryptAesGcm(rawContent, key);
+                    }
+
                     using (JsonDocument doc = JsonDocument.Parse(json))
                     {
                         var root = doc.RootElement;
                         if (root.TryGetProperty("serverUrl", out var urlVal))
                         {
-                            string url = urlVal.GetString() ?? "http://localhost:5000";
+                            string url = urlVal.GetString() ?? "http://192.168.128.73:5000";
                             if (url.EndsWith("/"))
                             {
                                 url = url.Substring(0, url.Length - 1);
@@ -109,6 +245,20 @@ namespace AlamsClient
                         if (root.TryGetProperty("computerId", out var idVal))
                         {
                             _computerId = idVal.GetString() ?? "";
+                        }
+                        if (root.TryGetProperty("machineToken", out var tokenVal))
+                        {
+                            _machineToken = tokenVal.GetString() ?? "";
+                        }
+                        if (root.TryGetProperty("studentCredentials", out var studentVal) && studentVal.ValueKind == JsonValueKind.Array)
+                        {
+                            _studentCredentials.Clear();
+                            foreach (var item in studentVal.EnumerateArray())
+                            {
+                                string enr = item.TryGetProperty("enrollmentNumber", out var e) ? e.GetString() ?? "" : "";
+                                string pin = item.TryGetProperty("pinHash", out var p) ? p.GetString() ?? "" : "";
+                                _studentCredentials.Add(new StudentCredential { enrollmentNumber = enr, pinHash = pin });
+                            }
                         }
                     }
                 }
@@ -509,14 +659,47 @@ namespace AlamsClient
                     Directory.CreateDirectory(dir);
                 }
 
+                // Preserve existing admin credentials from file if they exist
+                System.Collections.Generic.List<object> adminCreds = new System.Collections.Generic.List<object>();
+                if (File.Exists(ConfigPath))
+                {
+                    try
+                    {
+                        string rawContent = File.ReadAllText(ConfigPath);
+                        string existingJson = rawContent.TrimStart().StartsWith("{") 
+                            ? rawContent 
+                            : DecryptAesGcm(rawContent, GetConfigEncryptionKey());
+
+                        using (JsonDocument doc = JsonDocument.Parse(existingJson))
+                        {
+                            if (doc.RootElement.TryGetProperty("adminCredentials", out var adminVal))
+                            {
+                                foreach (var item in adminVal.EnumerateArray())
+                                {
+                                    string user = item.TryGetProperty("username", out var u) ? u.GetString() ?? "" : "";
+                                    string pin = item.TryGetProperty("pinHash", out var p) ? p.GetString() ?? "" : "";
+                                    string pass = item.TryGetProperty("passcodeHash", out var pa) ? pa.GetString() ?? "" : "";
+                                    adminCreds.Add(new { username = user, pinHash = pin, passcodeHash = pass });
+                                }
+                            }
+                        }
+                    }
+                    catch {}
+                }
+
                 var config = new
                 {
                     serverUrl = ServerHttpUrl,
-                    computerId = _computerId
+                    computerId = _computerId,
+                    machineToken = _machineToken,
+                    adminCredentials = adminCreds,
+                    studentCredentials = _studentCredentials
                 };
 
-                string json = JsonSerializer.Serialize(config);
-                File.WriteAllText(ConfigPath, json);
+                string json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
+                byte[] key = GetConfigEncryptionKey();
+                string cipherText = EncryptAesGcm(json, key);
+                File.WriteAllText(ConfigPath, cipherText);
             }
             catch (Exception ex)
             {
@@ -638,6 +821,10 @@ namespace AlamsClient
                     {
                         string fingerprint = root.TryGetProperty("fingerprint", out var val) ? val.GetString() ?? "" : "";
                         _computerId = root.TryGetProperty("computerId", out var cVal) ? cVal.GetString() ?? "" : "";
+                        if (root.TryGetProperty("machineToken", out var tokVal))
+                        {
+                            _machineToken = tokVal.GetString() ?? "";
+                        }
                         
                         Dispatcher.Invoke(() =>
                         {
@@ -662,6 +849,10 @@ namespace AlamsClient
                         _pcNumber = root.GetProperty("pcNumber").GetString() ?? "";
                         _fallbackEnabled = root.GetProperty("fallbackEnabled").GetBoolean();
                         _qrSeed = root.GetProperty("qrSeed").GetString() ?? "";
+                        if (root.TryGetProperty("machineToken", out var tokVal))
+                        {
+                            _machineToken = tokVal.GetString() ?? "";
+                        }
 
                         // Save pairing configuration locally
                         SaveConfiguration();
@@ -681,6 +872,27 @@ namespace AlamsClient
                     }
                     else if (type == "config_profile")
                     {
+                        // Verify config profile update digital signature before applying
+                        if (!string.IsNullOrEmpty(_machineToken))
+                        {
+                            if (root.TryGetProperty("signature", out var sigVal))
+                            {
+                                string receivedSig = sigVal.GetString() ?? "";
+                                var configDict = JsonSerializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(message);
+                                if (configDict != null)
+                                {
+                                    configDict.Remove("signature");
+                                    string serializedWithoutSig = JsonSerializer.Serialize(configDict);
+                                    string expectedSig = ComputeHmac(serializedWithoutSig, _machineToken);
+                                    if (receivedSig != expectedSig)
+                                    {
+                                        UpdateStatus("Config validation failed: signature invalid.", isError: true);
+                                        return; // Discard invalid config profile
+                                    }
+                                }
+                            }
+                        }
+
                         int qrLifetime = root.TryGetProperty("qrLifetime", out var qlVal) ? qlVal.GetInt32() : 60;
                         int heartbeatInterval = root.TryGetProperty("heartbeatInterval", out var hbVal) ? hbVal.GetInt32() : 30;
                         bool offlinePinEnabled = root.TryGetProperty("offlinePinEnabled", out var opVal) ? opVal.GetBoolean() : true;
@@ -757,6 +969,11 @@ namespace AlamsClient
                         {
                             SaveAdminCredentials(adminVal);
                         }
+
+                        if (root.TryGetProperty("studentCredentials", out var studentVal))
+                        {
+                            SaveStudentCredentials(studentVal);
+                        }
                     }
                     else if (type == "unlock")
                     {
@@ -776,7 +993,40 @@ namespace AlamsClient
                     }
                     else if (type == "heartbeat_ack")
                     {
-                        Debug.WriteLine("Heartbeat acknowledged by server.");
+                        var latency = (DateTime.UtcNow - _heartbeatSendTime).TotalMilliseconds;
+                        _latencyMs = (int)latency;
+                        _lastHeartbeatTime = DateTime.Now;
+
+                        Dispatcher.Invoke(() =>
+                        {
+                            DiagLatencyText.Text = $"{_latencyMs}ms";
+                            DiagHeartbeatText.Text = _lastHeartbeatTime.Value.ToString("HH:mm:ss");
+
+                            var greenBrush = (System.Windows.Media.SolidColorBrush)new System.Windows.Media.BrushConverter().ConvertFromString("#22C55E");
+                            var orangeBrush = (System.Windows.Media.SolidColorBrush)new System.Windows.Media.BrushConverter().ConvertFromString("#F97316");
+                            var redBrush = (System.Windows.Media.SolidColorBrush)new System.Windows.Media.BrushConverter().ConvertFromString("#EF4444");
+
+                            if (_latencyMs < 50)
+                            {
+                                DiagConnQualityText.Text = "Excellent";
+                                DiagConnQualityText.Foreground = greenBrush;
+                            }
+                            else if (_latencyMs < 150)
+                            {
+                                DiagConnQualityText.Text = "Good";
+                                DiagConnQualityText.Foreground = greenBrush;
+                            }
+                            else if (_latencyMs < 300)
+                            {
+                                DiagConnQualityText.Text = "Fair";
+                                DiagConnQualityText.Foreground = orangeBrush;
+                            }
+                            else
+                            {
+                                DiagConnQualityText.Text = "Poor";
+                                DiagConnQualityText.Foreground = redBrush;
+                            }
+                        });
                     }
                     else if (type == "request_diagnostics")
                     {
@@ -921,10 +1171,22 @@ namespace AlamsClient
             {
                 try
                 {
+                    _heartbeatSendTime = DateTime.UtcNow;
+                    string status = _isUnlocked ? "in_use" : "locked";
+                    long timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                    
+                    string signature = "";
+                    if (!string.IsNullOrEmpty(_machineToken))
+                    {
+                        signature = ComputeHmac(status + timestamp, _machineToken);
+                    }
+
                     var heartbeat = new
                     {
                         type = "heartbeat",
-                        status = _isUnlocked ? "in_use" : "locked"
+                        status = status,
+                        timestamp = timestamp,
+                        signature = signature
                     };
                     string json = JsonSerializer.Serialize(heartbeat);
                     byte[] bytes = Encoding.UTF8.GetBytes(json);
@@ -950,11 +1212,13 @@ namespace AlamsClient
 
             UpdateStatus("Verifying credentials...", isError: false);
 
-            if (_isOnline)
+            bool forceOffline = (OfflineAccessCheckbox.IsChecked == true) || !_isOnline;
+
+            if (!forceOffline)
             {
                 try
                 {
-                    var payload = new { enrollmentNumber = enrollment, pin = pin, computerId = _computerId };
+                    var payload = new { enrollmentNumber = enrollment, pin = pin, computerId = _computerId, authMethod = "ONLINE_PASSWORD" };
                     string json = JsonSerializer.Serialize(payload);
                     var content = new StringContent(json, Encoding.UTF8, "application/json");
                     var response = await _httpClient.PostAsync($"{ServerHttpUrl}/api/v1/client/fallback-auth", content);
@@ -976,7 +1240,7 @@ namespace AlamsClient
                         // Call failed-login API to record audit logs
                         try
                         {
-                            var failPayload = new { computerId = _computerId, enrollmentAttempt = enrollment, method = "PIN_FALLBACK" };
+                            var failPayload = new { computerId = _computerId, enrollmentAttempt = enrollment, method = "ONLINE_PASSWORD" };
                             var failContent = new StringContent(JsonSerializer.Serialize(failPayload), Encoding.UTF8, "application/json");
                             await _httpClient.PostAsync($"{ServerHttpUrl}/api/v1/client/failed-login", failContent);
                         }
@@ -988,21 +1252,50 @@ namespace AlamsClient
                 }
                 catch (Exception ex)
                 {
-                    UpdateStatus($"Connection error: {ex.Message}", isError: true);
+                    UpdateStatus($"Connection error: {ex.Message}. Attempting offline check...", isError: true);
+                    forceOffline = true;
                 }
             }
-            else
+
+            if (forceOffline)
             {
-                // Resilient Offline PIN fallback validation (mocking database hash decrypt match)
-                // In production, this decrypts the local SQLCipher cache matching the enrollment.
-                if (enrollment.StartsWith("ENR") && (pin == "123456" || pin == "Student@2026!"))
+                // Resilient Offline PIN fallback validation (verifying cached hashes locally)
+                string cleanEnrollment = enrollment.Split('@')[0].ToLower();
+                var cachedStudent = _studentCredentials.FirstOrDefault(c => c.enrollmentNumber.Split('@')[0].ToLower() == cleanEnrollment);
+
+                if (cachedStudent != null && BCrypt.Net.BCrypt.Verify(pin, cachedStudent.pinHash))
                 {
-                    _activeSessionId = Guid.NewGuid().ToString();
+                    string txId = Guid.NewGuid().ToString();
+                    _activeSessionId = txId;
+                    _activeOfflineTransactionId = txId;
+
+                    // Log session start in the local persisted transaction journal
+                    var txs = ReadJournal();
+                    txs.Add(new OfflineSessionTransaction
+                    {
+                        TransactionId = txId,
+                        ComputerId = _computerId,
+                        EnrollmentNumber = enrollment,
+                        LoginTime = DateTime.UtcNow,
+                        LastActiveTime = DateTime.UtcNow,
+                        Status = "PENDING_LOGOUT"
+                    });
+                    WriteJournal(txs);
+
+                    // Start 1-minute progress checkpoint timer
+                    _offlineActiveTimer?.Start();
+
                     UnlockWorkstation(enrollment + " (OFFLINE)");
+                }
+                else if (VerifyAdminCredentialsLocally(pin))
+                {
+                    // Admin local credentials override
+                    _activeSessionId = Guid.NewGuid().ToString();
+                    UnlockWorkstation("ADMIN_OVERRIDE (OFFLINE)");
                 }
                 else
                 {
-                    UpdateStatus("Invalid credentials or user not cached locally.", isError: true);
+                    UpdateStatus("Invalid offline credentials or student PIN is not cached locally.", isError: true);
                 }
             }
         }
@@ -1179,6 +1472,48 @@ namespace AlamsClient
         {
             _isUnlocked = false;
             _activeSessionId = "";
+
+            // Handle offline session checkout logs
+            if (!string.IsNullOrEmpty(_activeOfflineTransactionId))
+            {
+                _offlineActiveTimer?.Stop();
+                try
+                {
+                    var txs = ReadJournal();
+                    var tx = txs.FirstOrDefault(t => t.TransactionId == _activeOfflineTransactionId);
+                    if (tx != null)
+                    {
+                        tx.LogoutTime = DateTime.UtcNow;
+                        tx.DurationMinutes = (int)(tx.LogoutTime.Value - tx.LoginTime).TotalMinutes;
+                        if (tx.DurationMinutes < 0) tx.DurationMinutes = 0;
+                        tx.Status = "COMPLETED";
+                        tx.ClockTampered = _clockTamperingAnomalyDetected;
+
+                        // Sign the completed offline session transaction payload using machineToken
+                        if (!string.IsNullOrEmpty(_machineToken))
+                        {
+                            string payload = tx.EnrollmentNumber + tx.LoginTime.ToString("o") + tx.LogoutTime.Value.ToString("o") + tx.DurationMinutes;
+                            tx.Signature = ComputeHmac(payload, _machineToken);
+                        }
+
+                        WriteJournal(txs);
+                        Debug.WriteLine($"[Journal Offline Checkout] Saved completed offline transaction {tx.TransactionId}. Duration: {tx.DurationMinutes} mins. ClockTampered: {tx.ClockTampered}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Failed to register offline session checkout: {ex.Message}");
+                }
+                _activeOfflineTransactionId = "";
+                _clockTamperingAnomalyDetected = false;
+
+                // Immediately check for sync if online
+                if (_isOnline)
+                {
+                    _ = SyncOfflineSessionsAsync();
+                }
+            }
+
             EnrollmentInput.Text = "";
             PinInput.Password = "";
             StatusMessageText.Text = "";
@@ -1209,6 +1544,7 @@ namespace AlamsClient
                 var greenBrush = (System.Windows.Media.SolidColorBrush)new System.Windows.Media.BrushConverter().ConvertFromString("#22C55E");
                 var redBrush = (System.Windows.Media.SolidColorBrush)new System.Windows.Media.BrushConverter().ConvertFromString("#EF4444");
                 var rubyRedBrush = (System.Windows.Media.SolidColorBrush)new System.Windows.Media.BrushConverter().ConvertFromString("#BE123C");
+                var grayBrush = (System.Windows.Media.SolidColorBrush)new System.Windows.Media.BrushConverter().ConvertFromString("#64748B");
 
                 if (online)
                 {
@@ -1219,6 +1555,12 @@ namespace AlamsClient
                     {
                         NetworkIndicatorGlow.Color = System.Windows.Media.Colors.Green;
                     }
+
+                    // Update diagnostics panel
+                    DiagWsStatusText.Text = "CONNECTED";
+                    DiagWsStatusText.Foreground = greenBrush;
+                    DiagNetHealthText.Text = "HEALTHY";
+                    DiagNetHealthText.Foreground = greenBrush;
                 }
                 else
                 {
@@ -1232,6 +1574,26 @@ namespace AlamsClient
                     _qrTimer?.Stop();
                     _qrCountdownTimer?.Stop();
                     _uiCountdownTimer?.Stop();
+
+                    // Update diagnostics panel
+                    DiagWsStatusText.Text = "DISCONNECTED";
+                    DiagWsStatusText.Foreground = redBrush;
+                    DiagNetHealthText.Text = "OFFLINE";
+                    DiagNetHealthText.Foreground = rubyRedBrush;
+                    DiagLatencyText.Text = "N/A";
+                    DiagConnQualityText.Text = "Offline";
+                    DiagConnQualityText.Foreground = grayBrush;
+                }
+
+                // Query Watchdog status
+                try
+                {
+                    string serviceStatus = GetServiceStatus("AlamsWatchdog") ?? "Not Registered";
+                    DiagHeartbeatText.Text = serviceStatus;
+                }
+                catch
+                {
+                    DiagHeartbeatText.Text = "Unknown";
                 }
             });
         }
@@ -1660,5 +2022,269 @@ namespace AlamsClient
             }
             return enteredText == "Admin@ALAMS2026!" || enteredText == "Pilot@2026!" || enteredText == "112233";
         }
+
+        private void SaveStudentCredentials(JsonElement studentCreds)
+        {
+            try
+            {
+                _studentCredentials.Clear();
+                foreach (var item in studentCreds.EnumerateArray())
+                {
+                    string enr = item.TryGetProperty("enrollmentNumber", out var e) ? e.GetString() ?? "" : "";
+                    string pin = item.TryGetProperty("pinHash", out var p) ? p.GetString() ?? "" : "";
+                    _studentCredentials.Add(new StudentCredential { enrollmentNumber = enr, pinHash = pin });
+                }
+                SaveConfiguration();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to cache student credentials locally: {ex.Message}");
+            }
+        }
+
+        private void ToggleOtpTab_Click(object sender, RoutedEventArgs e)
+        {
+            AuthTabControl.SelectedIndex = 1;
+        }
+
+        private void GoBackToCredentials_Click(object sender, RoutedEventArgs e)
+        {
+            AuthTabControl.SelectedIndex = 0;
+        }
+
+        private const string JournalPath = @"C:\ProgramData\ALAMS\session_journal.dat";
+        private const string JournalTmpPath = @"C:\ProgramData\ALAMS\session_journal.tmp";
+
+        private System.Collections.Generic.List<OfflineSessionTransaction> ReadJournal()
+        {
+            lock (this)
+            {
+                try
+                {
+                    if (!File.Exists(JournalPath)) return new System.Collections.Generic.List<OfflineSessionTransaction>();
+                    string rawContent = File.ReadAllText(JournalPath);
+                    if (string.IsNullOrWhiteSpace(rawContent)) return new System.Collections.Generic.List<OfflineSessionTransaction>();
+
+                    string json = "";
+                    if (rawContent.TrimStart().StartsWith("["))
+                    {
+                        // Migrating legacy journal
+                        json = rawContent;
+                    }
+                    else
+                    {
+                        byte[] key = GetJournalEncryptionKey();
+                        json = DecryptAesGcm(rawContent, key);
+                    }
+
+                    return JsonSerializer.Deserialize<System.Collections.Generic.List<OfflineSessionTransaction>>(json) ?? new System.Collections.Generic.List<OfflineSessionTransaction>();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Failed to read session journal: {ex.Message}");
+                    return new System.Collections.Generic.List<OfflineSessionTransaction>();
+                }
+            }
+        }
+
+        private void WriteJournal(System.Collections.Generic.List<OfflineSessionTransaction> txs)
+        {
+            lock (this)
+            {
+                try
+                {
+                    string dir = Path.GetDirectoryName(JournalPath) ?? "";
+                    if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+
+                    string json = JsonSerializer.Serialize(txs, new JsonSerializerOptions { WriteIndented = true });
+                    byte[] key = GetJournalEncryptionKey();
+                    string cipherText = EncryptAesGcm(json, key);
+
+                    File.WriteAllText(JournalTmpPath, cipherText);
+                    using (var fs = new FileStream(JournalTmpPath, FileMode.Open, FileAccess.Write, FileShare.None))
+                    {
+                        fs.Flush(true);
+                    }
+                    if (File.Exists(JournalPath))
+                    {
+                        File.Replace(JournalTmpPath, JournalPath, null);
+                    }
+                    else
+                    {
+                        File.Move(JournalTmpPath, JournalPath);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Failed to write session journal: {ex.Message}");
+                }
+            }
+        }
+
+        private void OfflineActiveTimer_Tick(object? sender, EventArgs e)
+        {
+            if (string.IsNullOrEmpty(_activeOfflineTransactionId)) return;
+            try
+            {
+                var txs = ReadJournal();
+                var tx = txs.FirstOrDefault(t => t.TransactionId == _activeOfflineTransactionId);
+                if (tx != null)
+                {
+                    // Clock tampering check: if system clock went backward
+                    if (DateTime.UtcNow < tx.LastActiveTime - TimeSpan.FromSeconds(5))
+                    {
+                        _clockTamperingAnomalyDetected = true;
+                        Debug.WriteLine("[TAMPER] Workstation system clock went backward during offline session!");
+                    }
+
+                    tx.LastActiveTime = DateTime.UtcNow;
+                    WriteJournal(txs);
+                    Debug.WriteLine($"[Journal Checkpoint] Updated active offline transaction {_activeOfflineTransactionId}.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to write offline active checkpoint: {ex.Message}");
+            }
+        }
+
+        private async void JournalCheckTimer_Tick(object? sender, EventArgs e)
+        {
+            if (_isOnline && _webSocket != null && _webSocket.State == WebSocketState.Open)
+            {
+                await SyncOfflineSessionsAsync();
+            }
+        }
+
+        private void RecoverJournal()
+        {
+            try
+            {
+                var txs = ReadJournal();
+                bool modified = false;
+
+                foreach (var tx in txs)
+                {
+                    if (tx.Status == "PENDING_LOGOUT")
+                    {
+                        // Session was interrupted - close it based on last active checkpoint
+                        DateTime logout = tx.LastActiveTime;
+                        if (logout <= tx.LoginTime)
+                        {
+                            logout = tx.LoginTime.AddMinutes(1);
+                        }
+
+                        tx.LogoutTime = logout;
+                        tx.DurationMinutes = (int)(logout - tx.LoginTime).TotalMinutes;
+                        if (tx.DurationMinutes < 0) tx.DurationMinutes = 0;
+                        tx.Status = "COMPLETED";
+                        modified = true;
+                        
+                        Debug.WriteLine($"[Journal Recovery] Interrupted offline session {tx.TransactionId} successfully recovered. Duration: {tx.DurationMinutes} mins.");
+                    }
+                }
+
+                if (modified)
+                {
+                    WriteJournal(txs);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to recover session journal: {ex.Message}");
+            }
+        }
+
+        private async Task SyncOfflineSessionsAsync()
+        {
+            var txs = ReadJournal();
+            var completed = txs.Where(t => t.Status == "COMPLETED").ToList();
+            if (!completed.Any()) return;
+
+            bool modified = false;
+            string localIp = "127.0.0.1";
+            string macAddress = "";
+            try
+            {
+                var activeAdapter = NetworkInterface.GetAllNetworkInterfaces()
+                    .FirstOrDefault(ni => ni.OperationalStatus == OperationalStatus.Up && ni.NetworkInterfaceType != NetworkInterfaceType.Loopback);
+                if (activeAdapter != null)
+                {
+                    macAddress = string.Join(":", activeAdapter.GetPhysicalAddress().GetAddressBytes().Select(b => b.ToString("X2")));
+                    localIp = activeAdapter.GetIPProperties().UnicastAddresses
+                        .FirstOrDefault(ua => ua.Address.AddressFamily == AddressFamily.InterNetwork)?.Address.ToString() ?? "127.0.0.1";
+                }
+            }
+            catch {}
+
+            foreach (var tx in completed)
+            {
+                try
+                {
+                    var payload = new
+                    {
+                        transactionId = tx.TransactionId,
+                        computerId = tx.ComputerId,
+                        enrollmentNumber = tx.EnrollmentNumber,
+                        loginTime = tx.LoginTime.ToString("o"),
+                        logoutTime = tx.LogoutTime?.ToString("o"),
+                        durationMinutes = tx.DurationMinutes,
+                        verificationMethod = "OFFLINE_LOGIN",
+                        ipAddress = localIp,
+                        macAddress = macAddress,
+                        signature = tx.Signature,
+                        clockTampered = tx.ClockTampered
+                    };
+
+                    string json = JsonSerializer.Serialize(payload);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+                    var response = await _httpClient.PostAsync($"{ServerHttpUrl}/api/v1/client/sync-offline-session", content);
+
+                    if (response.IsSuccessStatusCode || response.StatusCode == HttpStatusCode.Conflict)
+                    {
+                        txs.Remove(tx);
+                        modified = true;
+                        _lastSyncTime = DateTime.Now;
+
+                        Dispatcher.Invoke(() =>
+                        {
+                            DiagSyncText.Text = _lastSyncTime.Value.ToString("HH:mm:ss");
+                        });
+
+                        Debug.WriteLine($"[Journal Sync] Successfully synchronized transaction {tx.TransactionId}.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[Journal Sync] Sync failed for transaction {tx.TransactionId}: {ex.Message}");
+                    break; // stop loop if connection fails
+                }
+            }
+
+            if (modified)
+            {
+                WriteJournal(txs);
+            }
+        }
+    }
+
+    public class StudentCredential
+    {
+        public string enrollmentNumber { get; set; } = "";
+        public string pinHash { get; set; } = "";
+    }
+
+    public class OfflineSessionTransaction
+    {
+        public string TransactionId { get; set; } = "";
+        public string ComputerId { get; set; } = "";
+        public string EnrollmentNumber { get; set; } = "";
+        public DateTime LoginTime { get; set; }
+        public DateTime? LogoutTime { get; set; }
+        public int DurationMinutes { get; set; }
+        public string Status { get; set; } = "PENDING_LOGOUT";
+        public DateTime LastActiveTime { get; set; }
+        public string Signature { get; set; } = "";
+        public bool ClockTampered { get; set; }
     }
 }

@@ -1,7 +1,7 @@
 import { Response } from "express";
 import prisma from "../prisma";
 import { AuthenticatedRequest } from "../middleware/auth";
-import { unlockComputer, lockComputer, sendApprovalToClient, sendRemoteCommand, sendProfileConfigToConnectedClients } from "../websocket";
+import { unlockComputer, lockComputer, sendApprovalToClient, sendRemoteCommand, sendProfileConfigToConnectedClients, disconnectClient } from "../websocket";
 import { AttendanceStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -885,6 +885,160 @@ export async function updateProfileAuthConfig(req: AuthenticatedRequest, res: Re
     return res.json(profile);
   } catch (err: any) {
     return res.status(404).json({ error: "Profile not found" });
+  }
+}
+
+export async function updateComputer(req: AuthenticatedRequest, res: Response) {
+  const { id } = req.params;
+  const { deviceName, pcNumber, seatNumber, labId, deviceGroup, department, fallbackEnabled, status, seatNotes } = req.body;
+
+  try {
+    const existing = await prisma.computer.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ error: "Computer not found" });
+    }
+
+    const oldName = existing.deviceName;
+    const oldStatus = existing.status;
+
+    const updated = await prisma.computer.update({
+      where: { id },
+      data: {
+        deviceName: deviceName !== undefined ? deviceName : undefined,
+        pcNumber: pcNumber !== undefined ? pcNumber : undefined,
+        seatNumber: seatNumber !== undefined ? seatNumber : undefined,
+        labId: labId !== undefined ? labId : undefined,
+        deviceGroup: deviceGroup !== undefined ? deviceGroup : undefined,
+        department: department !== undefined ? department : undefined,
+        fallbackEnabled: fallbackEnabled !== undefined ? fallbackEnabled : undefined,
+        status: status !== undefined ? status : undefined,
+        seatNotes: seatNotes !== undefined ? seatNotes : undefined,
+      }
+    });
+
+    // Rename computer command dispatch
+    if (deviceName && deviceName !== oldName) {
+      const cmd = await prisma.commandQueue.create({
+        data: {
+          computerId: id,
+          command: "RENAME_COMPUTER",
+          parameters: deviceName,
+          status: "PENDING"
+        }
+      });
+      const sent = sendRemoteCommand(id, cmd.id, "RENAME_COMPUTER", deviceName);
+      if (sent) {
+        await prisma.commandQueue.update({
+          where: { id: cmd.id },
+          data: { status: "SENT" }
+        });
+      }
+    }
+
+    // Status change action
+    if (status && status !== oldStatus && (status === "BLOCKED" || status === "RETIRED")) {
+      disconnectClient(id);
+    }
+
+    await createAuditLog(
+      "DEVICE_CONFIG_UPDATED",
+      `Admin updated details for computer ${updated.deviceName}. Status: ${updated.status}`,
+      req.user?.userId,
+      id
+    );
+
+    return res.json(updated);
+  } catch (err: any) {
+    console.error("updateComputer error:", err);
+    return res.status(500).json({ error: "Failed to update workstation client details" });
+  }
+}
+
+export async function deleteComputer(req: AuthenticatedRequest, res: Response) {
+  const { id } = req.params;
+
+  try {
+    const computer = await prisma.computer.findUnique({ where: { id } });
+    if (!computer) {
+      return res.status(404).json({ error: "Computer not found" });
+    }
+
+    // Disconnect active WebSocket if connected
+    disconnectClient(id);
+
+    // Delete related entities manually to prevent constraint errors
+    await prisma.commandQueue.deleteMany({ where: { computerId: id } });
+    await prisma.securityAlert.deleteMany({ where: { computerId: id } });
+    
+    // Delete session attendance manually
+    const sessions = await prisma.session.findMany({ where: { computerId: id } });
+    const sessionIds = sessions.map(s => s.id);
+    await prisma.attendance.deleteMany({ where: { sessionId: { in: sessionIds } } });
+    await prisma.session.deleteMany({ where: { computerId: id } });
+
+    // Finally delete computer
+    await prisma.computer.delete({ where: { id } });
+
+    await createAuditLog(
+      "DEVICE_REMOVED",
+      `Admin deleted workstation client ${computer.deviceName} (MAC: ${computer.macAddress}) from system.`,
+      req.user?.userId
+    );
+
+    return res.json({ message: "Workstation deleted successfully" });
+  } catch (err: any) {
+    console.error("deleteComputer error:", err);
+    return res.status(500).json({ error: "Failed to remove workstation client" });
+  }
+}
+
+export async function getComputerHistory(req: AuthenticatedRequest, res: Response) {
+  const { id } = req.params;
+
+  try {
+    const computer = await prisma.computer.findUnique({ where: { id } });
+    if (!computer) {
+      return res.status(404).json({ error: "Computer not found" });
+    }
+
+    // Sessions and attendance
+    const sessions = await prisma.session.findMany({
+      where: { computerId: id },
+      include: {
+        user: { select: { fullName: true, enrollmentNumber: true } },
+        attendance: true,
+      },
+      orderBy: { loginTime: "desc" },
+    });
+
+    // Security alerts
+    const alerts = await prisma.securityAlert.findMany({
+      where: { computerId: id },
+      orderBy: { alertTime: "desc" },
+    });
+
+    // Audit logs of operations on this workstation
+    const auditLogs = await prisma.auditLog.findMany({
+      where: { computerId: id },
+      orderBy: { createdAt: "desc" },
+    });
+
+    // Authentication audits
+    const authAudits = await prisma.authAudit.findMany({
+      where: { computerId: id },
+      orderBy: { loginTime: "desc" },
+    });
+
+    return res.json({
+      computer,
+      sessions,
+      alerts,
+      auditLogs,
+      authAudits,
+    });
+  } catch (err: any) {
+    console.error("getComputerHistory error:", err);
+    return res.status(500).json({ error: "Failed to query workstation client history logs" });
   }
 }
 

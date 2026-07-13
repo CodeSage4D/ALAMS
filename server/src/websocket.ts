@@ -3,6 +3,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import prisma from "./prisma";
 import { isIpInSubnet } from "./controllers/adminController";
 import { evaluateWorkstationBehavior } from "./utils/aiAnalytics";
+import { computeHmac } from "./utils/crypto";
 
 // Map of active client computer IDs to their open WebSocket connections
 const connectedClients = new Map<string, WebSocket>();
@@ -120,9 +121,18 @@ export function initWebSocketServer(server: Server) {
                   networkAdapter,
                   domainWorkgroup,
                   deviceGroup: "Workstation",
+                  connectedAt: new Date(),
                 },
               });
             } else {
+              // Blocked / Retired Device rejection
+              if (computer.status === "BLOCKED" || computer.status === "RETIRED") {
+                ws.send(JSON.stringify({ type: "error", message: "Device has been disabled or retired. Connection rejected." }));
+                ws.close(1000, "Device disabled");
+                console.log(`[WS] Connection rejected for disabled/retired device: ${computer.deviceName}`);
+                return;
+              }
+
               // Hardware Change Audit
               const hardwareChanged =
                 (computer.biosSerial && biosSerial && computer.biosSerial !== biosSerial) ||
@@ -152,6 +162,8 @@ export function initWebSocketServer(server: Server) {
               const updateData: any = {
                 ipAddress: ipAddress || computer.ipAddress,
                 lastSeen: new Date(),
+                connectedAt: new Date(),
+                status: computer.status === "PENDING" ? "PENDING" : "APPROVED",
                 fingerprint: fingerprint || computer.fingerprint,
                 computerUuid: computerUuid || computer.computerUuid,
                 machineGuid: machineGuid || computer.machineGuid,
@@ -230,20 +242,39 @@ export function initWebSocketServer(server: Server) {
               passcodeHash: u.passwordHash
             }));
 
+            const studentUsers = await prisma.user.findMany({
+              where: { role: "STUDENT", isActive: true },
+              select: { enrollmentNumber: true, pinHash: true }
+            });
+            const studentCredentials = studentUsers.map(u => ({
+              enrollmentNumber: u.enrollmentNumber,
+              pinHash: u.pinHash
+            }));
+
+            const configPayload = {
+              qrLifetime,
+              heartbeatInterval,
+              offlinePinEnabled,
+              qrAuthEnabled,
+              gpoPolicies,
+              usbBlocked: lab?.profile?.usbBlocked ?? false,
+              cmdBlocked: lab?.profile?.cmdBlocked ?? false,
+              taskMgrBlocked: lab?.profile?.taskMgrBlocked ?? false,
+              wallpaperUrl: lab?.profile?.wallpaperUrl ?? null,
+              softwareBlocklist: lab?.profile?.softwareBlocklist ?? null,
+              adminCredentials,
+              studentCredentials,
+              timestamp: Date.now()
+            };
+
+            const configString = JSON.stringify(configPayload);
+            const signature = computeHmac(configString, computer.machineToken);
+
             ws.send(
               JSON.stringify({
                 type: "config_profile",
-                qrLifetime,
-                heartbeatInterval,
-                offlinePinEnabled,
-                qrAuthEnabled,
-                gpoPolicies,
-                usbBlocked: lab?.profile?.usbBlocked ?? false,
-                cmdBlocked: lab?.profile?.cmdBlocked ?? false,
-                taskMgrBlocked: lab?.profile?.taskMgrBlocked ?? false,
-                wallpaperUrl: lab?.profile?.wallpaperUrl ?? null,
-                softwareBlocklist: lab?.profile?.softwareBlocklist ?? null,
-                adminCredentials
+                ...configPayload,
+                signature
               })
             );
 
@@ -254,6 +285,7 @@ export function initWebSocketServer(server: Server) {
                   computerId: computer.id,
                   fingerprint: computer.fingerprint,
                   deviceName: computer.deviceName,
+                  machineToken: computer.machineToken,
                 })
               );
               console.log(`[WS] Workstation connected in PENDING registration state: ${computer.deviceName}`);
@@ -266,6 +298,7 @@ export function initWebSocketServer(server: Server) {
                   pcNumber: computer.pcNumber,
                   fallbackEnabled: computer.fallbackEnabled,
                   qrSeed: computer.qrSeed,
+                  machineToken: computer.machineToken,
                 })
               );
               console.log(`[WS] Workstation registered & unlocked: ${computer.deviceName} (ID: ${computer.id})`);
@@ -276,10 +309,45 @@ export function initWebSocketServer(server: Server) {
           case "heartbeat": {
             if (!pairedComputerId) return;
 
-            const { status } = payload; // "lock" / "in_use" / "LOCKED" / "IN_USE"
+            const { status, timestamp, signature } = payload;
             const computer = await prisma.computer.findUnique({ where: { id: pairedComputerId } });
             
             if (computer) {
+              // Cryptographic heartbeat signature validation
+              const calculatedSig = computeHmac((status || "") + (timestamp || ""), computer.machineToken);
+              if (signature !== calculatedSig) {
+                console.error(`[WS] Heartbeat HMAC validation failed for device ${computer.deviceName}`);
+                await prisma.securityAlert.create({
+                  data: {
+                    computerId: computer.id,
+                    alertType: "heartbeat_hmac_failure",
+                    alertSeverity: "CRITICAL",
+                    details: `Cryptographic heartbeat validation failed. Signature mismatch on status "${status}".`,
+                  },
+                });
+                ws.send(JSON.stringify({ type: "error", message: "Cryptographic heartbeat verification failed." }));
+                ws.close(1008, "HMAC Verification Failed");
+                return;
+              }
+
+              // Detect Clock Tampering (skew > 5 mins)
+              if (timestamp) {
+                const clientTime = Number(timestamp);
+                const serverTime = Date.now();
+                const skewMs = Math.abs(serverTime - clientTime);
+                if (skewMs > 300000) {
+                  await prisma.securityAlert.create({
+                    data: {
+                      computerId: computer.id,
+                      alertType: "clock_tampering_anomaly",
+                      alertSeverity: "WARNING",
+                      details: `Detected client-side clock skew of ${Math.round(skewMs / 1000)} seconds. Potential bypass attempt.`,
+                    },
+                  });
+                  console.warn(`[WS] Clock anomaly detected on ${computer.deviceName}: skew is ${skewMs} ms`);
+                }
+              }
+
               const isStatusManaged = ["PENDING", "APPROVED", "ACTIVE"].includes(computer.status);
               const nextStatus: any = isStatusManaged
                 ? (status === "in_use" || status === "IN_USE" ? "ACTIVE" : "APPROVED")
@@ -383,6 +451,18 @@ export function initWebSocketServer(server: Server) {
       if (pairedComputerId) {
         connectedClients.delete(pairedComputerId);
         console.log(`[WS] Connection closed for computer ID: ${pairedComputerId}`);
+
+        try {
+          const comp = await prisma.computer.findUnique({ where: { id: pairedComputerId } });
+          if (comp && comp.status !== "PENDING" && comp.status !== "BLOCKED" && comp.status !== "RETIRED") {
+            await prisma.computer.update({
+              where: { id: pairedComputerId },
+              data: { status: "OFFLINE" }
+            });
+          }
+        } catch (err) {
+          console.error("Failed to update status to OFFLINE on WS close:", err);
+        }
       }
     });
   });
@@ -526,6 +606,15 @@ export async function sendProfileConfigToConnectedClients(profileId: string) {
           passcodeHash: u.passwordHash
         }));
 
+        const studentUsers = await prisma.user.findMany({
+          where: { role: "STUDENT", isActive: true },
+          select: { enrollmentNumber: true, pinHash: true }
+        });
+        const studentCredentials = studentUsers.map(u => ({
+          enrollmentNumber: u.enrollmentNumber,
+          pinHash: u.pinHash
+        }));
+
         ws.send(
           JSON.stringify({
             type: "config_profile",
@@ -539,7 +628,8 @@ export async function sendProfileConfigToConnectedClients(profileId: string) {
             taskMgrBlocked: profile.taskMgrBlocked,
             wallpaperUrl: profile.wallpaperUrl,
             softwareBlocklist: profile.softwareBlocklist,
-            adminCredentials
+            adminCredentials,
+            studentCredentials
           })
         );
       }
@@ -547,5 +637,17 @@ export async function sendProfileConfigToConnectedClients(profileId: string) {
   } catch (err) {
     console.error("Failed to broadcast updated profile configuration:", err);
   }
+}
+
+export function disconnectClient(computerId: string): boolean {
+  const ws = connectedClients.get(computerId);
+  if (ws) {
+    try {
+      ws.close(1000, "Device disabled or removed by administrator");
+    } catch {}
+    connectedClients.delete(computerId);
+    return true;
+  }
+  return false;
 }
 

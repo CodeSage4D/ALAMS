@@ -25,9 +25,9 @@ interface Computer {
   ipAddress: string;
   macAddress: string;
   fingerprint?: string;
-  status: "ONLINE" | "OFFLINE" | "LOCKED" | "IN_USE" | "PENDING";
+  status: "ONLINE" | "OFFLINE" | "LOCKED" | "IN_USE" | "PENDING" | "APPROVED" | "MAINTENANCE" | "BLOCKED" | "RETIRED";
   fallbackEnabled: boolean;
-  lab: { name: string };
+  lab: { name: string; subnet?: string | null };
   labId: string;
   lastSeen?: string;
   watchdogHeartbeat?: string | null;
@@ -35,6 +35,16 @@ interface Computer {
   ramUsage?: number | null;
   loggedStudent?: string | null;
   policyStatus?: string | null;
+  subnetValid?: boolean;
+  subnetWarning?: string;
+  connectedAt?: string;
+  department?: string;
+  seatNumber?: string;
+  ram?: string;
+  storage?: string;
+  osVersion?: string;
+  clientVersion?: string;
+  watchdogVersion?: string;
 }
 
 interface Student {
@@ -119,6 +129,20 @@ export default function AdminDashboard() {
 
   const [feedbackMsg, setFeedbackMsg] = useState("");
   const [selectedPC, setSelectedPC] = useState<any>(null);
+
+  // Asset Inventory Filter & Sorting States
+  const [invSearch, setInvSearch] = useState("");
+  const [invStatusFilter, setInvStatusFilter] = useState("ALL");
+  const [invLabFilter, setInvLabFilter] = useState("ALL");
+  const [invHealthFilter, setInvHealthFilter] = useState("ALL");
+  const [invSortField, setInvSortField] = useState("pcNumber");
+  const [selectedPCs, setSelectedPCs] = useState<string[]>([]); // For bulk actions
+  
+  // History Modal States
+  const [historyPC, setHistoryPC] = useState<any>(null);
+  const [historyData, setHistoryData] = useState<any>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyTab, setHistoryTab] = useState<"sessions" | "alerts" | "audits">("sessions");
 
   // Email Config State
   const [emailConfig, setEmailConfig] = useState<any>(null);
@@ -264,6 +288,187 @@ export default function AdminDashboard() {
   }, [adminUser, refreshes]);
 
   const triggerRefresh = () => setRefreshes(prev => prev + 1);
+
+  const fetchComputerHistory = async (computer: any) => {
+    setHistoryPC(computer);
+    setHistoryLoading(true);
+    setHistoryTab("sessions");
+    try {
+      const token = localStorage.getItem("admin_token");
+      const res = await fetch(`${API_URL}/api/v1/admin/computers/${computer.id}/history`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setHistoryData(data);
+      } else {
+        alert("Failed to pull workstation history.");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const handleWorkstationCommand = async (computerId: string, command: string, parameters: string = "") => {
+    try {
+      const token = localStorage.getItem("admin_token");
+      const res = await fetch(`${API_URL}/api/v1/admin/computers/${computerId}/command`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ command, parameters })
+      });
+      if (res.ok) {
+        showFeedback(`Remote command ${command} queued successfully!`);
+        triggerRefresh();
+      } else {
+        const data = await res.json();
+        alert(data.error || `Failed to queue ${command}`);
+      }
+    } catch (err) {
+      alert("Network error sending remote command.");
+    }
+  };
+
+  const handleUpdateComputerField = async (computerId: string, payload: any) => {
+    try {
+      const token = localStorage.getItem("admin_token");
+      const res = await fetch(`${API_URL}/api/v1/admin/computers/${computerId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        showFeedback("Workstation updated successfully!");
+        triggerRefresh();
+      } else {
+        alert("Failed to update workstation.");
+      }
+    } catch (err) {
+      alert("Network error updating workstation.");
+    }
+  };
+
+  const handleDeleteComputer = async (computerId: string) => {
+    if (!window.confirm("Are you sure you want to permanently delete and unpair this workstation?")) return;
+    try {
+      const token = localStorage.getItem("admin_token");
+      const res = await fetch(`${API_URL}/api/v1/admin/computers/${computerId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showFeedback("Workstation unpaired and deleted successfully!");
+        triggerRefresh();
+      } else {
+        alert("Failed to delete workstation.");
+      }
+    } catch (err) {
+      alert("Network error deleting workstation.");
+    }
+  };
+
+  const handleBulkAction = async (action: string) => {
+    if (selectedPCs.length === 0) {
+      alert("Please select at least one workstation.");
+      return;
+    }
+    if (!window.confirm(`Run bulk action '${action}' on ${selectedPCs.length} workstations?`)) return;
+
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("admin_token");
+      await Promise.all(selectedPCs.map(async (computerId) => {
+        if (action === "LOCK") {
+          await fetch(API_URL + "/api/v1/admin/computers/remote-lock", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ computerId })
+          });
+        } else if (action === "UNLOCK") {
+          await fetch(API_URL + "/api/v1/admin/computers/remote-unlock", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ computerId })
+          });
+        } else if (action === "RESTART_SERVICE") {
+          await fetch(`${API_URL}/api/v1/admin/computers/${computerId}/command`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ command: "RESTART_SERVICE", parameters: "" })
+          });
+        } else if (action === "REFRESH") {
+          await fetch(`${API_URL}/api/v1/admin/computers/${computerId}/command`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ command: "REFRESH", parameters: "" })
+          });
+        } else if (action === "DELETE") {
+          await fetch(`${API_URL}/api/v1/admin/computers/${computerId}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` }
+          });
+        }
+      }));
+      setSelectedPCs([]);
+      showFeedback(`Bulk action completed!`);
+      triggerRefresh();
+    } catch (err) {
+      console.error(err);
+      alert("Error executing bulk operations.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const exportInventoryCSV = () => {
+    try {
+      const headers = [
+        "PC Number", "Device Name", "Seat Number", "Lab Name", "Department",
+        "IPv4 Address", "MAC Address", "OS Version", "Client Version", 
+        "Watchdog Version", "Connected Time", "Last Heartbeat", 
+        "Logged Student", "Hardware Health", "Status"
+      ];
+      const rows = computers.map((pc: any) => [
+        pc.pcNumber || "",
+        pc.deviceName || "",
+        pc.seatNumber || "",
+        pc.lab?.name || "",
+        pc.department || "",
+        pc.ipAddress || "",
+        pc.macAddress || "",
+        pc.osVersion || "",
+        pc.clientVersion || "1.0.0",
+        pc.watchdogVersion || "",
+        pc.connectedAt ? new Date(pc.connectedAt).toLocaleString() : "",
+        pc.lastSeen ? new Date(pc.lastSeen).toLocaleString() : "",
+        pc.loggedStudent || "",
+        pc.watchdogHeartbeat ? "Watchdog Active" : "Watchdog Stopped",
+        pc.status || ""
+      ]);
+
+      const csvContent = "data:text/csv;charset=utf-8," 
+        + [headers.join(","), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `ALAMS_Inventory_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showFeedback("Inventory exported successfully!");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to export inventory CSV.");
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("admin_token");
@@ -1795,65 +2000,137 @@ export default function AdminDashboard() {
 
           {/* TAB 5: SECURITY AUDITS */}
           {activeTab === "alerts" && (
-            <div className="bg-darkCard border border-darkBorder rounded-2xl overflow-hidden shadow-xl">
-              <div className="p-6 border-b border-darkBorder">
-                <h3 className="font-bold text-lg text-white">Lab Security Incident Log</h3>
+            <div className="space-y-6 animate-fade-in">
+              {/* Security Metrics Overview Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="bg-darkCard p-5 rounded-2xl border border-darkBorder flex flex-col justify-between shadow-xl">
+                  <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">HMAC Failures</span>
+                  <div className="flex items-baseline justify-between mt-3">
+                    <span className="text-3xl font-black text-rose-500">
+                      {alerts.filter(a => a.alertType.toLowerCase().includes("hmac") || a.alertType.toLowerCase().includes("signature")).length}
+                    </span>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase">Alerts</span>
+                  </div>
+                </div>
+
+                <div className="bg-darkCard p-5 rounded-2xl border border-darkBorder flex flex-col justify-between shadow-xl">
+                  <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Clock Tampering</span>
+                  <div className="flex items-baseline justify-between mt-3">
+                    <span className="text-3xl font-black text-amber-400">
+                      {alerts.filter(a => a.alertType.toLowerCase().includes("clock") || a.alertType.toLowerCase().includes("tampering")).length}
+                    </span>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase">Alerts</span>
+                  </div>
+                </div>
+
+                <div className="bg-darkCard p-5 rounded-2xl border border-darkBorder flex flex-col justify-between shadow-xl">
+                  <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Hardware Mismatch</span>
+                  <div className="flex items-baseline justify-between mt-3">
+                    <span className="text-3xl font-black text-blue-400">
+                      {alerts.filter(a => a.alertType.toLowerCase().includes("fingerprint") || a.alertType.toLowerCase().includes("hardware") || a.alertType.toLowerCase().includes("mismatch")).length}
+                    </span>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase">Alerts</span>
+                  </div>
+                </div>
+
+                <div className="bg-darkCard p-5 rounded-2xl border border-darkBorder flex flex-col justify-between shadow-xl">
+                  <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Replay Attempts</span>
+                  <div className="flex items-baseline justify-between mt-3">
+                    <span className="text-3xl font-black text-pink-400">
+                      {alerts.filter(a => a.alertType.toLowerCase().includes("replay") || a.alertType.toLowerCase().includes("duplicate")).length}
+                    </span>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase">Alerts</span>
+                  </div>
+                </div>
+
+                <div className="bg-darkCard p-5 rounded-2xl border border-darkBorder flex flex-col justify-between shadow-xl">
+                  <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Config Violations</span>
+                  <div className="flex items-baseline justify-between mt-3">
+                    <span className="text-3xl font-black text-purple-400">
+                      {alerts.filter(a => a.alertType.toLowerCase().includes("config") || a.alertType.toLowerCase().includes("integrity") || a.alertType.toLowerCase().includes("violation")).length}
+                    </span>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase">Alerts</span>
+                  </div>
+                </div>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm border-collapse">
-                  <thead>
-                    <tr className="bg-darkBg/40 border-b border-darkBorder text-gray-400 text-xs font-bold uppercase tracking-wider">
-                      <th className="p-4">PC Target</th>
-                      <th className="p-4">Incident Trigger</th>
-                      <th className="p-4">Severity</th>
-                      <th className="p-4">Incident Log details</th>
-                      <th className="p-4">Logged Time</th>
-                      <th className="p-4 text-center">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-darkBorder">
-                    {alerts.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="p-8 text-center text-gray-500">
-                          Zero security audit incidents detected. System secure.
-                        </td>
+
+              <div className="bg-darkCard border border-darkBorder rounded-2xl overflow-hidden shadow-xl">
+                <div className="p-6 border-b border-darkBorder">
+                  <h3 className="font-bold text-lg text-white font-sans">Lab Security Incident & Cryptographic Verification Log</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm border-collapse">
+                    <thead>
+                      <tr className="bg-darkBg/40 border-b border-darkBorder text-gray-400 text-xs font-bold uppercase tracking-wider">
+                        <th className="p-4">PC Target</th>
+                        <th className="p-4">Incident Trigger</th>
+                        <th className="p-4">Severity</th>
+                        <th className="p-4">Incident Log details</th>
+                        <th className="p-4">Logged Time</th>
+                        <th className="p-4 text-center">Status</th>
                       </tr>
-                    ) : (
-                      alerts.map(alert => (
-                        <tr key={alert.id} className="hover:bg-darkBg/10 transition">
-                          <td className="p-4 font-bold text-white">
-                            {alert.computer ? `${alert.computer.pcNumber} (${alert.computer.deviceName})` : "Global"}
-                          </td>
-                          <td className="p-4 text-gray-300 font-mono text-xs">{alert.alertType}</td>
-                          <td className="p-4">
-                            {alert.alertSeverity === "CRITICAL" ? (
-                              <span className="px-2.5 py-0.5 bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-bold rounded-full">CRITICAL</span>
-                            ) : (
-                              <span className="px-2.5 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-bold rounded-full">WARNING</span>
-                            )}
-                          </td>
-                          <td className="p-4 text-gray-400 text-xs leading-relaxed max-w-sm truncate" title={alert.details}>{alert.details}</td>
-                          <td className="p-4 text-xs font-mono text-gray-400">{new Date(alert.alertTime).toLocaleString()}</td>
-                          <td className="p-4 text-center">
-                            {alert.resolved ? (
-                              <span className="text-gray-500 text-xs font-bold flex items-center justify-center space-x-1">
-                                <Check size={12} />
-                                <span>Resolved</span>
-                              </span>
-                            ) : (
-                              <button
-                                onClick={() => handleResolveAlert(alert.id)}
-                                className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-darkBg font-bold rounded-lg text-xs transition"
-                              >
-                                Resolve
-                              </button>
-                            )}
+                    </thead>
+                    <tbody className="divide-y divide-darkBorder">
+                      {alerts.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="p-8 text-center text-gray-500">
+                            Zero security audit incidents detected. System secure.
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                      ) : (
+                        alerts.map(alert => (
+                          <tr key={alert.id} className="hover:bg-darkBg/10 transition">
+                            <td className="p-4 font-bold text-white">
+                              {alert.computer ? `${alert.computer.pcNumber} (${alert.computer.deviceName})` : "Global"}
+                            </td>
+                            <td className="p-4 text-gray-300 font-mono text-xs">
+                              {alert.alertType.toLowerCase().includes("hmac") && (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-rose-500/15 text-rose-400 border border-rose-500/20 mr-1.5">HMAC</span>
+                              )}
+                              {alert.alertType.toLowerCase().includes("clock") && (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-amber-500/15 text-amber-400 border border-amber-500/20 mr-1.5">CLOCK</span>
+                              )}
+                              {alert.alertType.toLowerCase().includes("fingerprint") && (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-blue-500/15 text-blue-400 border border-blue-500/20 mr-1.5">BINDING</span>
+                              )}
+                              {alert.alertType.toLowerCase().includes("replay") && (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-pink-500/15 text-pink-400 border border-pink-500/20 mr-1.5">REPLAY</span>
+                              )}
+                              {alert.alertType.toLowerCase().includes("config") && (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-purple-500/15 text-purple-400 border border-purple-500/20 mr-1.5">CONFIG</span>
+                              )}
+                              {alert.alertType}
+                            </td>
+                            <td className="p-4">
+                              {alert.alertSeverity === "CRITICAL" ? (
+                                <span className="px-2.5 py-0.5 bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-bold rounded-full">CRITICAL</span>
+                              ) : (
+                                <span className="px-2.5 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-bold rounded-full">WARNING</span>
+                              )}
+                            </td>
+                            <td className="p-4 text-gray-400 text-xs leading-relaxed max-w-sm truncate" title={alert.details}>{alert.details}</td>
+                            <td className="p-4 text-xs font-mono text-gray-400">{new Date(alert.alertTime).toLocaleString()}</td>
+                            <td className="p-4 text-center">
+                              {alert.resolved ? (
+                                <span className="text-gray-500 text-xs font-bold flex items-center justify-center space-x-1">
+                                  <Check size={12} />
+                                  <span>Resolved</span>
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => handleResolveAlert(alert.id)}
+                                  className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-darkBg font-bold rounded-lg text-xs transition"
+                                >
+                                  Resolve
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
@@ -2150,97 +2427,319 @@ export default function AdminDashboard() {
 
           {/* TAB 9: ASSET INVENTORY VIEW */}
           {activeTab === "inventory" && (
-            <div className="space-y-6 animate-fade-in">
-              <div className="flex justify-between items-center bg-darkCard/50 p-6 rounded-2xl border border-darkBorder">
+            <div className="space-y-6 animate-fade-in text-white">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between bg-darkCard/50 p-6 rounded-2xl border border-darkBorder gap-4">
                 <div>
-                  <h3 className="font-bold text-lg text-white">Central Hardware & Network Asset Registry</h3>
-                  <p className="text-xs text-gray-400 mt-1">Live tracking of hardware specs, WMI configurations, and lab subnet validation</p>
+                  <h3 className="font-bold text-xl text-white">Central Hardware & Network Asset Registry</h3>
+                  <p className="text-xs text-gray-400 mt-1">Live tracking of hardware specs, agent versions, security policies, and network health</p>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <span className="text-xs text-gray-500 font-bold">TOTAL ASSETS: {computers.length}</span>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={exportInventoryCSV}
+                    className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-darkBg font-extrabold rounded-xl text-xs transition flex items-center gap-2 shadow-lg shadow-emerald-500/10"
+                  >
+                    <FileSpreadsheet size={16} />
+                    <span>Export CSV</span>
+                  </button>
+                  <span className="px-3 py-1.5 bg-darkBorder text-gray-300 rounded-xl text-xs font-bold border border-darkBorder/40">
+                    Total Workstations: {computers.length}
+                  </span>
                 </div>
               </div>
 
+              {/* Filtering & Sorting Panel */}
+              <div className="bg-darkCard border border-darkBorder rounded-2xl p-5 shadow-xl space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+                  {/* Search */}
+                  <div className="md:col-span-2">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Search Workstations</label>
+                    <input
+                      type="text"
+                      placeholder="Search Name, PC#, Seat#, IP, MAC, Student..."
+                      value={invSearch}
+                      onChange={(e) => setInvSearch(e.target.value)}
+                      className="w-full px-3.5 py-2 rounded-xl bg-darkBg border border-darkBorder focus:border-emerald-500 focus:outline-none text-xs text-white"
+                    />
+                  </div>
+
+                  {/* Status Filter */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Agent Status</label>
+                    <select
+                      value={invStatusFilter}
+                      onChange={(e) => setInvStatusFilter(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-darkBg border border-darkBorder text-xs text-white focus:outline-none focus:border-emerald-500 font-semibold"
+                    >
+                      <option value="ALL">All Statuses</option>
+                      <option value="ONLINE">Online Agents</option>
+                      <option value="OFFLINE">Offline Agents</option>
+                      <option value="LOCKED">Locked</option>
+                      <option value="IN_USE">In Use</option>
+                      <option value="PENDING">Pending Pairing</option>
+                      <option value="BLOCKED">Disabled/Blocked</option>
+                    </select>
+                  </div>
+
+                  {/* Lab Zone Filter */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Lab Zone</label>
+                    <select
+                      value={invLabFilter}
+                      onChange={(e) => setInvLabFilter(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-darkBg border border-darkBorder text-xs text-white focus:outline-none focus:border-emerald-500 font-semibold"
+                    >
+                      <option value="ALL">All Labs</option>
+                      {labs.map(lab => (
+                        <option key={lab.id} value={lab.id}>{lab.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Network / Hardware Health Filter */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Health & Subnet</label>
+                    <select
+                      value={invHealthFilter}
+                      onChange={(e) => setInvHealthFilter(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-darkBg border border-darkBorder text-xs text-white focus:outline-none focus:border-emerald-500 font-semibold"
+                    >
+                      <option value="ALL">All Health States</option>
+                      <option value="HEALTHY">Subnet OK & Active</option>
+                      <option value="MISMATCH">Subnet Mismatch</option>
+                      <option value="WATCHDOG_STOPPED">Watchdog Stopped</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-darkBorder/40">
+                  {/* Sorting */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400 font-semibold">Sort By:</span>
+                    <select
+                      value={invSortField}
+                      onChange={(e) => setInvSortField(e.target.value)}
+                      className="px-2.5 py-1.5 bg-darkBg border border-darkBorder rounded-lg text-xs text-white focus:outline-none focus:border-emerald-500 font-semibold"
+                    >
+                      <option value="pcNumber">PC Seat Number</option>
+                      <option value="deviceName">Device Name</option>
+                      <option value="lastSeen">Last Active Time</option>
+                      <option value="connectedAt">Connection Time</option>
+                    </select>
+                  </div>
+
+                  {/* Bulk Actions Console */}
+                  <div className="flex items-center gap-2 bg-darkBg/60 p-2.5 rounded-xl border border-darkBorder/60">
+                    <span className="text-xs font-bold text-gray-400 mr-2">
+                      Selected: {selectedPCs.length} / {computers.length}
+                    </span>
+                    <button
+                      onClick={() => handleBulkAction("LOCK")}
+                      disabled={selectedPCs.length === 0}
+                      className="px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 disabled:opacity-40 disabled:hover:bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-bold rounded-lg transition"
+                    >
+                      🔒 Lock
+                    </button>
+                    <button
+                      onClick={() => handleBulkAction("UNLOCK")}
+                      disabled={selectedPCs.length === 0}
+                      className="px-2.5 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-40 disabled:hover:bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold rounded-lg transition"
+                    >
+                      🔓 Unlock
+                    </button>
+                    <button
+                      onClick={() => handleBulkAction("REFRESH")}
+                      disabled={selectedPCs.length === 0}
+                      className="px-2.5 py-1.5 bg-teal-500/10 hover:bg-teal-500/20 disabled:opacity-40 disabled:hover:bg-teal-500/10 text-teal-400 border border-teal-500/20 text-xs font-bold rounded-lg transition"
+                    >
+                      🔄 Refresh
+                    </button>
+                    <button
+                      onClick={() => handleBulkAction("RESTART_SERVICE")}
+                      disabled={selectedPCs.length === 0}
+                      className="px-2.5 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 disabled:opacity-40 disabled:hover:bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-xs font-bold rounded-lg transition"
+                    >
+                      🛠️ Restart Watchdog
+                    </button>
+                    <button
+                      onClick={() => handleBulkAction("DELETE")}
+                      disabled={selectedPCs.length === 0}
+                      className="px-2.5 py-1.5 bg-red-500/10 hover:bg-red-500/20 disabled:opacity-40 disabled:hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-bold rounded-lg transition"
+                    >
+                      ❌ Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Data Grid Card */}
               <div className="bg-darkCard border border-darkBorder rounded-2xl overflow-hidden shadow-xl">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm border-collapse">
                     <thead>
                       <tr className="bg-darkBg/40 border-b border-darkBorder text-gray-400 text-xs font-bold uppercase tracking-wider">
-                        <th className="p-4">Seat ID / PC No.</th>
-                        <th className="p-4">Friendly Name / MAC</th>
-                        <th className="p-4">Group</th>
-                        <th className="p-4">IPv4 Network</th>
-                        <th className="p-4">Network Subnet</th>
-                        <th className="p-4">System Specs</th>
-                        <th className="p-4">Agent Health</th>
-                        <th className="p-4">Device Status</th>
-                        <th className="p-4 text-center">Actions</th>
+                        <th className="p-4 w-12 text-center">
+                          <input
+                            type="checkbox"
+                            className="rounded border-darkBorder text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                            checked={selectedPCs.length > 0 && selectedPCs.length === computers.length}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedPCs(computers.map(c => c.id));
+                              } else {
+                                setSelectedPCs([]);
+                              }
+                            }}
+                          />
+                        </th>
+                        <th className="p-4">PC No. / Lab</th>
+                        <th className="p-4">Device Details</th>
+                        <th className="p-4">IP & Network</th>
+                        <th className="p-4">Hardware Specifications</th>
+                        <th className="p-4">Agent Telemetry</th>
+                        <th className="p-4">Logged Student</th>
+                        <th className="p-4">Status & Control</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-darkBorder">
-                      {computers.length === 0 ? (
-                        <tr>
-                          <td colSpan={9} className="p-8 text-center text-gray-500">
-                            No registered assets found in database.
-                          </td>
-                        </tr>
-                      ) : (
-                        computers.map((pc: any) => {
+                      {(() => {
+                        const searchFiltered = computers.filter(pc => {
+                          const query = invSearch.toLowerCase();
+                          const matchesQuery = !query || 
+                            (pc.deviceName || "").toLowerCase().includes(query) ||
+                            (pc.pcNumber || "").toLowerCase().includes(query) ||
+                            (pc.ipAddress || "").toLowerCase().includes(query) ||
+                            (pc.macAddress || "").toLowerCase().includes(query) ||
+                            (pc.loggedStudent || "").toLowerCase().includes(query) ||
+                            (pc.lab?.name || "").toLowerCase().includes(query);
+                          
+                          const matchesLab = invLabFilter === "ALL" || pc.labId === invLabFilter;
+
+                          const isClientOnline = pc.lastSeen != null && (Date.now() - new Date(pc.lastSeen).getTime()) < 15000;
+                          const isClientLocked = pc.status === "LOCKED";
+                          const isClientInUse = pc.status === "IN_USE";
+
+                          let matchesStatus = true;
+                          if (invStatusFilter === "ONLINE") matchesStatus = isClientOnline;
+                          else if (invStatusFilter === "OFFLINE") matchesStatus = !isClientOnline;
+                          else if (invStatusFilter === "LOCKED") matchesStatus = isClientLocked;
+                          else if (invStatusFilter === "IN_USE") matchesStatus = isClientInUse;
+                          else if (invStatusFilter === "PENDING") matchesStatus = pc.status === "PENDING";
+                          else if (invStatusFilter === "BLOCKED") matchesStatus = pc.status === "BLOCKED";
+
+                          const isWatchdogActive = pc.watchdogHeartbeat != null && (Date.now() - new Date(pc.watchdogHeartbeat).getTime()) < 20000;
+                          const hasSubnetMismatch = pc.subnetValid === false;
+
+                          let matchesHealth = true;
+                          if (invHealthFilter === "HEALTHY") matchesHealth = !hasSubnetMismatch && isWatchdogActive;
+                          else if (invHealthFilter === "MISMATCH") matchesHealth = hasSubnetMismatch;
+                          else if (invHealthFilter === "WATCHDOG_STOPPED") matchesHealth = !isWatchdogActive;
+
+                          return matchesQuery && matchesLab && matchesStatus && matchesHealth;
+                        });
+
+                        const sortedComputers = [...searchFiltered].sort((a, b) => {
+                          if (invSortField === "pcNumber") {
+                            return (a.pcNumber || "").localeCompare(b.pcNumber || "");
+                          } else if (invSortField === "deviceName") {
+                            return (a.deviceName || "").localeCompare(b.deviceName || "");
+                          } else if (invSortField === "lastSeen") {
+                            const dateA = a.lastSeen ? new Date(a.lastSeen).getTime() : 0;
+                            const dateB = b.lastSeen ? new Date(b.lastSeen).getTime() : 0;
+                            return dateB - dateA;
+                          } else if (invSortField === "connectedAt") {
+                            const dateA = a.connectedAt ? new Date(a.connectedAt).getTime() : 0;
+                            const dateB = b.connectedAt ? new Date(b.connectedAt).getTime() : 0;
+                            return dateB - dateA;
+                          }
+                          return 0;
+                        });
+
+                        if (sortedComputers.length === 0) {
+                          return (
+                            <tr>
+                              <td colSpan={8} className="p-8 text-center text-gray-500">
+                                No registered assets matched selected filters.
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        return sortedComputers.map((pc: any) => {
                           const isClientOnline = pc.lastSeen != null && (Date.now() - new Date(pc.lastSeen).getTime()) < 15000;
                           const isWatchdogActive = pc.watchdogHeartbeat != null && (Date.now() - new Date(pc.watchdogHeartbeat).getTime()) < 20000;
                           const hasSubnetMismatch = pc.subnetValid === false;
 
                           return (
                             <tr key={pc.id} className="hover:bg-darkBg/10 transition">
-                              <td className="p-4 font-mono font-bold text-emerald-400">
-                                {pc.pcNumber}
+                              <td className="p-4 text-center">
+                                <input
+                                  type="checkbox"
+                                  className="rounded border-darkBorder text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                                  checked={selectedPCs.includes(pc.id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedPCs(prev => [...prev, pc.id]);
+                                    } else {
+                                      setSelectedPCs(prev => prev.filter(id => id !== pc.id));
+                                    }
+                                  }}
+                                />
                               </td>
                               <td className="p-4">
-                                <span className="font-bold text-white block">{pc.deviceName}</span>
-                                <span className="font-mono text-xs text-gray-500 block">{pc.macAddress}</span>
-                              </td>
-                              <td className="p-4 text-xs font-semibold text-gray-300">
-                                {pc.deviceGroup || "Workstation"}
-                              </td>
-                              <td className="p-4 text-xs font-mono text-gray-400">
-                                {pc.ipAddress || "Unknown"}
+                                <span className="font-mono font-bold text-emerald-400 text-sm block">
+                                  {pc.pcNumber}
+                                </span>
+                                <span className="text-gray-400 text-xs font-semibold block">{pc.lab?.name || "No Room"}</span>
                               </td>
                               <td className="p-4">
+                                <span className="font-bold text-white text-sm block">{pc.deviceName}</span>
+                                <span className="font-mono text-[10px] text-gray-500 block">{pc.macAddress}</span>
+                              </td>
+                              <td className="p-4">
+                                <span className="font-mono text-xs font-bold text-gray-300 block">{pc.ipAddress || "—"}</span>
                                 {hasSubnetMismatch ? (
-                                  <span className="inline-flex items-center space-x-1 bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded text-xs font-semibold" title={pc.subnetWarning}>
-                                    <AlertTriangle size={12} />
-                                    <span>Mismatch</span>
+                                  <span className="inline-flex items-center gap-1 bg-red-500/10 text-red-400 border border-red-500/20 px-1.5 py-0.5 rounded text-[9px] font-semibold mt-1">
+                                    <AlertTriangle size={10} />
+                                    <span>Subnet Mismatch</span>
                                   </span>
                                 ) : pc.lab?.subnet ? (
-                                  <span className="inline-flex items-center space-x-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-xs font-semibold">
-                                    <Check size={12} />
-                                    <span>Subnet OK</span>
+                                  <span className="inline-flex items-center gap-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded text-[9px] font-semibold mt-1">
+                                    <Check size={10} />
+                                    <span>Subnet Match</span>
                                   </span>
                                 ) : (
-                                  <span className="text-gray-500 text-xs font-semibold">No Subnet</span>
+                                  <span className="text-gray-500 text-[9px] font-semibold">No Subnet check</span>
                                 )}
                               </td>
                               <td className="p-4 text-xs text-gray-300 space-y-0.5">
-                                <div>RAM: {pc.ram || "N/A"}</div>
-                                <div>Storage: {pc.storage || "N/A"}</div>
-                                <div className="text-gray-500 font-mono text-[10px] truncate max-w-[120px]" title={pc.osVersion}>{pc.osVersion || "N/A"}</div>
+                                <div>RAM: {pc.ram || "—"} | Disk: {pc.storage || "—"}</div>
+                                <div className="text-[10px] text-gray-500 truncate max-w-[155px]" title={pc.osVersion}>{pc.osVersion || "Unknown OS"}</div>
                               </td>
                               <td className="p-4 text-xs space-y-1">
-                                <div className="flex items-center space-x-1.5">
-                                  <span className={`w-2 h-2 rounded-full ${isClientOnline ? "bg-emerald-500" : "bg-red-500"}`} />
-                                  <span className="text-gray-400">Agent: {isClientOnline ? "Online" : "Offline"}</span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`w-1.5 h-1.5 rounded-full ${isClientOnline ? "bg-emerald-500 animate-pulse" : "bg-red-500"}`} />
+                                  <span className="text-gray-300">Client: {isClientOnline ? "Online" : "Offline"}</span>
                                 </div>
-                                <div className="flex items-center space-x-1.5">
-                                  <span className={`w-2 h-2 rounded-full ${isWatchdogActive ? "bg-emerald-500" : "bg-red-500"}`} />
-                                  <span className="text-gray-400">Watchdog: {isWatchdogActive ? "Active" : "Stopped"}</span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`w-1.5 h-1.5 rounded-full ${isWatchdogActive ? "bg-emerald-500" : "bg-red-500"}`} />
+                                  <span className="text-gray-300">Watchdog: {isWatchdogActive ? "Active" : "Stopped"}</span>
                                 </div>
-                                <div className="text-[10px] font-mono text-gray-500">v{pc.clientVersion || "1.0.0"}</div>
+                                <div className="text-[10px] font-mono text-gray-500">v{pc.clientVersion || "1.0.0"} / wd: v{pc.watchdogVersion || "1.0.0"}</div>
                               </td>
                               <td className="p-4">
+                                {pc.loggedStudent ? (
+                                  <span className="font-mono text-xs font-bold text-sky-400 bg-sky-500/10 border border-sky-500/20 px-2 py-1 rounded" title={pc.loggedStudent}>
+                                    {pc.loggedStudent.split('@')[0]}
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-600 text-xs font-bold">—</span>
+                                )}
+                              </td>
+                              <td className="p-4 space-y-2">
                                 <select
                                   value={pc.status}
                                   onChange={(e) => handleUpdateComputerStatus(pc.id, e.target.value)}
-                                  className="px-2 py-1 bg-darkBg border border-darkBorder rounded text-xs text-white focus:outline-none focus:border-emerald-500 font-semibold"
+                                  className="w-full px-2 py-1 bg-darkBg border border-darkBorder rounded text-xs text-white focus:outline-none focus:border-emerald-500 font-semibold"
                                 >
                                   <option value="PENDING">PENDING</option>
                                   <option value="APPROVED">APPROVED</option>
@@ -2249,21 +2748,287 @@ export default function AdminDashboard() {
                                   <option value="BLOCKED">BLOCKED</option>
                                   <option value="RETIRED">RETIRED</option>
                                 </select>
-                              </td>
-                              <td className="p-4 text-center">
-                                <button
-                                  onClick={() => setSelectedPC(pc)}
-                                  className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-darkBg font-bold rounded-lg text-xs transition"
-                                >
-                                  View Specs
-                                </button>
+                                
+                                <div className="flex flex-wrap gap-1">
+                                  <button
+                                    onClick={() => setSelectedPC(pc)}
+                                    className="px-2 py-0.5 bg-blue-500/10 hover:bg-blue-500/25 border border-blue-500/20 text-blue-400 rounded text-[10px] font-bold transition"
+                                  >
+                                    Specs
+                                  </button>
+                                  <button
+                                    onClick={() => fetchComputerHistory(pc)}
+                                    className="px-2 py-0.5 bg-purple-500/10 hover:bg-purple-500/25 border border-purple-500/20 text-purple-400 rounded text-[10px] font-bold transition"
+                                  >
+                                    History
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      const newName = window.prompt("Enter new Computer Hostname:", pc.deviceName);
+                                      if (newName && newName.trim()) {
+                                        handleUpdateComputerField(pc.id, { deviceName: newName });
+                                        handleWorkstationCommand(pc.id, "RENAME_COMPUTER", newName);
+                                      }
+                                    }}
+                                    className="px-2 py-0.5 bg-indigo-500/10 hover:bg-indigo-500/25 border border-indigo-500/20 text-indigo-400 rounded text-[10px] font-bold transition"
+                                  >
+                                    Rename
+                                  </button>
+                                  <button
+                                    onClick={() => handleWorkstationCommand(pc.id, "REFRESH")}
+                                    className="px-2 py-0.5 bg-teal-500/10 hover:bg-teal-500/25 border border-teal-500/20 text-teal-400 rounded text-[10px] font-bold transition"
+                                  >
+                                    Sync
+                                  </button>
+                                  <button
+                                    onClick={() => handleWorkstationCommand(pc.id, "RESTART_SERVICE")}
+                                    className="px-2 py-0.5 bg-amber-500/10 hover:bg-amber-500/25 border border-amber-500/20 text-amber-400 rounded text-[10px] font-bold transition"
+                                  >
+                                    Restart
+                                  </button>
+                                  <button
+                                    onClick={() => handleRemoteLock(pc.id)}
+                                    className="px-2 py-0.5 bg-red-500/10 hover:bg-red-500/25 border border-red-500/20 text-red-400 rounded text-[10px] font-bold transition"
+                                  >
+                                    Lock
+                                  </button>
+                                  <button
+                                    onClick={() => handleRemoteUnlock(pc.id)}
+                                    className="px-2 py-0.5 bg-emerald-500/10 hover:bg-emerald-500/25 border border-emerald-500/20 text-emerald-400 rounded text-[10px] font-bold transition"
+                                  >
+                                    Unlock
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteComputer(pc.id)}
+                                    className="px-2 py-0.5 bg-red-600/20 hover:bg-red-600/35 border border-red-600/30 text-red-400 rounded text-[10px] font-bold transition"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );
-                        })
-                      )}
+                        });
+                      })()}
                     </tbody>
                   </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* WORKSTATION ACTION HISTORY MODAL OVERLAY */}
+          {historyPC && (
+            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 animate-fade-in backdrop-blur-sm">
+              <div className="bg-darkCard border border-darkBorder rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden flex flex-col h-[80vh]">
+                <div className="p-6 border-b border-darkBorder flex justify-between items-center bg-slate-900 shrink-0">
+                  <div>
+                    <h3 className="font-bold text-lg text-white">Workstation Session & Audit History</h3>
+                    <p className="text-xs text-purple-400 font-mono mt-0.5">{historyPC.deviceName} ({historyPC.pcNumber})</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setHistoryPC(null);
+                      setHistoryData(null);
+                    }}
+                    className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-darkHover transition"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                {/* Tabs selection */}
+                <div className="flex border-b border-darkBorder bg-darkCard px-6 py-2 shrink-0 gap-2">
+                  <button
+                    onClick={() => setHistoryTab("sessions")}
+                    className={`px-4 py-2 text-xs font-bold rounded-lg transition ${historyTab === "sessions" ? "bg-purple-500 text-darkBg" : "text-gray-400 hover:text-white hover:bg-darkHover"}`}
+                  >
+                    📝 Access Sessions
+                  </button>
+                  <button
+                    onClick={() => setHistoryTab("alerts")}
+                    className={`px-4 py-2 text-xs font-bold rounded-lg transition ${historyTab === "alerts" ? "bg-purple-500 text-darkBg" : "text-gray-400 hover:text-white hover:bg-darkHover"}`}
+                  >
+                    ⚠️ Security Alerts
+                  </button>
+                  <button
+                    onClick={() => setHistoryTab("audits")}
+                    className={`px-4 py-2 text-xs font-bold rounded-lg transition ${historyTab === "audits" ? "bg-purple-500 text-darkBg" : "text-gray-400 hover:text-white hover:bg-darkHover"}`}
+                  >
+                    🛡️ Authentication Audits
+                  </button>
+                </div>
+
+                {/* Content body */}
+                <div className="p-6 overflow-y-auto flex-grow bg-darkBg/30">
+                  {historyLoading ? (
+                    <div className="text-center py-12 text-gray-500 font-semibold animate-pulse">
+                      Retrieving audit logs from server...
+                    </div>
+                  ) : !historyData ? (
+                    <div className="text-center py-12 text-gray-500">
+                      No logs loaded.
+                    </div>
+                  ) : (
+                    <div>
+                      {/* SESSIONS TAB */}
+                      {historyTab === "sessions" && (
+                        <div className="space-y-4">
+                          <h4 className="font-bold text-xs text-gray-400 uppercase tracking-wider">Access Sessions Ledger</h4>
+                          <div className="border border-darkBorder rounded-xl overflow-hidden bg-darkCard">
+                            <table className="w-full text-left text-xs">
+                              <thead>
+                                <tr className="bg-darkBg/60 border-b border-darkBorder text-gray-400 font-bold uppercase">
+                                  <th className="p-3">Session User</th>
+                                  <th className="p-3">Method</th>
+                                  <th className="p-3">Login Time</th>
+                                  <th className="p-3">Logout Time</th>
+                                  <th className="p-3">Duration</th>
+                                  <th className="p-3">IP Address</th>
+                                  <th className="p-3">Status</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-darkBorder">
+                                {!historyData.sessions || historyData.sessions.length === 0 ? (
+                                  <tr>
+                                    <td colSpan={7} className="p-4 text-center text-gray-500">No session history found.</td>
+                                  </tr>
+                                ) : (
+                                  historyData.sessions.map((s: any) => (
+                                    <tr key={s.id} className="hover:bg-darkBg/10">
+                                      <td className="p-3 font-semibold text-white">
+                                        {s.user?.fullName || "—"}
+                                        <span className="block font-mono text-[10px] text-emerald-400">{s.user?.enrollmentNumber || "—"}</span>
+                                      </td>
+                                      <td className="p-3">
+                                        <span className="px-2 py-0.5 bg-darkBorder rounded font-semibold text-[10px] text-gray-300">
+                                          {s.verificationMethod || "UNKNOWN"}
+                                        </span>
+                                      </td>
+                                      <td className="p-3 font-mono text-[10px] text-gray-400">
+                                        {s.loginTime ? new Date(s.loginTime).toLocaleString() : "—"}
+                                      </td>
+                                      <td className="p-3 font-mono text-[10px] text-gray-400">
+                                        {s.logoutTime ? new Date(s.logoutTime).toLocaleString() : "Active"}
+                                      </td>
+                                      <td className="p-3 font-semibold text-gray-300">
+                                        {s.durationMinutes ? `${s.durationMinutes} mins` : "—"}
+                                      </td>
+                                      <td className="p-3 font-mono text-gray-400">{s.ipAddress || "—"}</td>
+                                      <td className="p-3">
+                                        <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${s.status === "ACTIVE" ? "bg-emerald-500/10 text-emerald-400" : "bg-gray-500/10 text-gray-400"}`}>
+                                          {s.status}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  ))
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ALERTS TAB */}
+                      {historyTab === "alerts" && (
+                        <div className="space-y-4">
+                          <h4 className="font-bold text-xs text-gray-400 uppercase tracking-wider">Watchdog Policy Alerts</h4>
+                          <div className="space-y-2">
+                            {!historyData.securityAlerts || historyData.securityAlerts.length === 0 ? (
+                              <div className="p-4 border border-darkBorder rounded-xl bg-darkCard text-center text-gray-500 text-xs">
+                                No security policy alerts recorded for this workstation.
+                              </div>
+                            ) : (
+                              historyData.securityAlerts.map((a: any) => (
+                                <div key={a.id} className="p-4 border border-darkBorder rounded-xl bg-darkCard flex items-start justify-between gap-3 text-xs">
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className={`px-2 py-0.5 rounded font-extrabold text-[9px] ${a.alertSeverity === "CRITICAL" ? "bg-red-500/15 text-red-400" : "bg-amber-500/15 text-amber-400"}`}>
+                                        {a.alertSeverity}
+                                      </span>
+                                      <span className="font-bold text-white text-xs">{a.alertType}</span>
+                                    </div>
+                                    <p className="text-gray-300">{a.details}</p>
+                                    <span className="text-[10px] text-gray-500 block font-mono">{new Date(a.alertTime).toLocaleString()}</span>
+                                  </div>
+                                  <div>
+                                    {a.resolved ? (
+                                      <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded">RESOLVED</span>
+                                    ) : (
+                                      <span className="text-[10px] font-bold text-red-400 bg-red-500/10 px-2 py-1 rounded">UNRESOLVED</span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* AUDITS TAB */}
+                      {historyTab === "audits" && (
+                        <div className="space-y-4">
+                          <h4 className="font-bold text-xs text-gray-400 uppercase tracking-wider">Access Authentication Audit Trail</h4>
+                          <div className="border border-darkBorder rounded-xl overflow-hidden bg-darkCard">
+                            <table className="w-full text-left text-xs">
+                              <thead>
+                                <tr className="bg-darkBg/60 border-b border-darkBorder text-gray-400 font-bold uppercase">
+                                  <th className="p-3">User/Source</th>
+                                  <th className="p-3">IP Address</th>
+                                  <th className="p-3">MAC</th>
+                                  <th className="p-3">Method</th>
+                                  <th className="p-3">Time</th>
+                                  <th className="p-3 text-center">Status</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-darkBorder">
+                                {!historyData.authAudits || historyData.authAudits.length === 0 ? (
+                                  <tr>
+                                    <td colSpan={6} className="p-4 text-center text-gray-500">No login authentication audits found.</td>
+                                  </tr>
+                                ) : (
+                                  historyData.authAudits.map((a: any) => (
+                                    <tr key={a.id} className="hover:bg-darkBg/10">
+                                      <td className="p-3 font-semibold text-white">
+                                        {a.enrollmentAttempt || "—"}
+                                      </td>
+                                      <td className="p-3 font-mono text-[10px] text-gray-400">{a.ipAddress || "—"}</td>
+                                      <td className="p-3 font-mono text-[10px] text-gray-400">{a.macAddress || "—"}</td>
+                                      <td className="p-3">
+                                        <span className="px-2 py-0.5 bg-darkBorder rounded font-semibold text-[10px] text-gray-300">
+                                          {a.method || "—"}
+                                        </span>
+                                      </td>
+                                      <td className="p-3 font-mono text-[10px] text-gray-500">
+                                        {new Date(a.timestamp).toLocaleString()}
+                                      </td>
+                                      <td className="p-3 text-center">
+                                        <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${a.status === "SUCCESS" ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"}`}>
+                                          {a.status}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  ))
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-4 bg-slate-900 border-t border-darkBorder flex justify-end shrink-0">
+                  <button
+                    onClick={() => {
+                      setHistoryPC(null);
+                      setHistoryData(null);
+                    }}
+                    className="px-4 py-2 bg-darkCard hover:bg-darkHover text-gray-300 border border-darkBorder font-bold rounded-lg text-xs transition"
+                  >
+                    Close History Logs
+                  </button>
                 </div>
               </div>
             </div>

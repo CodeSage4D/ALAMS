@@ -29,6 +29,7 @@ enum ComputerStatus {
   MAINTENANCE
   BLOCKED
   RETIRED
+  OFFLINE
 }
 
 enum VerificationMethod {
@@ -36,6 +37,8 @@ enum VerificationMethod {
   PIN_FALLBACK
   ADMIN_OVERRIDE
   EMAIL_OTP
+  ONLINE_PASSWORD
+  OFFLINE_LOGIN
 }
 
 enum AlertSeverity {
@@ -188,6 +191,13 @@ model Computer {
   domainWorkgroup String? @map("domain_workgroup")
   deviceGroup     String  @default("General") @map("device_group")
 
+  department           String?        @map("department")
+  seatNumber           String?        @map("seat_number")
+  seatNotes            String?        @map("seat_notes")
+  watchdogVersion      String?        @map("watchdog_version")
+  installTimestamp     DateTime       @default(now()) @map("install_timestamp")
+  connectedAt          DateTime?      @map("connected_at")
+
   sessions       Session[]
   securityAlerts SecurityAlert[]
   commands       CommandQueue[]
@@ -238,6 +248,8 @@ model Session {
   unlockLatencyMs    Int?               @map("unlock_latency_ms")
   verificationMethod VerificationMethod @map("verification_method")
   status             SessionStatus      @default(ACTIVE)
+  ipAddress          String?            @map("ip_address")
+  auditReferenceId   String?            @map("audit_reference_id")
 
   // Dynamic 2FA PIN fields
   oneTimePin   String?   @map("one_time_pin")
@@ -268,6 +280,8 @@ model Attendance {
   checkOut       DateTime?        @map("check_out")
   status         AttendanceStatus @default(ABSENT)
   duration       Int?             @map("duration") // total minutes
+  lateEntry      Boolean          @default(false) @map("late_entry")
+  earlyExit      Boolean          @default(false) @map("early_exit")
   practicalHours Float?           @map("practical_hours") // credits earned
 
   // Academic linkage redundancy for fast reporting queries
@@ -416,4 +430,25 @@ model EmailQueue {
   errorDetails   String?   @map("error_details")
 
   @@map("email_queue")
+}
+
+model AuthAudit {
+  id               String    @id @default(uuid())
+  method           String    @map("method")
+  source           String    @map("source")
+  loginTime        DateTime  @default(now()) @map("login_time")
+  logoutTime       DateTime? @map("logout_time")
+  durationMinutes  Int?      @map("duration_minutes")
+  clientIp         String?   @map("client_ip")
+  macAddress       String?   @map("mac_address")
+  computerId       String?   @map("computer_id")
+  deviceName       String?   @map("device_name")
+  studentId        String?   @map("student_id")
+  status           String    @map("status")
+  failureReason    String?   @map("failure_reason")
+  riskLevel        String    @default("LOW") @map("risk_level")
+  auditReferenceId String    @unique @default(uuid()) @map("audit_reference_id")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  @@map("auth_audits")
 }

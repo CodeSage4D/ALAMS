@@ -92,3 +92,12 @@ export function decryptString(encryptedText: string): string {
     return encryptedText;
   }
 }
+
+export function computeHmac(data: string, secret: string): string {
+  return crypto.createHmac("sha256", secret).update(data).digest("hex");
+}
+
+export function signConfigData(data: string, secret: string): string {
+  return computeHmac(data, secret);
+}
+

@@ -38,6 +38,9 @@ import {
   adminResetStudentPassword,
   shutdownAllWorkstations,
   updateProfileAuthConfig,
+  updateComputer,
+  deleteComputer,
+  getComputerHistory,
 } from "./controllers/adminController";
 import {
   getQRToken,
@@ -52,6 +55,7 @@ import {
   dispatchTelemetry,
   verifyAdminPIN,
   enrollClient,
+  syncOfflineSession,
 } from "./controllers/clientController";
 import { getPilotAnalytics, recordFailedLogin } from "./controllers/analyticsController";
 import { authenticateJWT, authorizeRoles } from "./middleware/auth";
@@ -138,6 +142,9 @@ app.post("/api/v1/admin/computers", authenticateJWT, authorizeRoles("ADMIN"), cr
 app.post("/api/v1/admin/computers/approve", authenticateJWT, authorizeRoles("ADMIN"), approveComputer);
 app.put("/api/v1/admin/computers/:id/status", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR"), updateComputerStatus);
 app.put("/api/v1/admin/computers/:id/fallback", authenticateJWT, authorizeRoles("ADMIN"), toggleFallback);
+app.put("/api/v1/admin/computers/:id", authenticateJWT, authorizeRoles("ADMIN"), updateComputer);
+app.delete("/api/v1/admin/computers/:id", authenticateJWT, authorizeRoles("ADMIN"), deleteComputer);
+app.get("/api/v1/admin/computers/:id/history", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR"), getComputerHistory);
 app.post("/api/v1/admin/computers/remote-unlock", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR", "FACULTY"), remoteUnlock);
 app.post("/api/v1/admin/computers/remote-lock", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR", "FACULTY"), remoteLock);
 app.post("/api/v1/admin/computers/:id/command", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR", "FACULTY"), queueRemoteCommand);
@@ -177,6 +184,7 @@ app.post("/api/v1/client/telemetry", dispatchTelemetry);
 app.post("/api/v1/client/failed-login", recordFailedLogin);
 app.post("/api/v1/client/verify-admin-pin", verifyAdminPIN);
 app.post("/api/v1/client/enroll", enrollClient);
+app.post("/api/v1/client/sync-offline-session", syncOfflineSession);
 
 app.post("/api/v1/client/request-otp", requestOTP);
 app.post("/api/v1/client/verify-otp", verifyOTP);
@@ -208,6 +216,11 @@ async function warmupDatabase(retries = 10, delayMs = 5000): Promise<boolean> {
     try {
       await prisma.$connect();
       console.log(`[ALAMS DATABASE] Connection established successfully!`);
+      // Deploy database-level unique constraint to enforce single-active-session limitations
+      await prisma.$executeRawUnsafe(`
+        CREATE UNIQUE INDEX IF NOT EXISTS unique_active_user_session ON sessions (user_id) WHERE (status = 'ACTIVE');
+      `);
+      console.log(`[ALAMS DATABASE] Database active user session unique index successfully verified/created.`);
       return true;
     } catch (err: any) {
       console.warn(`[ALAMS DATABASE] [Attempt ${i}/${retries}] Connection failed: ${err.message || err}`);

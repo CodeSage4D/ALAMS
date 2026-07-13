@@ -1,8 +1,9 @@
 import { Request, Response } from "express";
 import prisma from "../prisma";
-import { generateQRToken, verifyQRToken, compareValue, hashValue } from "../utils/crypto";
+import { generateQRToken, verifyQRToken, compareValue, hashValue, computeHmac } from "../utils/crypto";
 import { unlockComputer } from "../websocket";
 import { AuthenticatedRequest } from "../middleware/auth";
+import { AuthEngine } from "../services/authEngine";
 import bcrypt from "bcryptjs";
 
 export async function getQRToken(req: Request, res: Response) {
@@ -195,6 +196,21 @@ export async function verifySessionPIN(req: Request, res: Response) {
           details: `Brute force lockout: Workstation PIN verification locked due to ${failedAttemptsCount} failed attempts.`,
         },
       });
+
+      await prisma.authAudit.create({
+        data: {
+          method: "QR_CODE",
+          source: "WPF_CLIENT_PIN_ENTRY",
+          loginTime: new Date(),
+          clientIp: req.ip || "127.0.0.1",
+          computerId,
+          status: "FAILED",
+          failureReason: "Brute force lockout triggered",
+          riskLevel: "HIGH",
+          auditReferenceId: crypto.randomUUID()
+        }
+      });
+
       return res.status(429).json({ error: "Workstation is locked due to too many failed PIN entry attempts. Please contact administrative staff." });
     }
 
@@ -220,15 +236,46 @@ export async function verifySessionPIN(req: Request, res: Response) {
           details: `Failed session PIN "${oneTimePin}" validation attempt.`,
         },
       });
+
+      await prisma.authAudit.create({
+        data: {
+          method: "QR_CODE",
+          source: "WPF_CLIENT_PIN_ENTRY",
+          loginTime: new Date(),
+          clientIp: req.ip || "127.0.0.1",
+          computerId,
+          status: "FAILED",
+          failureReason: "Invalid PIN code",
+          riskLevel: "MEDIUM",
+          auditReferenceId: crypto.randomUUID()
+        }
+      });
+
       return res.status(401).json({ error: "Invalid PIN code." });
     }
 
     if (session.pinExpiresAt && new Date() > session.pinExpiresAt) {
+      await prisma.authAudit.create({
+        data: {
+          method: "QR_CODE",
+          source: "WPF_CLIENT_PIN_ENTRY",
+          loginTime: new Date(),
+          clientIp: req.ip || "127.0.0.1",
+          computerId,
+          studentId: session.user.enrollmentNumber,
+          status: "FAILED",
+          failureReason: "PIN code expired",
+          riskLevel: "LOW",
+          auditReferenceId: crypto.randomUUID()
+        }
+      });
       return res.status(401).json({ error: "PIN code has expired. Please scan QR again." });
     }
 
     // Activate session
     const loginTime = new Date();
+    const auditReferenceId = crypto.randomUUID();
+
     await prisma.session.update({
       where: { id: session.id },
       data: {
@@ -236,6 +283,8 @@ export async function verifySessionPIN(req: Request, res: Response) {
         oneTimePin: null,
         pinExpiresAt: null,
         loginTime,
+        ipAddress: req.ip || session.computer.ipAddress || "127.0.0.1",
+        auditReferenceId
       },
     });
 
@@ -260,6 +309,7 @@ export async function verifySessionPIN(req: Request, res: Response) {
         sessionId: session.id,
         status: isLate ? AttendanceStatus.LATE : AttendanceStatus.PRESENT,
         checkIn: loginTime,
+        lateEntry: isLate,
         subjectId: session.subjectId,
         facultyId: session.facultyId,
       },
@@ -273,6 +323,23 @@ export async function verifySessionPIN(req: Request, res: Response) {
 
     // Send WS unlock to client
     unlockComputer(computerId, session.user.enrollmentNumber);
+
+    // Create AuthAudit
+    await prisma.authAudit.create({
+      data: {
+        method: "QR_CODE",
+        source: "MOBILE_APP",
+        loginTime,
+        clientIp: req.ip || session.computer.ipAddress || "127.0.0.1",
+        macAddress: session.computer.macAddress,
+        computerId: session.computer.id,
+        deviceName: session.computer.deviceName,
+        studentId: session.user.enrollmentNumber,
+        status: "SUCCESS",
+        riskLevel: "LOW",
+        auditReferenceId
+      }
+    });
 
     // Audit log
     await prisma.auditLog.create({
@@ -297,10 +364,10 @@ export async function verifySessionPIN(req: Request, res: Response) {
 }
 
 export async function verifyLocalPINAuth(req: Request, res: Response) {
-  const { enrollmentNumber, pin, computerId } = req.body;
+  const { enrollmentNumber, pin, computerId, authMethod } = req.body;
 
   if (!enrollmentNumber || !pin || !computerId) {
-    return res.status(400).json({ error: "Enrollment Number, PIN, and Computer ID are required" });
+    return res.status(400).json({ error: "Enrollment Number, Password, and Computer ID are required" });
   }
 
   // Format validations
@@ -329,92 +396,43 @@ export async function verifyLocalPINAuth(req: Request, res: Response) {
     }
 
     if (!computer.fallbackEnabled) {
-      return res.status(403).json({ error: "PIN fallback authentication is disabled for this computer" });
+      return res.status(403).json({ error: "Bypass authentication is disabled for this computer" });
     }
 
-    // Find student (support both enrollment ID and email format)
-    const user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { enrollmentNumber: enrollmentNumber },
-          { enrollmentNumber: enrollmentNumber.split("@")[0] }
-        ]
-      }
+    const targetMethod = authMethod === "OFFLINE_LOGIN" ? "OFFLINE_LOGIN" : "ONLINE_PASSWORD";
+    const auditReferenceId = crypto.randomUUID();
+    const clientIp = req.ip || computer.ipAddress || "127.0.0.1";
+
+    // Modular Authentication Engine Delegation
+    const authResult = await AuthEngine.authenticate(targetMethod, enrollmentNumber, pin, {
+      computerId,
+      ipAddress: clientIp,
+      source: "WPF_CLIENT"
     });
 
-    if (!user || !user.isActive) {
-      return res.status(401).json({ error: "Invalid enrollment or inactive account" });
-    }
-
-    // ── CHECK 1: Dynamic Session PIN ──
-    const pendingSession = await prisma.session.findFirst({
-      where: {
-        computerId,
-        userId: user.id,
-        status: "PENDING",
-        oneTimePin: pin,
-        pinExpiresAt: { gte: new Date() }
-      }
-    });
-
-    if (pendingSession) {
-      const now = new Date();
-      await prisma.session.update({
-        where: { id: pendingSession.id },
+    if (!authResult.success) {
+      // Record failed authentication audit
+      await prisma.authAudit.create({
         data: {
-          status: "ACTIVE",
-          oneTimePin: null,
-          pinExpiresAt: null,
-          loginTime: now
-        }
-      });
-
-      await prisma.attendance.create({
-        data: {
-          userId: user.id,
-          sessionId: pendingSession.id,
-          status: AttendanceStatus.PRESENT,
-          checkIn: now,
-          subjectId: pendingSession.subjectId,
-          facultyId: pendingSession.facultyId
-        }
-      });
-
-      await prisma.computer.update({
-        where: { id: computerId },
-        data: { status: "ACTIVE" }
-      });
-
-      unlockComputer(computerId, user.enrollmentNumber);
-
-      await prisma.auditLog.create({
-        data: {
-          action: "STUDENT_LOGIN",
-          userId: user.id,
+          method: targetMethod,
+          source: "WPF_CLIENT",
+          loginTime: new Date(),
+          clientIp,
+          macAddress: computer.macAddress,
           computerId,
-          details: `Student ${user.enrollmentNumber} unlocked workstation ${computer.deviceName} via QR-PIN entry`
+          deviceName: computer.deviceName,
+          studentId: enrollmentNumber,
+          status: "FAILED",
+          failureReason: authResult.error || "Invalid credentials",
+          riskLevel: authResult.riskLevel,
+          auditReferenceId
         }
       });
 
-      return res.json({
-        message: "Workstation unlocked successfully",
-        user: {
-          fullName: user.fullName,
-          enrollmentNumber: user.enrollmentNumber,
-        },
-        sessionId: pendingSession.id
-      });
+      return res.status(401).json({ error: authResult.error || "Invalid password or PIN" });
     }
 
-    // ── CHECK 2: Permanent PIN or Password Fallback ──
-    let isCredentialValid = await compareValue(pin, user.pinHash);
-    if (!isCredentialValid) {
-      isCredentialValid = await compareValue(pin, user.passwordHash);
-    }
-
-    if (!isCredentialValid) {
-      return res.status(401).json({ error: "Invalid password or PIN" });
-    }
+    const user = authResult.user;
 
     // Ensure student does not have another active session elsewhere
     const activeStudentSession = await prisma.session.findFirst({
@@ -425,6 +443,23 @@ export async function verifyLocalPINAuth(req: Request, res: Response) {
     });
 
     if (activeStudentSession) {
+      await prisma.authAudit.create({
+        data: {
+          method: targetMethod,
+          source: "WPF_CLIENT",
+          loginTime: new Date(),
+          clientIp,
+          macAddress: computer.macAddress,
+          computerId,
+          deviceName: computer.deviceName,
+          studentId: user.enrollmentNumber,
+          status: "FAILED",
+          failureReason: "Duplicate active session on another workstation",
+          riskLevel: "MEDIUM",
+          auditReferenceId
+        }
+      });
+
       await prisma.auditLog.create({
         data: {
           action: "CONCURRENT_LOGIN_REJECT",
@@ -468,8 +503,10 @@ export async function verifyLocalPINAuth(req: Request, res: Response) {
       data: {
         userId: user.id,
         computerId: computer.id,
-        verificationMethod: "PIN_FALLBACK",
+        verificationMethod: targetMethod,
         status: "ACTIVE",
+        ipAddress: clientIp,
+        auditReferenceId,
         subjectId: slot?.subjectId ?? null,
         facultyId: slot?.facultyId ?? null,
         timetableSlotId: slot?.id ?? null,
@@ -483,12 +520,13 @@ export async function verifyLocalPINAuth(req: Request, res: Response) {
         sessionId: session.id,
         status: late ? AttendanceStatus.LATE : AttendanceStatus.PRESENT,
         checkIn: now,
+        lateEntry: late,
         subjectId: slot?.subjectId ?? null,
         facultyId: slot?.facultyId ?? null,
       },
     });
 
-    // Update PC
+    // Update PC status
     await prisma.computer.update({
       where: { id: computer.id },
       data: { status: "ACTIVE" },
@@ -496,13 +534,30 @@ export async function verifyLocalPINAuth(req: Request, res: Response) {
 
     unlockComputer(computer.id, user.enrollmentNumber);
 
+    // Record successful authentication audit
+    await prisma.authAudit.create({
+      data: {
+        method: targetMethod,
+        source: "WPF_CLIENT",
+        loginTime: now,
+        clientIp,
+        macAddress: computer.macAddress,
+        computerId: computer.id,
+        deviceName: computer.deviceName,
+        studentId: user.enrollmentNumber,
+        status: "SUCCESS",
+        riskLevel: "LOW",
+        auditReferenceId
+      }
+    });
+
     // Audit log
     await prisma.auditLog.create({
       data: {
-        action: "STUDENT_LOGIN_FALLBACK",
+        action: targetMethod === "OFFLINE_LOGIN" ? "STUDENT_LOGIN_OFFLINE" : "STUDENT_LOGIN_PASSWORD",
         userId: user.id,
         computerId,
-        details: `Student ${user.enrollmentNumber} unlocked workstation ${computer.deviceName} via local fallback PIN`,
+        details: `Student ${user.enrollmentNumber} unlocked workstation ${computer.deviceName} via credentials check (${targetMethod})`,
       },
     });
 
@@ -515,7 +570,7 @@ export async function verifyLocalPINAuth(req: Request, res: Response) {
       sessionId: session.id,
     });
   } catch (err: any) {
-    console.error("Local PIN auth error:", err);
+    console.error("Local login auth error:", err);
     return res.status(500).json({ error: "Internal server error" });
   }
 }
@@ -539,6 +594,17 @@ export async function clientLogout(req: Request, res: Response) {
 
     const logoutTime = new Date();
     const durationMinutes = Math.round((logoutTime.getTime() - session.loginTime.getTime()) / 60000);
+
+    let earlyExit = false;
+    if (session.timetableSlotId) {
+      const slot = await prisma.timetableSlot.findUnique({ where: { id: session.timetableSlotId } });
+      if (slot) {
+        const [endH, endM] = slot.endTime.split(":").map(Number);
+        const classEndDate = new Date(session.loginTime);
+        classEndDate.setHours(endH, endM, 0, 0);
+        earlyExit = logoutTime.getTime() < classEndDate.getTime() - 5 * 60 * 1000;
+      }
+    }
 
     // Update Session
     await prisma.session.update({
@@ -570,6 +636,7 @@ export async function clientLogout(req: Request, res: Response) {
           checkOut: logoutTime,
           status: finalStatus,
           duration: durationMinutes,
+          earlyExit,
           practicalHours: parseFloat((durationMinutes / 60.0).toFixed(1)),
         },
       });
@@ -580,6 +647,17 @@ export async function clientLogout(req: Request, res: Response) {
       where: { id: computerId },
       data: { status: "APPROVED" },
     });
+
+    // Update AuthAudit connection record if it exists
+    if (session.auditReferenceId) {
+      await prisma.authAudit.update({
+        where: { auditReferenceId: session.auditReferenceId },
+        data: {
+          logoutTime,
+          durationMinutes,
+        }
+      }).catch(err => console.error("Failed to update AuthAudit on logout:", err));
+    }
 
     // Audit log
     await prisma.auditLog.create({
@@ -594,6 +672,213 @@ export async function clientLogout(req: Request, res: Response) {
     return res.json({ message: "Logout registered successfully" });
   } catch (err: any) {
     console.error("Logout error:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function syncOfflineSession(req: Request, res: Response) {
+  const {
+    transactionId,
+    computerId,
+    enrollmentNumber,
+    loginTime,
+    logoutTime,
+    durationMinutes,
+    verificationMethod,
+    ipAddress,
+    macAddress,
+    signature,
+    clockTampered
+  } = req.body;
+
+  if (!computerId || !enrollmentNumber || !loginTime || !logoutTime) {
+    return res.status(400).json({ error: "Missing required session synchronization parameters" });
+  }
+
+  try {
+    const computer = await prisma.computer.findUnique({
+      where: { id: computerId },
+    });
+
+    if (!computer) {
+      return res.status(404).json({ error: "Computer not registered" });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { enrollmentNumber }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "Student not found" });
+    }
+
+    const parsedLogin = new Date(loginTime);
+    const parsedLogout = new Date(logoutTime);
+    const calculatedDuration = durationMinutes || Math.round((parsedLogout.getTime() - parsedLogin.getTime()) / 60000);
+
+    // 1. HMAC Integrity Verification using machineToken
+    const calculatedSig = computeHmac(
+      enrollmentNumber + loginTime + logoutTime + calculatedDuration,
+      computer.machineToken
+    );
+
+    if (signature !== calculatedSig) {
+      await prisma.securityAlert.create({
+        data: {
+          computerId: computer.id,
+          alertType: "unauthorized_offline_journal_sync_attempt",
+          alertSeverity: "CRITICAL",
+          details: `Rejected offline session sync: Cryptographic HMAC signature verification failed. Possible local log tampering.`,
+        }
+      });
+      return res.status(403).json({ error: "Journal integrity validation failed: invalid signature" });
+    }
+
+    // 2. Replay Protection
+    const existing = await prisma.session.findFirst({
+      where: { auditReferenceId: transactionId }
+    });
+
+    if (existing) {
+      const isExactMatch = 
+        existing.computerId === computerId &&
+        existing.userId === user.id &&
+        existing.loginTime.getTime() === parsedLogin.getTime();
+
+      if (!isExactMatch) {
+        await prisma.securityAlert.create({
+          data: {
+            computerId: computer.id,
+            alertType: "session_replay_attack",
+            alertSeverity: "CRITICAL",
+            details: `Detected transaction replay/tamper attempt. Transaction ID ${transactionId} re-submitted with mismatched fields.`,
+          }
+        });
+        return res.status(409).json({ error: "Duplicate transaction ID with mismatched parameters. Replay blocked." });
+      }
+      return res.json({ success: true, message: "Session already synchronized" });
+    }
+
+    // 3. Workstation Clock Tampering Check
+    if (clockTampered === true) {
+      await prisma.securityAlert.create({
+        data: {
+          computerId: computer.id,
+          alertType: "clock_tampering_anomaly",
+          alertSeverity: "WARNING",
+          details: `Offline session for student ${enrollmentNumber} synchronized with clock tampering flag. Workstation system time was manually modified during session.`,
+        }
+      });
+    }
+
+    // Determine active timetable slot matching login time
+    const currentDay = parsedLogin.getDay();
+    const currentHours = String(parsedLogin.getHours()).padStart(2, "0");
+    const currentMinutes = String(parsedLogin.getMinutes()).padStart(2, "0");
+    const currentTime = `${currentHours}:${currentMinutes}`;
+
+    const slot = await prisma.timetableSlot.findFirst({
+      where: {
+        labId: computer.labId,
+        dayOfWeek: currentDay,
+        startTime: { lte: currentTime },
+        endTime: { gte: currentTime },
+      },
+    });
+
+    let late = false;
+    let earlyExit = false;
+
+    if (slot) {
+      const [startH, startM] = slot.startTime.split(":").map(Number);
+      const classStartDate = new Date(parsedLogin);
+      classStartDate.setHours(startH, startM, 0, 0);
+      const diffMinutes = (parsedLogin.getTime() - classStartDate.getTime()) / 60000;
+      late = diffMinutes > 15;
+
+      const [endH, endM] = slot.endTime.split(":").map(Number);
+      const classEndDate = new Date(parsedLogin);
+      classEndDate.setHours(endH, endM, 0, 0);
+      earlyExit = parsedLogout.getTime() < classEndDate.getTime() - 5 * 60 * 1000;
+    }
+
+    // Create session in COMPLETED state
+    const session = await prisma.session.create({
+      data: {
+        userId: user.id,
+        computerId: computer.id,
+        verificationMethod: "OFFLINE_LOGIN",
+        status: "COMPLETED",
+        loginTime: parsedLogin,
+        logoutTime: parsedLogout,
+        durationMinutes: calculatedDuration,
+        ipAddress: ipAddress || computer.ipAddress || "127.0.0.1",
+        auditReferenceId: transactionId || crypto.randomUUID(),
+        subjectId: slot?.subjectId ?? null,
+        facultyId: slot?.facultyId ?? null,
+        timetableSlotId: slot?.id ?? null,
+      }
+    });
+
+    // Determine attendance status based on duration threshold
+    let attendanceStatus: AttendanceStatus = AttendanceStatus.PRESENT;
+    if (calculatedDuration < 15) {
+      attendanceStatus = AttendanceStatus.ABSENT;
+    } else if (calculatedDuration < 45) {
+      attendanceStatus = AttendanceStatus.PARTIAL;
+    } else if (late) {
+      attendanceStatus = AttendanceStatus.LATE;
+    }
+
+    // Create Attendance record
+    await prisma.attendance.create({
+      data: {
+        userId: user.id,
+        sessionId: session.id,
+        status: attendanceStatus,
+        checkIn: parsedLogin,
+        checkOut: parsedLogout,
+        duration: calculatedDuration,
+        lateEntry: late,
+        earlyExit: earlyExit,
+        practicalHours: parseFloat((calculatedDuration / 60.0).toFixed(1)),
+        subjectId: slot?.subjectId ?? null,
+        facultyId: slot?.facultyId ?? null,
+      }
+    });
+
+    // Create AuthAudit record
+    await prisma.authAudit.create({
+      data: {
+        method: "OFFLINE_LOGIN",
+        source: "WPF_CLIENT_SYNC",
+        loginTime: parsedLogin,
+        logoutTime: parsedLogout,
+        durationMinutes: calculatedDuration,
+        clientIp: ipAddress || computer.ipAddress || "127.0.0.1",
+        macAddress: macAddress || computer.macAddress,
+        computerId: computer.id,
+        deviceName: computer.deviceName,
+        studentId: user.enrollmentNumber,
+        status: "SUCCESS",
+        riskLevel: "LOW",
+        auditReferenceId: transactionId || crypto.randomUUID()
+      }
+    });
+
+    // Create standard Audit Log
+    await prisma.auditLog.create({
+      data: {
+        action: "OFFLINE_SESSION_SYNC",
+        userId: user.id,
+        computerId: computer.id,
+        details: `Synchronized offline session for student ${user.enrollmentNumber} on PC ${computer.deviceName}. Duration: ${calculatedDuration} mins.`,
+      }
+    });
+
+    return res.json({ success: true, message: "Offline session synchronized successfully" });
+  } catch (err: any) {
+    console.error("Offline session synchronization failed:", err);
     return res.status(500).json({ error: "Internal server error" });
   }
 }

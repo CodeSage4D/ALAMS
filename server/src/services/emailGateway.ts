@@ -1,5 +1,6 @@
 import prisma from "../prisma";
 import { SmtpGateway } from "./smtpGateway";
+import { ExchangeGateway } from "./exchangeGateway";
 
 export interface EmailTemplatePayload {
   studentName?: string;
@@ -201,4 +202,80 @@ export class EmailGateway {
     }
     return config;
   }
+
+  private static providers = new Map<string, EmailProvider>();
+
+  public static registerProvider(provider: EmailProvider) {
+    this.providers.set(provider.name, provider);
+  }
+
+  public static async sendMailThroughProvider(
+    config: any,
+    recipient: string,
+    subject: string,
+    html: string
+  ): Promise<boolean> {
+    const provider = this.providers.get(config.providerType);
+    if (!provider) {
+      throw new Error(`Email provider '${config.providerType}' is not registered.`);
+    }
+    return provider.sendEmail(config, recipient, subject, html);
+  }
+
+  public static async verifyProviderConnection(config: any): Promise<boolean> {
+    const provider = this.providers.get(config.providerType);
+    if (!provider) {
+      throw new Error(`Email provider '${config.providerType}' is not registered.`);
+    }
+    return provider.verifyConnection(config);
+  }
 }
+
+export interface EmailProvider {
+  name: string;
+  verifyConnection(config: any): Promise<boolean>;
+  sendEmail(config: any, recipient: string, subject: string, html: string): Promise<boolean>;
+}
+
+export class SmtpProvider implements EmailProvider {
+  name = "SMTP";
+
+  async verifyConnection(config: any): Promise<boolean> {
+    return SmtpGateway.verifyConnection({
+      smtpHost: config.smtpHost,
+      smtpPort: config.smtpPort,
+      smtpSecure: config.smtpSecure,
+      username: config.username,
+      passwordEncrypted: config.password,
+      senderEmail: config.senderEmail,
+      senderName: config.senderName,
+    });
+  }
+
+  async sendEmail(config: any, recipient: string, subject: string, html: string): Promise<boolean> {
+    return SmtpGateway.sendMailDirect({
+      smtpHost: config.smtpHost,
+      smtpPort: config.smtpPort,
+      smtpSecure: config.smtpSecure,
+      username: config.username,
+      passwordEncrypted: config.password,
+      senderEmail: config.senderEmail,
+      senderName: config.senderName,
+    }, recipient, subject, html);
+  }
+}
+
+export class ExchangeGraphProvider implements EmailProvider {
+  name = "MS_EXCHANGE";
+
+  async verifyConnection(config: any): Promise<boolean> {
+    return ExchangeGateway.verifyConnection(config);
+  }
+
+  async sendEmail(config: any, recipient: string, subject: string, html: string): Promise<boolean> {
+    return ExchangeGateway.sendMailDirect(config, recipient, subject, html);
+  }
+}
+
+EmailGateway.registerProvider(new SmtpProvider());
+EmailGateway.registerProvider(new ExchangeGraphProvider());

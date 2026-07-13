@@ -100,23 +100,7 @@ export async function testEmailConnection(req: Request, res: Response) {
     const config = await EmailGateway.getActiveConfig();
     const { subject, html } = EmailGateway.compileTemplate("TEST", {});
 
-    let success = false;
-    if (config.providerType === "SMTP") {
-      const smtpConfig = {
-        smtpHost: config.smtpHost,
-        smtpPort: config.smtpPort,
-        smtpSecure: config.smtpSecure,
-        username: config.username,
-        passwordEncrypted: config.password,
-        senderEmail: config.senderEmail,
-        senderName: config.senderName
-      };
-      
-      success = await SmtpGateway.sendMailDirect(smtpConfig, testEmail, subject, html);
-    } else {
-      console.log(`[Exchange Gateway Mock] Test email sent to: ${testEmail}`);
-      success = true;
-    }
+    const success = await EmailGateway.sendMailThroughProvider(config, testEmail, subject, html);
 
     if (success) {
       return res.json({ success: true, message: `Test email sent successfully to ${testEmail}` });
@@ -138,20 +122,7 @@ export async function getEmailDashboardStats(req: Request, res: Response) {
     const config = await EmailGateway.getActiveConfig();
 
     // 1. SMTP Health Check
-    let isHealthy = false;
-    if (config.providerType === "SMTP") {
-      isHealthy = await SmtpGateway.verifyConnection({
-        smtpHost: config.smtpHost,
-        smtpPort: config.smtpPort,
-        smtpSecure: config.smtpSecure,
-        username: config.username,
-        passwordEncrypted: config.password,
-        senderEmail: config.senderEmail,
-        senderName: config.senderName
-      });
-    } else {
-      isHealthy = true; // Exchange Mock is always "healthy"
-    }
+    const isHealthy = await EmailGateway.verifyProviderConnection(config);
 
     // 2. Queue States
     const queuePending = await prisma.emailQueue.count({ where: { status: "PENDING" } });
