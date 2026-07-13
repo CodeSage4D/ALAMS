@@ -1,194 +1,229 @@
 /**
- * ALAMS - Student Bulk Import Script
- * ====================================
+ * ALAMS - Student Bulk Import Script  v1.1
+ * ==========================================
  * Reads "SCSIT DATA STUD.xlsx" from this folder,
  * imports all students into PostgreSQL via Prisma,
- * and saves offline credential records (CSV + JSON)
- * to the same folder.
+ * and saves offline credential records (CSV + JSON).
  *
- * Run: node import_students.js
- * Or:  Double-click run_import.bat
+ * IMPORTANT: Run from the Student-Data\ folder:
+ *   node import_students.js
+ * Or double-click:
+ *   run_import.bat
  */
+
+"use strict";
 
 const path   = require("path");
 const fs     = require("fs");
 const crypto = require("crypto");
 
-// ─── Load xlsx ───────────────────────────────────────────────────────────────
-let XLSX;
-try {
-  XLSX = require(path.join(__dirname, "../server/node_modules/xlsx"));
-} catch {
-  try {
-    XLSX = require("xlsx");
-  } catch {
-    console.error("ERROR: xlsx package not found.");
-    console.error("Run:  npm install xlsx   (inside server/ folder)");
-    process.exit(1);
-  }
-}
-
-// ─── Load Prisma client ───────────────────────────────────────────────────────
-let prisma;
-try {
-  const { PrismaClient } = require(
-    path.join(__dirname, "../server/node_modules/@prisma/client")
-  );
-  prisma = new PrismaClient();
-} catch {
-  console.error("ERROR: @prisma/client not found. Run: npm install  (inside server/ folder)");
-  process.exit(1);
-}
-
-// ─── Load bcrypt ──────────────────────────────────────────────────────────────
-let bcrypt;
-try {
-  bcrypt = require(path.join(__dirname, "../server/node_modules/bcryptjs"));
-} catch {
-  console.error("ERROR: bcryptjs not found. Run: npm install  (inside server/ folder)");
-  process.exit(1);
-}
-
-// ─── Load .env from server/ ───────────────────────────────────────────────────
+// ─── STEP 1: Load .env FIRST (must happen before PrismaClient) ───────────────
 const envPath = path.join(__dirname, "../server/.env");
-if (fs.existsSync(envPath)) {
-  const lines = fs.readFileSync(envPath, "utf-8").split("\n");
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (trimmed && !trimmed.startsWith("#")) {
-      const idx = trimmed.indexOf("=");
-      if (idx !== -1) {
-        const key = trimmed.slice(0, idx).trim();
-        const val = trimmed.slice(idx + 1).trim().replace(/^["']|["']$/g, "");
-        if (!process.env[key]) process.env[key] = val;
-      }
-    }
-  }
-  console.log("✓ Loaded environment from server/.env");
-} else {
-  console.warn("⚠  server/.env not found — using system environment variables.");
+if (!fs.existsSync(envPath)) {
+  console.error("FATAL: server/.env not found at: " + envPath);
+  console.error("       Please make sure you have the .env file in the server/ folder.");
+  process.exit(1);
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+const envLines = fs.readFileSync(envPath, "utf-8").split(/\r?\n/);
+for (const line of envLines) {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.startsWith("#")) continue;
+  const eqIdx = trimmed.indexOf("=");
+  if (eqIdx === -1) continue;
+  const key = trimmed.slice(0, eqIdx).trim();
+  let val   = trimmed.slice(eqIdx + 1).trim();
+  // Strip surrounding quotes
+  if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+    val = val.slice(1, -1);
+  }
+  if (!process.env[key]) process.env[key] = val;
+}
+console.log("✓  Environment loaded from server/.env");
+
+if (!process.env.DATABASE_URL) {
+  console.error("FATAL: DATABASE_URL is not set in server/.env");
+  process.exit(1);
+}
+console.log("✓  DATABASE_URL found — connecting to PostgreSQL...");
+
+// ─── STEP 2: Load xlsx ───────────────────────────────────────────────────────
+let XLSX;
+const xlsxPaths = [
+  path.join(__dirname, "../server/node_modules/xlsx"),
+  path.join(__dirname, "node_modules/xlsx"),
+];
+for (const p of xlsxPaths) {
+  try { XLSX = require(p); break; } catch {}
+}
+if (!XLSX) {
+  console.error("FATAL: xlsx package not found.");
+  console.error("       Run this command first:");
+  console.error("       cd ..\\server  &&  npm install xlsx");
+  process.exit(1);
+}
+console.log("✓  xlsx parser loaded");
+
+// ─── STEP 3: Load bcrypt ─────────────────────────────────────────────────────
+let bcrypt;
+const bcryptPaths = [
+  path.join(__dirname, "../server/node_modules/bcryptjs"),
+  path.join(__dirname, "node_modules/bcryptjs"),
+];
+for (const p of bcryptPaths) {
+  try { bcrypt = require(p); break; } catch {}
+}
+if (!bcrypt) {
+  console.error("FATAL: bcryptjs package not found.");
+  console.error("       Run: cd ..\\server  &&  npm install");
+  process.exit(1);
+}
+console.log("✓  bcryptjs loaded");
+
+// ─── STEP 4: Load Prisma Client (env must be loaded first!) ─────────────────
+let prisma;
+const prismaPaths = [
+  path.join(__dirname, "../server/node_modules/@prisma/client"),
+  path.join(__dirname, "node_modules/@prisma/client"),
+];
+for (const p of prismaPaths) {
+  try {
+    const { PrismaClient } = require(p);
+    prisma = new PrismaClient({
+      datasources: { db: { url: process.env.DATABASE_URL } }
+    });
+    break;
+  } catch {}
+}
+if (!prisma) {
+  console.error("FATAL: @prisma/client not found.");
+  console.error("       Run: cd ..\\server  &&  npm install  &&  npx prisma generate");
+  process.exit(1);
+}
+console.log("✓  Prisma client ready\n");
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
 function generateSecurePassword(enrollment) {
-  const randomSalt = crypto.randomBytes(16).toString("hex");
-  const raw = crypto
+  const salt = crypto.randomBytes(20).toString("hex");
+  return crypto
     .createHash("sha256")
-    .update(enrollment + randomSalt)
+    .update(enrollment + salt + Date.now())
     .digest("base64")
-    .replace(/[^a-zA-Z0-9]/g, "");
-  // 6–8 character password (always 8 for uniformity)
-  return raw.substring(0, 8);
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .substring(0, 8);
 }
 
 async function hashValue(value) {
-  const salt = await bcrypt.genSalt(10);
-  return bcrypt.hash(value, salt);
+  const s = await bcrypt.genSalt(10);
+  return bcrypt.hash(value, s);
 }
 
-// ─── Column header auto-detector ─────────────────────────────────────────────
-function detectHeaders(headerRow) {
-  const h = headerRow.map((v) => String(v || "").trim().toLowerCase());
+// ─── COLUMN HEADER AUTO-DETECTOR ─────────────────────────────────────────────
+function detectColumns(headerRow) {
+  const h = headerRow.map(v => String(v || "").trim().toLowerCase());
   return {
     semIndex:    h.findIndex(x => x.includes("semester") || x === "sem"),
     deptIndex:   h.findIndex(x => x.includes("course") || x.includes("branch") || x.includes("department")),
     enrollIndex: h.findIndex(x => x.includes("enrollment") || x.includes("enroll")),
     nameIndex:   h.findIndex(x => x.includes("name") && !x.includes("contact")),
-    phoneIndex:  h.findIndex(x => x.includes("contact") || x.includes("phone") || x.includes("mobile")),
     emailIndex:  h.findIndex(x => x.includes("email")),
+    phoneIndex:  h.findIndex(x => x.includes("contact") || x.includes("phone") || x.includes("mobile")),
   };
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+// ─── MAIN ────────────────────────────────────────────────────────────────────
 async function main() {
-  const EXCEL_FILE = path.join(__dirname, "SCSIT DATA STUD.xlsx");
-
-  if (!fs.existsSync(EXCEL_FILE)) {
-    console.error(`ERROR: Excel file not found at:\n  ${EXCEL_FILE}`);
+  const EXCEL_PATH = path.join(__dirname, "SCSIT DATA STUD.xlsx");
+  if (!fs.existsSync(EXCEL_PATH)) {
+    console.error("FATAL: Excel file not found: " + EXCEL_PATH);
+    console.error("       Place 'SCSIT DATA STUD.xlsx' in the Student-Data\\ folder.");
     process.exit(1);
   }
 
-  console.log("\n╔════════════════════════════════════════════════════╗");
-  console.log("║   ALAMS — Student Bulk Import Tool                ║");
-  console.log("╚════════════════════════════════════════════════════╝\n");
-  console.log(`📂 Reading: ${path.basename(EXCEL_FILE)}`);
+  console.log("╔══════════════════════════════════════════════════════╗");
+  console.log("║   ALAMS — Student Bulk Import Tool  v1.1             ║");
+  console.log("╚══════════════════════════════════════════════════════╝\n");
+  console.log("Reading: " + path.basename(EXCEL_PATH));
 
-  // ─── Parse Excel ────────────────────────────────────────────────────────────
-  const workbook  = XLSX.readFile(EXCEL_FILE);
-  const sheetName = workbook.SheetNames[0];
-  const sheet     = workbook.Sheets[sheetName];
-  const rows      = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+  // Parse Excel
+  const wb    = XLSX.readFile(EXCEL_PATH);
+  const ws    = wb.Sheets[wb.SheetNames[0]];
+  const rows  = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
 
-  if (rows.length < 2) {
-    console.error("ERROR: Excel file has no data rows.");
-    process.exit(1);
-  }
+  if (rows.length < 2) { console.error("ERROR: File has no data rows."); process.exit(1); }
 
-  const cols = detectHeaders(rows[0]);
-  console.log(`✓ Headers detected on row 1`);
-  console.log(`  Enrollment → col ${cols.enrollIndex + 1}`);
-  console.log(`  Name       → col ${cols.nameIndex + 1}`);
-  console.log(`  Email      → col ${cols.emailIndex + 1}`);
-  console.log(`  Semester   → col ${cols.semIndex + 1}`);
-  console.log(`  Dept       → col ${cols.deptIndex + 1}`);
-  console.log(`  Total data rows: ${rows.length - 1}\n`);
+  const cols = detectColumns(rows[0]);
+  console.log("\nColumn mapping detected:");
+  console.log("  Enrollment No.  → column " + (cols.enrollIndex + 1));
+  console.log("  Name            → column " + (cols.nameIndex + 1));
+  console.log("  Email           → column " + (cols.emailIndex + 1));
+  console.log("  Semester        → column " + (cols.semIndex + 1));
+  console.log("  Course / Branch → column " + (cols.deptIndex + 1));
+  console.log("  Total rows      : " + (rows.length - 1) + "\n");
 
   if (cols.enrollIndex === -1 || cols.nameIndex === -1) {
-    console.error("ERROR: Cannot find Enrollment or Name column. Check the Excel headers.");
+    console.error("ERROR: Cannot detect Enrollment or Name column in the Excel header row.");
+    console.error("       Header found: " + rows[0].join(" | "));
     process.exit(1);
   }
 
-  // ─── Build student list from rows ───────────────────────────────────────────
-  const studentList = [];
+  // Build list
+  const students = [];
   for (let i = 1; i < rows.length; i++) {
-    const row = rows[i];
-    const enrollmentNumber = String(row[cols.enrollIndex] || "").trim();
-    const fullName         = String(row[cols.nameIndex]   || "").trim();
+    const r = rows[i];
+    const enrollmentNumber = String(r[cols.enrollIndex] || "").trim();
+    const fullName         = String(r[cols.nameIndex]   || "").trim();
     if (!enrollmentNumber || !fullName) continue;
+    students.push({
+      enrollmentNumber,
+      fullName,
+      email:      cols.emailIndex !== -1 ? String(r[cols.emailIndex] || "").trim()  : "",
+      semester:   cols.semIndex   !== -1 ? String(r[cols.semIndex]   || "").trim()  : "",
+      department: cols.deptIndex  !== -1 ? String(r[cols.deptIndex]  || "").trim()  : "",
+    });
+  }
+  console.log("Parsed " + students.length + " valid student records.\n");
 
-    const rawSem = cols.semIndex    !== -1 ? String(row[cols.semIndex]    || "").trim() : "";
-    const dept   = cols.deptIndex   !== -1 ? String(row[cols.deptIndex]   || "").trim() : "";
-    const email  = cols.emailIndex  !== -1 ? String(row[cols.emailIndex]  || "").trim() : "";
-    const phone  = cols.phoneIndex  !== -1 ? String(row[cols.phoneIndex]  || "").trim() : "";
-
-    studentList.push({ enrollmentNumber, fullName, email, semester: rawSem, department: dept, phone });
+  // Test DB connection first
+  console.log("Testing database connection...");
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    console.log("✓  Database connection OK\n");
+  } catch (e) {
+    console.error("FATAL: Cannot connect to PostgreSQL: " + e.message);
+    console.error("       Check DATABASE_URL in server/.env");
+    process.exit(1);
   }
 
-  console.log(`📋 Parsed ${studentList.length} valid student records.`);
-
-  // ─── Default PIN hash ────────────────────────────────────────────────────────
   const defaultPinHash = await hashValue("123456");
-
-  // ─── Import loop ─────────────────────────────────────────────────────────────
   let created = 0, skipped = 0;
   const results = [];
 
-  for (const student of studentList) {
-    const { enrollmentNumber, fullName, email, semester, department } = student;
+  console.log("Importing students (✓ = created, · = already exists, ✗ = error):");
+  console.log("─".repeat(60));
 
+  for (const s of students) {
     try {
-      const existing = await prisma.user.findUnique({ where: { enrollmentNumber } });
-
-      if (existing) {
-        results.push({ ...student, status: "SKIPPED (already exists)", tempPassword: "" });
+      const exists = await prisma.user.findUnique({ where: { enrollmentNumber: s.enrollmentNumber } });
+      if (exists) {
+        results.push({ ...s, status: "SKIPPED", tempPassword: "" });
         skipped++;
         process.stdout.write("·");
         continue;
       }
 
-      const tempPassword   = generateSecurePassword(enrollmentNumber);
-      const passwordHash   = await hashValue(tempPassword);
-      const finalEmail     = email || `${enrollmentNumber}@suas.ac.in`;
+      const tempPassword = generateSecurePassword(s.enrollmentNumber);
+      const passwordHash = await hashValue(tempPassword);
+      const finalEmail   = s.email || (s.enrollmentNumber + "@suas.ac.in");
 
       await prisma.user.create({
         data: {
-          enrollmentNumber,
-          fullName,
+          enrollmentNumber: s.enrollmentNumber,
+          fullName: s.fullName,
           email: finalEmail,
-          semester: semester || null,
-          year: null,
-          department: department || null,
-          section: null,
+          semester:   s.semester   || null,
+          department: s.department || null,
+          year: null, section: null,
           passwordHash,
           pinHash: defaultPinHash,
           role: "STUDENT",
@@ -197,51 +232,42 @@ async function main() {
         }
       });
 
-      results.push({ ...student, email: finalEmail, status: "CREATED", tempPassword });
+      results.push({ ...s, email: finalEmail, status: "CREATED", tempPassword });
       created++;
       process.stdout.write("✓");
 
     } catch (err) {
-      results.push({ ...student, status: `ERROR: ${err.message}`, tempPassword: "" });
+      results.push({ ...s, status: "ERROR: " + err.message, tempPassword: "" });
       process.stdout.write("✗");
     }
   }
 
-  console.log(`\n\n✅ Import complete!`);
-  console.log(`   Created : ${created}`);
-  console.log(`   Skipped : ${skipped}`);
-  console.log(`   Total   : ${studentList.length}`);
+  console.log("\n\n" + "═".repeat(60));
+  console.log("  IMPORT COMPLETE");
+  console.log("  Created  : " + created);
+  console.log("  Skipped  : " + skipped + " (already in DB)");
+  console.log("  Total    : " + students.length);
+  console.log("═".repeat(60));
 
-  // ─── Save offline CSV ─────────────────────────────────────────────────────────
-  const csvTimestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-  const csvPath = path.join(__dirname, `ALAMS_Student_Credentials_${csvTimestamp}.csv`);
+  // Save CSV
+  const ts      = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  const csvPath = path.join(__dirname, "ALAMS_Credentials_" + ts + ".csv");
+  const csvHead = ["S.No","Enrollment Number","Full Name","Email","Semester","Department","Temp Password","Status"];
+  const csvRows = results.map((s, i) =>
+    [i+1, s.enrollmentNumber, s.fullName, s.email || s.enrollmentNumber+"@suas.ac.in",
+     s.semester||"", s.department||"", s.tempPassword||"", s.status]
+    .map(v => '"' + String(v).replace(/"/g, '""') + '"').join(",")
+  );
+  fs.writeFileSync(csvPath, [csvHead.join(","), ...csvRows].join("\n"), "utf-8");
+  console.log("\n📄 Credentials CSV : " + csvPath);
 
-  const csvHeaders = ["S.No", "Enrollment Number", "Full Name", "Email", "Semester", "Department", "Temp Password", "Status"];
-  const csvRows = results.map((s, idx) => [
-    idx + 1,
-    s.enrollmentNumber,
-    s.fullName,
-    s.email || `${s.enrollmentNumber}@suas.ac.in`,
-    s.semester || "",
-    s.department || "",
-    s.tempPassword || "",
-    s.status
-  ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(","));
-
-  fs.writeFileSync(csvPath, [csvHeaders.join(","), ...csvRows].join("\n"), "utf-8");
-  console.log(`\n📄 Credentials CSV saved:\n   ${csvPath}`);
-
-  // ─── Save offline JSON ────────────────────────────────────────────────────────
-  const jsonPath = path.join(__dirname, `ALAMS_Student_Import_${csvTimestamp}.json`);
+  // Save JSON
+  const jsonPath = path.join(__dirname, "ALAMS_Import_" + ts + ".json");
   fs.writeFileSync(jsonPath, JSON.stringify({ importedAt: new Date().toISOString(), created, skipped, results }, null, 2), "utf-8");
-  console.log(`📦 JSON record saved:\n   ${jsonPath}`);
-
-  console.log("\n✨ All done. Students are now live in the database.\n");
+  console.log("📦 Import JSON     : " + jsonPath);
+  console.log("\n✅ Done! Refresh the admin web dashboard → Students tab to see all records.\n");
 }
 
 main()
-  .catch(err => {
-    console.error("\n❌ Fatal error:", err.message || err);
-    process.exit(1);
-  })
+  .catch(e => { console.error("\n❌ Fatal error: " + (e.message || e)); process.exit(1); })
   .finally(() => prisma.$disconnect());
