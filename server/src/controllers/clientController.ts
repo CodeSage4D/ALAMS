@@ -909,6 +909,16 @@ export async function watchdogAlert(req: Request, res: Response) {
     return res.status(400).json({ error: "Computer ID and Alert Type are required" });
   }
 
+  // Pre-validate that the computer exists to avoid P2003 foreign key violation
+  const computer = await prisma.computer.findUnique({
+    where: { id: computerId }
+  });
+
+  if (!computer) {
+    console.warn(`[WATCHDOG ALERT] Rejected security alert from unregistered/deleted computer ID: ${computerId}`);
+    return res.status(404).json({ error: "Workstation not registered" });
+  }
+
   try {
     // Log security alert in DB
     const alert = await prisma.securityAlert.create({
