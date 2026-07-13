@@ -128,6 +128,9 @@ export default function AdminDashboard() {
   const [qrAuthEnabled, setQrAuthEnabled] = useState(true);
 
   const [feedbackMsg, setFeedbackMsg] = useState("");
+  const [studentSearch, setStudentSearch] = useState("");
+  const [studentCurrentPage, setStudentCurrentPage] = useState(1);
+  const studentsPerPage = 10;
   const [selectedPC, setSelectedPC] = useState<any>(null);
 
   // Asset Inventory Filter & Sorting States
@@ -749,10 +752,11 @@ export default function AdminDashboard() {
       const firstLine = rows[0];
       const headers = firstLine.map(h => String(h || "").trim().toLowerCase());
 
-      const nameIndex = headers.findIndex(h => h.includes("name") || h.includes("fullname") || h.includes("student name"));
-      const enrollIndex = headers.findIndex(h => h.includes("enrollment") || h.includes("enrollmentnumber") || h.includes("enrollment number") || h.includes("enrollment no"));
-      const emailIndex = headers.findIndex(h => h.includes("email") || h.includes("collegeemail") || h.includes("college email") || h.includes("email id") || h.includes("emailid"));
+      const nameIndex = headers.findIndex(h => h === "name" || h.includes("name") || h.includes("fullname") || h.includes("student name"));
+      const enrollIndex = headers.findIndex(h => h.includes("enrollment") || h.includes("enrollmentnumber") || h.includes("enrollment number") || h.includes("enrollment no") || h.includes("enrollment no."));
+      const emailIndex = headers.findIndex(h => h.includes("email") || h.includes("collegeemail") || h.includes("college email") || h.includes("email id") || h.includes("emailid") || h.includes("student email id") || h.includes("student email"));
       const semIndex = headers.findIndex(h => h.includes("semester") || h.includes("sem"));
+      const deptIndex = headers.findIndex(h => h.includes("course") || h.includes("branch") || h.includes("department") || h.includes("dept") || h.includes("course/ branch"));
 
       if (nameIndex === -1 || enrollIndex === -1) {
         alert("The file must contain columns for 'Student Name' and 'Enrollment Number'.");
@@ -788,7 +792,7 @@ export default function AdminDashboard() {
           email: emailIndex !== -1 ? String(row[emailIndex] || "").trim() : "",
           semester: rawSem,
           year: "",
-          department: "",
+          department: deptIndex !== -1 ? String(row[deptIndex] || "").trim() : "",
           section: ""
         });
       }
@@ -1015,6 +1019,28 @@ export default function AdminDashboard() {
         return <span className="bg-gray-500/10 text-gray-400 border border-gray-500/20 text-xs px-2.5 py-0.5 rounded-full font-bold">{status}</span>;
     }
   };
+
+  // Student Search & Pagination Calculations
+  const filteredStudents = students.filter(student => {
+    const search = studentSearch.toLowerCase();
+    return (
+      student.enrollmentNumber.toLowerCase().includes(search) ||
+      student.fullName.toLowerCase().includes(search) ||
+      (student.email && student.email.toLowerCase().includes(search)) ||
+      (student.department && student.department.toLowerCase().includes(search)) ||
+      (student.semester && student.semester.toLowerCase().includes(search))
+    );
+  });
+
+  const indexOfLastStudent = studentCurrentPage * studentsPerPage;
+  const indexOfFirstStudent = indexOfLastStudent - studentsPerPage;
+  const currentStudents = filteredStudents.slice(indexOfFirstStudent, indexOfLastStudent);
+  const totalStudentPages = Math.ceil(filteredStudents.length / studentsPerPage);
+
+  // Reset page when search matches filter update
+  useEffect(() => {
+    setStudentCurrentPage(1);
+  }, [studentSearch]);
 
   return (
     <div className="flex h-screen bg-darkBg text-white overflow-hidden">
@@ -1485,67 +1511,104 @@ export default function AdminDashboard() {
           {activeTab === "students" && (
             <div className="grid lg:grid-cols-3 gap-8 animate-fade-in">
               {/* Table of students */}
-              <div className="lg:col-span-2 bg-darkCard border border-darkBorder rounded-2xl overflow-hidden shadow-xl">
-                <div className="p-6 border-b border-darkBorder flex justify-between items-center">
-                  <h3 className="font-bold text-lg text-white">Student Enrollment Index</h3>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm border-collapse">
-                    <thead>
-                      <tr className="bg-darkBg/40 border-b border-darkBorder text-gray-400 text-xs font-bold uppercase tracking-wider">
-                        <th className="p-4">Enrollment Number</th>
-                        <th className="p-4">Full Name</th>
-                        <th className="p-4">Email</th>
-                        <th className="p-4">Sem/Batch</th>
-                        <th className="p-4">Dept</th>
-                        <th className="p-4">Sec</th>
-                        <th className="p-4">Status</th>
-                        <th className="p-4 text-center">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-darkBorder">
-                      {students.length === 0 ? (
-                        <tr>
-                          <td colSpan={8} className="p-8 text-center text-gray-500">
-                            No student accounts found. Add profiles using the enrollment forms.
-                          </td>
+              <div className="lg:col-span-2 bg-darkCard border border-darkBorder rounded-2xl overflow-hidden shadow-xl flex flex-col justify-between">
+                <div>
+                  <div className="p-6 border-b border-darkBorder flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900/30">
+                    <div>
+                      <h3 className="font-bold text-lg text-white">Student Enrollment Index</h3>
+                      <p className="text-xs text-gray-500 mt-1">Showing {filteredStudents.length} total students</p>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Search enrollment, name, dept..."
+                      value={studentSearch}
+                      onChange={e => setStudentSearch(e.target.value)}
+                      className="px-4 py-2 rounded-xl bg-darkBg border border-darkBorder focus:border-blue-500 focus:outline-none text-xs text-white w-full sm:w-64"
+                    />
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm border-collapse">
+                      <thead>
+                        <tr className="bg-darkBg/40 border-b border-darkBorder text-gray-400 text-xs font-bold uppercase tracking-wider">
+                          <th className="p-4">Enrollment Number</th>
+                          <th className="p-4">Full Name</th>
+                          <th className="p-4">Email</th>
+                          <th className="p-4">Sem/Batch</th>
+                          <th className="p-4">Dept</th>
+                          <th className="p-4">Sec</th>
+                          <th className="p-4">Status</th>
+                          <th className="p-4 text-center">Actions</th>
                         </tr>
-                      ) : (
-                        students.map(student => (
-                          <tr key={student.id} className="hover:bg-darkBg/10 transition">
-                            <td className="p-4 font-mono font-bold text-emerald-400">{student.enrollmentNumber}</td>
-                            <td className="p-4 text-gray-200 font-semibold">{student.fullName}</td>
-                            <td className="p-4 text-gray-400 text-xs">{student.email || "—"}</td>
-                            <td className="p-4 text-gray-300 text-xs">{student.semester || "—"}</td>
-                            <td className="p-4 text-gray-300 text-xs">{student.department || "—"}</td>
-                            <td className="p-4 text-gray-400 text-xs">{student.section || "—"}</td>
-                            <td className="p-4">
-                              {student.isActive ? (
-                                <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-xs font-semibold">Active</span>
-                              ) : (
-                                <span className="px-2 py-0.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded text-xs font-semibold">Suspended</span>
-                              )}
-                            </td>
-                            <td className="p-4 text-center flex items-center justify-center space-x-2">
-                              <button
-                                onClick={() => handleToggleStudent(student.id, student.isActive)}
-                                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition ${student.isActive ? "bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20" : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"}`}
-                              >
-                                {student.isActive ? "Suspend" : "Activate"}
-                              </button>
-                              <button
-                                onClick={() => handleResetPassword(student.id)}
-                                className="px-2.5 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-400 rounded-lg text-xs font-bold transition"
-                              >
-                                Reset Pass
-                              </button>
+                      </thead>
+                      <tbody className="divide-y divide-darkBorder">
+                        {filteredStudents.length === 0 ? (
+                          <tr>
+                            <td colSpan={8} className="p-8 text-center text-gray-500">
+                              No matching student accounts found.
                             </td>
                           </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+                        ) : (
+                          currentStudents.map(student => (
+                            <tr key={student.id} className="hover:bg-darkBg/10 transition">
+                              <td className="p-4 font-mono font-bold text-emerald-400">{student.enrollmentNumber}</td>
+                              <td className="p-4 text-gray-200 font-semibold">{student.fullName}</td>
+                              <td className="p-4 text-gray-400 text-xs">{student.email || "—"}</td>
+                              <td className="p-4 text-gray-300 text-xs">{student.semester || "—"}</td>
+                              <td className="p-4 text-gray-300 text-xs">{student.department || "—"}</td>
+                              <td className="p-4 text-gray-400 text-xs">{student.section || "—"}</td>
+                              <td className="p-4">
+                                {student.isActive ? (
+                                  <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-xs font-semibold">Active</span>
+                                ) : (
+                                  <span className="px-2 py-0.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded text-xs font-semibold">Suspended</span>
+                                )}
+                              </td>
+                              <td className="p-4 text-center flex items-center justify-center space-x-2">
+                                <button
+                                  onClick={() => handleToggleStudent(student.id, student.isActive)}
+                                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition ${student.isActive ? "bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20" : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"}`}
+                                >
+                                  {student.isActive ? "Suspend" : "Activate"}
+                                </button>
+                                <button
+                                  onClick={() => handleResetPassword(student.id)}
+                                  className="px-2.5 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-400 rounded-lg text-xs font-bold transition"
+                                >
+                                  Reset Pass
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
+
+                {/* Pagination Controls */}
+                {totalStudentPages > 1 && (
+                  <div className="p-4 bg-slate-900/40 border-t border-darkBorder flex justify-between items-center text-xs">
+                    <span className="text-gray-400">
+                      Page {studentCurrentPage} of {totalStudentPages} (Showing {currentStudents.length} of {filteredStudents.length} matches)
+                    </span>
+                    <div className="flex space-x-2">
+                      <button
+                        disabled={studentCurrentPage === 1}
+                        onClick={() => setStudentCurrentPage(prev => Math.max(prev - 1, 1))}
+                        className="px-3 py-1.5 bg-darkBg border border-darkBorder rounded-lg hover:bg-darkHover text-gray-300 disabled:opacity-40 transition font-bold"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        disabled={studentCurrentPage === totalStudentPages}
+                        onClick={() => setStudentCurrentPage(prev => Math.min(prev + 1, totalStudentPages))}
+                        className="px-3 py-1.5 bg-darkBg border border-darkBorder rounded-lg hover:bg-darkHover text-gray-300 disabled:opacity-40 transition font-bold"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Enrollment forms side panel */}
