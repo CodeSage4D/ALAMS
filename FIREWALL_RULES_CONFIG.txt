@@ -1,0 +1,136 @@
+===============================================================================
+ALAMS (AURXON LAB ACCESS MANAGEMENT SYSTEM) - FIREWALL CONFIGURATION REFERENCE
+===============================================================================
+
+This document specifies all Windows Defender Firewall rules required for the 
+ALAMS Central Dedicated Server Machine and Client Workstations.
+
+-------------------------------------------------------------------------------
+1. CENTRAL SERVER MACHINE FIREWALL RULES LIST
+-------------------------------------------------------------------------------
+The Central Server requires the following INBOUND ports to be opened:
+
+Rule 1: Express REST & WebSocket API Server
+- Display Name: ALAMS Port 5000
+- Direction: Inbound
+- Protocol: TCP
+- Local Port: 5000
+- Action: Allow
+- Description: Used for real-time WebSocket sessions, client heartbeats, and REST APIs.
+- Command:
+  New-NetFirewallRule -DisplayName 'ALAMS Port 5000' -Direction Inbound -Protocol TCP -LocalPort 5000 -Action Allow -Force
+
+Rule 2: Next.js Admin Web Dashboard
+- Display Name: ALAMS Port 3000
+- Direction: Inbound
+- Protocol: TCP
+- Local Port: 3000
+- Action: Allow
+- Description: Provides administrative web access for lab monitoring and control.
+- Command:
+  New-NetFirewallRule -DisplayName 'ALAMS Port 3000' -Direction Inbound -Protocol TCP -LocalPort 3000 -Action Allow -Force
+
+Rule 3: Local PostgreSQL Database (Offline Engine)
+- Display Name: ALAMS PostgreSQL 5432
+- Direction: Inbound
+- Protocol: TCP
+- Local Port: 5432
+- Action: Allow
+- Description: Local database port for server API connection when offline.
+- Command:
+  New-NetFirewallRule -DisplayName 'ALAMS PostgreSQL 5432' -Direction Inbound -Protocol TCP -LocalPort 5432 -Action Allow -Force
+
+Rule 4: Standard Web Port (HTTP)
+- Display Name: ALAMS HTTP 80
+- Direction: Inbound
+- Protocol: TCP
+- Local Port: 80
+- Action: Allow
+- Description: Web portal access via standard port 80.
+- Command:
+  New-NetFirewallRule -DisplayName 'ALAMS HTTP 80' -Direction Inbound -Protocol TCP -LocalPort 80 -Action Allow -Force
+
+Rule 5: Secure Web Port (HTTPS)
+- Display Name: ALAMS HTTPS 443
+- Direction: Inbound
+- Protocol: TCP
+- Local Port: 443
+- Action: Allow
+- Description: Web portal SSL access via standard port 443.
+- Command:
+  New-NetFirewallRule -DisplayName 'ALAMS HTTPS 443' -Direction Inbound -Protocol TCP -LocalPort 443 -Action Allow -Force
+
+Rule 6: LAN Auto-Discovery UDP Beacon
+- Display Name: ALAMS UDP Beacon
+- Direction: Inbound
+- Protocol: UDP
+- Local Port: 35200
+- Action: Allow
+- Description: UDP broadcast beacon for auto-discovering server IP on local LAN network.
+- Command:
+  New-NetFirewallRule -DisplayName 'ALAMS UDP Beacon' -Direction Inbound -Protocol UDP -LocalPort 35200 -Action Allow -Force
+
+Rule 7: ICMP Echo Response (Ping)
+- Display Name: ALAMS ICMP Echo
+- Direction: Inbound
+- Protocol: ICMPv4
+- IcmpType: 8
+- Action: Allow
+- Description: Allows client workstations to verify server online status via ICMP ping.
+- Command:
+  New-NetFirewallRule -DisplayName 'ALAMS ICMP Echo' -Direction Inbound -Protocol ICMPv4 -IcmpType 8 -Action Allow -Force
+
+
+-------------------------------------------------------------------------------
+2. CLIENT WORKSTATION MACHINE FIREWALL RULES LIST
+-------------------------------------------------------------------------------
+Client Workstations require the following INBOUND and OUTBOUND rules:
+
+Rule 1: Client Inbound Remote Control API
+- Display Name: ALAMS Client Inbound API
+- Direction: Inbound
+- Protocol: TCP
+- Local Port: 5000
+- Action: Allow
+- Description: Allows central server to dispatch remote lock, unlock, and shutdown commands.
+- Command:
+  New-NetFirewallRule -DisplayName 'ALAMS Client Inbound API' -Direction Inbound -Protocol TCP -LocalPort 5000 -Action Allow -Force
+
+Rule 2: Client UDP Discovery Receiver
+- Display Name: ALAMS Client UDP Discovery
+- Direction: Inbound
+- Protocol: UDP
+- Local Port: 35200
+- Action: Allow
+- Description: Receives central server LAN discovery beacons.
+- Command:
+  New-NetFirewallRule -DisplayName 'ALAMS Client UDP Discovery' -Direction Inbound -Protocol UDP -LocalPort 35200 -Action Allow -Force
+
+Rule 3: Client Outbound Server Communication
+- Display Name: ALAMS Client Outbound Server
+- Direction: Outbound
+- Protocol: TCP
+- Remote Port: 5000
+- Action: Allow
+- Description: Outbound websocket and heartbeat connection to Server IP port 5000.
+- Command:
+  New-NetFirewallRule -DisplayName 'ALAMS Client Outbound Server' -Direction Outbound -Protocol TCP -RemotePort 5000 -Action Allow -Force
+
+
+-------------------------------------------------------------------------------
+3. FIREWALL REMOVAL & RESET COMMANDS
+-------------------------------------------------------------------------------
+To remove all ALAMS firewall rules on Server or Client, run:
+
+PowerShell Command:
+  Get-NetFirewallRule -DisplayName 'ALAMS*' | Remove-NetFirewallRule -ErrorAction SilentlyContinue
+
+CMD netsh Command:
+  netsh advfirewall firewall delete rule name="ALAMS Port 5000"
+  netsh advfirewall firewall delete rule name="ALAMS Port 3000"
+  netsh advfirewall firewall delete rule name="ALAMS PostgreSQL 5432"
+  netsh advfirewall firewall delete rule name="ALAMS HTTP 80"
+  netsh advfirewall firewall delete rule name="ALAMS HTTPS 443"
+  netsh advfirewall firewall delete rule name="ALAMS UDP Beacon"
+  netsh advfirewall firewall delete rule name="ALAMS ICMP Echo"
+===============================================================================

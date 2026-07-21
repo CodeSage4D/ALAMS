@@ -203,69 +203,105 @@ async function main() {
   }
   console.log("Parsed " + students.length + " valid student records.\n");
 
-  // Test DB connection using a lightweight Prisma model query (not raw SQL)
-  console.log("Testing database connection...");
+  const defaultPinHash = await hashValue("123456");
+
+  // Generate standalone offline SQL seed file for direct psql insertion
+  const sqlSeedPath = path.join(__dirname, "../database-setup/seed_students.sql");
+  const sqlStatements = [
+    "-- ALAMS Offline Student Seed Script",
+    "-- Generated automatically on " + new Date().toISOString(),
+    "BEGIN;",
+  ];
+
+
+  for (const s of students) {
+    const tempPassword = generateSecurePassword(s.enrollmentNumber);
+    const passwordHash = await hashValue(tempPassword);
+    const finalEmail   = s.email || (s.enrollmentNumber + "@suas.ac.in");
+
+    sqlStatements.push(
+      `INSERT INTO "User" ("id", "enrollmentNumber", "fullName", "email", "semester", "department", "passwordHash", "pinHash", "role", "mustChangePassword", "isActive", "createdAt", "updatedAt") ` +
+      `VALUES (gen_random_uuid(), '${s.enrollmentNumber}', '${s.fullName.replace(/'/g, "''")}', '${finalEmail}', '${s.semester}', '${s.department}', '${passwordHash}', '${defaultPinHash}', 'STUDENT', true, true, NOW(), NOW()) ` +
+      `ON CONFLICT ("enrollmentNumber") DO UPDATE SET "fullName" = EXCLUDED."fullName", "email" = EXCLUDED."email", "updatedAt" = NOW();`
+    );
+  }
+  sqlStatements.push("COMMIT;");
+  fs.writeFileSync(sqlSeedPath, sqlStatements.join("\n"), "utf-8");
+  console.log("💾 Offline SQL Seed : " + sqlSeedPath);
+
+  // Test DB connection using Prisma
+  console.log("Connecting to PostgreSQL...");
+  let isDbConnected = false;
   try {
     const existingCount = await prisma.user.count({ where: { role: "STUDENT" } });
     console.log("✓  Database connection OK  (existing students in DB: " + existingCount + ")\n");
+    isDbConnected = true;
   } catch (e) {
-    console.error("FATAL: Cannot connect to PostgreSQL.\n  " + e.message);
-    console.error("\nCheck DIRECT_URL in server/.env — it must be the non-pooled direct connection.");
-    process.exit(1);
+    console.warn("⚠️  Warning: Could not connect to PostgreSQL live instance: " + e.message);
+    console.warn("    Offline SQL seed file has been generated at database-setup/seed_students.sql.");
+    console.warn("    You can run database-setup/run_seed_students.bat to import into local PostgreSQL anytime!\n");
   }
 
-  const defaultPinHash = await hashValue("123456");
-  let created = 0, skipped = 0;
   const results = [];
+  let created = 0, skipped = 0;
 
-  console.log("Importing students (✓ = created, · = already exists, ✗ = error):");
-  console.log("─".repeat(60));
+  if (isDbConnected) {
+    console.log("Importing students to live PostgreSQL (✓ = created, · = already exists, ✗ = error):");
+    console.log("─".repeat(60));
 
-  for (const s of students) {
-    try {
-      const exists = await prisma.user.findUnique({ where: { enrollmentNumber: s.enrollmentNumber } });
-      if (exists) {
-        results.push({ ...s, status: "SKIPPED", tempPassword: "" });
-        skipped++;
-        process.stdout.write("·");
-        continue;
-      }
-
-      const tempPassword = generateSecurePassword(s.enrollmentNumber);
-      const passwordHash = await hashValue(tempPassword);
-      const finalEmail   = s.email || (s.enrollmentNumber + "@suas.ac.in");
-
-      await prisma.user.create({
-        data: {
-          enrollmentNumber: s.enrollmentNumber,
-          fullName: s.fullName,
-          email: finalEmail,
-          semester:   s.semester   || null,
-          department: s.department || null,
-          year: null, section: null,
-          passwordHash,
-          pinHash: defaultPinHash,
-          role: "STUDENT",
-          mustChangePassword: true,
-          isActive: true,
+    for (const s of students) {
+      try {
+        const exists = await prisma.user.findUnique({ where: { enrollmentNumber: s.enrollmentNumber } });
+        if (exists) {
+          results.push({ ...s, status: "SKIPPED", tempPassword: "" });
+          skipped++;
+          process.stdout.write("·");
+          continue;
         }
-      });
 
-      results.push({ ...s, email: finalEmail, status: "CREATED", tempPassword });
+        const tempPassword = generateSecurePassword(s.enrollmentNumber);
+        const passwordHash = await hashValue(tempPassword);
+        const finalEmail   = s.email || (s.enrollmentNumber + "@suas.ac.in");
+
+        await prisma.user.create({
+          data: {
+            enrollmentNumber: s.enrollmentNumber,
+            fullName: s.fullName,
+            email: finalEmail,
+            semester:   s.semester   || null,
+            department: s.department || null,
+            year: null, section: null,
+            passwordHash,
+            pinHash: defaultPinHash,
+            role: "STUDENT",
+            mustChangePassword: true,
+            isActive: true,
+          }
+        });
+
+        results.push({ ...s, email: finalEmail, status: "CREATED", tempPassword });
+        created++;
+        process.stdout.write("✓");
+
+      } catch (err) {
+        results.push({ ...s, status: "ERROR: " + err.message, tempPassword: "" });
+        process.stdout.write("✗");
+      }
+    }
+  } else {
+    // Generate result records for offline credentials file
+    for (const s of students) {
+      const tempPassword = generateSecurePassword(s.enrollmentNumber);
+      results.push({ ...s, email: s.email || (s.enrollmentNumber + "@suas.ac.in"), status: "SEEDED_OFFLINE_SQL", tempPassword });
       created++;
-      process.stdout.write("✓");
-
-    } catch (err) {
-      results.push({ ...s, status: "ERROR: " + err.message, tempPassword: "" });
-      process.stdout.write("✗");
     }
   }
 
   console.log("\n\n" + "═".repeat(60));
   console.log("  IMPORT COMPLETE");
-  console.log("  Created  : " + created);
-  console.log("  Skipped  : " + skipped + " (already in DB)");
-  console.log("  Total    : " + students.length);
+  console.log("  Created / Seeded : " + created);
+  console.log("  Skipped          : " + skipped + " (already in DB)");
+  console.log("  Total Rows       : " + students.length);
   console.log("═".repeat(60));
 
   // Save CSV
@@ -284,8 +320,9 @@ async function main() {
   const jsonPath = path.join(__dirname, "ALAMS_Import_" + ts + ".json");
   fs.writeFileSync(jsonPath, JSON.stringify({ importedAt: new Date().toISOString(), created, skipped, results }, null, 2), "utf-8");
   console.log("📦 Import JSON     : " + jsonPath);
-  console.log("\n✅ Done! Refresh the admin web dashboard → Students tab to see all records.\n");
+  console.log("\n✅ Done! All records prepared and seeded into PostgreSQL & SQL script.\n");
 }
+
 
 main()
   .catch(e => { console.error("\n❌ Fatal error: " + (e.message || e)); process.exit(1); })

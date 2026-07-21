@@ -1045,9 +1045,10 @@ export default function AdminDashboard() {
   }, [studentSearch]);
 
   return (
-    <div className="flex h-screen bg-darkBg text-white overflow-hidden">
+    <div className="flex h-screen bg-gradient-to-br from-white via-sky-50 to-sky-100 text-slate-900 overflow-hidden">
       {/* Sidebar Navigation */}
-      <aside className="w-64 bg-darkCard border-r border-darkBorder flex flex-col justify-between shrink-0">
+      <aside className="w-64 bg-white/90 backdrop-blur-md border-r border-sky-200 flex flex-col justify-between shrink-0 shadow-lg">
+
         <div className="py-6">
           <div className="px-6 flex items-center space-x-3 mb-10">
             <div className="w-8 h-8 rounded bg-emerald-500 flex items-center justify-center text-darkBg font-black">A</div>

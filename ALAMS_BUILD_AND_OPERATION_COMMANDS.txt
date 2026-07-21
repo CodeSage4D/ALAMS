@@ -1,0 +1,101 @@
+===============================================================================
+ALAMS SYSTEM - BUILD, OPERATION & DEPLOYMENT REFERENCE COMMANDS LOG
+===============================================================================
+
+System Name: Aurxon Lab Access Management System (ALAMS)
+Version: v1.2.0
+Platform: Windows 10 / 11 / Windows Server (x64)
+
+-------------------------------------------------------------------------------
+1. CLEANING & BUILDING EXECUTABLES (.EXE)
+-------------------------------------------------------------------------------
+To clean old build files and publish fresh standalone .EXE binaries for 
+Server Console, Client Lock Screen, and Watchdog Daemon:
+
+Command:
+  cd /d "d:\Project Data Aurxon\ALAMS\scripts"
+  build_executables.bat
+
+Output Files Generated:
+  - publish\server-gui\AlamsServerConsole.exe  (Server Real-Time Management GUI)
+  - publish\client\AlamsClient.exe             (Client Workstation Lock Screen)
+  - publish\client\AlamsDaemon.exe             (Client Background Watchdog Service)
+
+Direct .NET CLI Compilation Commands:
+  - Server GUI Console:
+    cd /d "d:\Project Data Aurxon\ALAMS\server-gui"
+    dotnet publish AlamsServerConsole.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o "..\publish\server-gui"
+
+  - Client Workstation Lock Screen:
+    cd /d "d:\Project Data Aurxon\ALAMS\client"
+    dotnet publish AlamsClient.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o "..\publish\client"
+
+  - Client Watchdog Daemon:
+    cd /d "d:\Project Data Aurxon\ALAMS\watchdog"
+    dotnet publish AlamsWatchdog.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o "..\publish\client"
+
+
+-------------------------------------------------------------------------------
+2. DATABASE MIGRATION, IMPORT & SQL SEED COMMANDS
+-------------------------------------------------------------------------------
+- Bulk Student Import from Excel ("SCSIT DATA STUD.xlsx"):
+  cd /d "d:\Project Data Aurxon\ALAMS\Student-Data"
+  run_import.bat
+
+- Run Offline Student SQL Seed into Local PostgreSQL (1-Click):
+  cd /d "d:\Project Data Aurxon\ALAMS\database-setup"
+  run_seed_students.bat
+
+- Re-generate Prisma Client & Database Migrations:
+  cd /d "d:\Project Data Aurxon\ALAMS\server"
+  npx prisma generate
+  npx prisma db push
+
+
+-------------------------------------------------------------------------------
+3. FIREWALL MANAGEMENT COMMANDS & SCRIPT EXECUTION
+-------------------------------------------------------------------------------
+- Apply Dedicated Server Firewall Rules (Ports 5000, 3000, 5432, 80, 443, 35200, ICMP):
+  "d:\Project Data Aurxon\ALAMS\scripts\apply_server_firewall.bat"
+
+- Remove All Server Firewall Rules:
+  "d:\Project Data Aurxon\ALAMS\scripts\remove_server_firewall.bat"
+
+- Apply Client Workstation Firewall Rules:
+  "d:\Project Data Aurxon\ALAMS\scripts\apply_client_firewall.bat"
+
+- Remove Client Workstation Firewall Rules:
+  "d:\Project Data Aurxon\ALAMS\scripts\remove_client_firewall.bat"
+
+
+-------------------------------------------------------------------------------
+4. SELF-HEALING DIAGNOSTICS & ONE-CLICK AUTO-REPAIR
+-------------------------------------------------------------------------------
+To automatically test and repair Node.js, PostgreSQL service, Firewall rules, 
+and Prisma database connections step-by-step:
+
+Command:
+  "d:\Project Data Aurxon\ALAMS\scripts\fix_all_errors.bat"
+
+
+-------------------------------------------------------------------------------
+5. MASTER WINDOWS ISO / PXE NETWORK CLONING PREPARATION
+-------------------------------------------------------------------------------
+To prepare a Master Workstation PC before capturing a Windows ISO / Clonezilla Image:
+
+Command (Run as Administrator):
+  powershell -ExecutionPolicy Bypass -File "d:\Project Data Aurxon\ALAMS\scripts\PrepareMasterImage.ps1" -ServerIp "192.168.128.73"
+
+
+-------------------------------------------------------------------------------
+6. WEB PORTAL & BACKEND SERVER COMMANDS
+-------------------------------------------------------------------------------
+- Start Express API Backend (Port 5000):
+  cd /d "d:\Project Data Aurxon\ALAMS\server"
+  npm start
+
+- Build & Start Next.js Admin Web Portal (Port 3000):
+  cd /d "d:\Project Data Aurxon\ALAMS\web"
+  npm run build
+  npm run start
+===============================================================================

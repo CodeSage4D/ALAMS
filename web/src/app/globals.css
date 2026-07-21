@@ -3,14 +3,15 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 255, 255, 255;
-  --background-start-rgb: 11, 15, 25;
-  --background-end-rgb: 17, 24, 39;
+  --foreground-rgb: 15, 23, 42;
+  --background-start-rgb: 255, 255, 255;
+  --background-end-rgb: 240, 249, 255;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: #060913;
+  color: #0F172A;
+  background: linear-gradient(135deg, #FFFFFF 0%, #F0F9FF 50%, #E0F2FE 100%);
+  background-attachment: fixed;
   min-height: 100vh;
   font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
@@ -23,45 +24,53 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #0B0F19;
+  background: #F0F9FF;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1F2937;
+  background: #7DD3FC;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #374151;
+  background: #38BDF8;
 }
 
-/* Glassmorphism card utilities */
+/* Glacier Blue Glassmorphism utilities in Light Mode */
 .glass-card {
-  background: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(186, 230, 253, 0.6);
+  box-shadow: 0 10px 30px -5px rgba(2, 132, 199, 0.08), 0 4px 6px -2px rgba(2, 132, 199, 0.04);
 }
 
 .glass-input {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #FFFFFF;
+  border: 1px solid #BAE6FD;
+  color: #0F172A;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-input:focus {
-  border-color: rgba(16, 185, 129, 0.5);
-  box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
-  background: rgba(15, 23, 42, 0.8);
+  border-color: #0284C7;
+  box-shadow: 0 0 15px rgba(2, 132, 199, 0.2);
+  background: #FFFFFF;
 }
 
-/* Custom glowing elements */
-.neon-glow {
-  box-shadow: 0 0 40px rgba(16, 185, 129, 0.15);
+/* Glacier Blue Glows */
+.glacier-glow {
+  box-shadow: 0 0 30px rgba(56, 189, 248, 0.25);
 }
 
-.neon-glow-indigo {
-  box-shadow: 0 0 40px rgba(99, 102, 241, 0.15);
+.glacier-gradient-text {
+  background: linear-gradient(135deg, #0369A1 0%, #0284C7 50%, #0EA5E9 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.glacier-gradient-bg {
+  background: linear-gradient(135deg, #0284C7 0%, #38BDF8 100%);
 }
 
 /* Animations */
@@ -70,38 +79,12 @@ body {
     transform: translateY(0) scale(1);
   }
   50% {
-    transform: translateY(-10px) scale(1.02);
+    transform: translateY(-8px) scale(1.01);
   }
 }
 
 .animate-float {
   animation: float 6s ease-in-out infinite;
-}
-
-@keyframes pulse-slow {
-  0%, 100% {
-    opacity: 0.4;
-  }
-  50% {
-    opacity: 0.75;
-  }
-}
-
-.animate-pulse-slow {
-  animation: pulse-slow 4s ease-in-out infinite;
-}
-
-@keyframes bounce-slow {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-6px);
-  }
-}
-
-.animate-bounce-slow {
-  animation: bounce-slow 4s ease-in-out infinite;
 }
 
 @keyframes fadeIn {
@@ -118,4 +101,5 @@ body {
 .animate-fadeIn {
   animation: fadeIn 0.2s ease-out forwards;
 }
+
 

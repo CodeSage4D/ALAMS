@@ -216,7 +216,7 @@
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
-                        <!-- Actions Toolbar -->
+                        <!-- Actions Toolbar & Presets -->
                         <Border Grid.Row="0" Background="#020617" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="12" Padding="20" Margin="0,0,0,15">
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -224,69 +224,133 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0" Margin="0,0,15,0">
-                                    <TextBlock Text="SYSTEM DEFENSE ACTIONS" Foreground="#F43F5E" FontSize="12" FontWeight="Bold" Margin="0,0,0,10"/>
-                                    <TextBlock Text="Apply rules to open port 5000 (Express APIs) and port 3000 (React console) on local Windows Defender Firewall." Foreground="#94A3B8" FontSize="12.5" TextWrapping="Wrap" Margin="0,0,0,15"/>
-                                    <StackPanel Orientation="Horizontal">
-                                        <Button Content="🛡️ Apply Rules" Width="140" Height="36" Background="#10B981" Foreground="#FFFFFF" FontWeight="Bold" BorderThickness="0" Margin="0,0,10,0" Click="ApplyFirewallRules_Click" Cursor="Hand">
+                                    <TextBlock Text="SYSTEM DEFENSE PRESETS" Foreground="#F43F5E" FontSize="12" FontWeight="Bold" Margin="0,0,0,10"/>
+                                    <TextBlock Text="Quickly apply or revert standard firewall profiles for ALAMS Central Server (Ports 5000, 3000, 5432, 80, 443, 35200, ICMP)." Foreground="#94A3B8" FontSize="12.5" TextWrapping="Wrap" Margin="0,0,0,15"/>
+                                    <WrapPanel>
+                                        <Button Content="🛡️ Apply Server Firewall Preset" Height="36" Padding="12,0" Background="#10B981" Foreground="#FFFFFF" FontWeight="Bold" BorderThickness="0" Margin="0,0,10,10" Click="ApplyFirewallRules_Click" Cursor="Hand">
                                             <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style></Button.Resources>
                                         </Button>
-                                        <Button Content="🚫 Remove Rules" Width="140" Height="36" Background="#F43F5E" Foreground="#FFFFFF" FontWeight="Bold" BorderThickness="0" Click="RemoveFirewallRules_Click" Cursor="Hand">
+                                        <Button Content="🚫 Remove All ALAMS Rules" Height="36" Padding="12,0" Background="#F43F5E" Foreground="#FFFFFF" FontWeight="Bold" BorderThickness="0" Margin="0,0,10,10" Click="RemoveFirewallRules_Click" Cursor="Hand">
                                             <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style></Button.Resources>
                                         </Button>
-                                    </StackPanel>
+                                        <Button Content="🔒 Enable LAN-Only Subnet Rule" Height="36" Padding="12,0" Background="#1E293B" Foreground="#38BDF8" BorderBrush="#38BDF8" BorderThickness="1" FontWeight="Bold" Margin="0,0,10,10" Click="ApplyLanSubnetRule_Click" Cursor="Hand">
+                                            <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style></Button.Resources>
+                                        </Button>
+                                    </WrapPanel>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
-                                    <TextBlock Text="PUSH POLICIES TO ENDPOINTS" Foreground="#F43F5E" FontSize="12" FontWeight="Bold" Margin="0,0,0,10"/>
-                                    <TextBlock Text="Transmit default firewall security policies to active client machines over the network immediately." Foreground="#94A3B8" FontSize="12.5" TextWrapping="Wrap" Margin="0,0,0,15"/>
-                                    <Button Content="⚡ Remote Sync Port Rules" Width="200" Height="36" Background="#1E293B" Foreground="#38BDF8" BorderBrush="#38BDF8" BorderThickness="1" FontWeight="Bold" Click="RemoteSyncFirewall_Click" Cursor="Hand">
+                                    <TextBlock Text="PUSH POLICIES TO CLIENT FLEET" Foreground="#F43F5E" FontSize="12" FontWeight="Bold" Margin="0,0,0,10"/>
+                                    <TextBlock Text="Transmit default firewall security policies to active workstation client endpoints over local network." Foreground="#94A3B8" FontSize="12.5" TextWrapping="Wrap" Margin="0,0,0,15"/>
+                                    <Button Content="⚡ Remote Sync Endpoint Rules" Width="220" Height="36" Background="#1E293B" Foreground="#38BDF8" BorderBrush="#38BDF8" BorderThickness="1" FontWeight="Bold" Click="RemoteSyncFirewall_Click" Cursor="Hand" HorizontalAlignment="Left">
                                         <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style></Button.Resources>
                                     </Button>
                                 </StackPanel>
                             </Grid>
                         </Border>
 
-                        <!-- Rule Creation panel -->
-                        <Border Grid.Row="1" Background="#020617" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="12" Padding="20">
-                            <StackPanel>
-                                <TextBlock Text="CREATE CUSTOM LOCAL INBOUND RULE" Foreground="#F43F5E" FontSize="12" FontWeight="Bold" Margin="0,0,0,15"/>
-                                
-                                <Grid Margin="0,0,0,10">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="120"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Rule Name:" Foreground="#94A3B8" VerticalAlignment="Center"/>
-                                    <TextBox Grid.Column="1" x:Name="RuleNameTxt" Background="#1E293B" Foreground="#F8FAFC" BorderBrush="#334155" Height="32" Padding="5,0,0,0" VerticalContentAlignment="Center"/>
-                                </Grid>
+                        <!-- Bottom Split: Rule Creation Panel + Live Rules List -->
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="400"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
 
-                                <Grid Margin="0,0,0,10">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="120"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Port Number:" Foreground="#94A3B8" VerticalAlignment="Center"/>
-                                    <TextBox Grid.Column="1" x:Name="RulePortTxt" Text="80" Background="#1E293B" Foreground="#F8FAFC" BorderBrush="#334155" Height="32" Padding="5,0,0,0" VerticalContentAlignment="Center"/>
-                                </Grid>
+                            <!-- Left: Create Custom Rule -->
+                            <Border Grid.Column="0" Background="#020617" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="12" Padding="20" Margin="0,0,15,0">
+                                <StackPanel>
+                                    <TextBlock Text="ADD / MODIFY CUSTOM FIREWALL RULE" Foreground="#F43F5E" FontSize="12" FontWeight="Bold" Margin="0,0,0,15"/>
+                                    
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="110"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Rule Name:" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                                        <TextBox Grid.Column="1" x:Name="RuleNameTxt" Text="ALAMS Custom Port" Background="#1E293B" Foreground="#F8FAFC" BorderBrush="#334155" Height="32" Padding="5,0,0,0" VerticalContentAlignment="Center"/>
+                                    </Grid>
 
-                                <Grid Margin="0,0,0,15">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="120"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Protocol:" Foreground="#94A3B8" VerticalAlignment="Center"/>
-                                    <ComboBox Grid.Column="1" x:Name="RuleProtoCombo" SelectedIndex="0" Background="#1E293B" Foreground="#F8FAFC" BorderBrush="#334155" Height="32">
-                                        <ComboBoxItem Content="TCP"/>
-                                        <ComboBoxItem Content="UDP"/>
-                                    </ComboBox>
-                                </Grid>
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="110"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Port Number:" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                                        <TextBox Grid.Column="1" x:Name="RulePortTxt" Text="8080" Background="#1E293B" Foreground="#F8FAFC" BorderBrush="#334155" Height="32" Padding="5,0,0,0" VerticalContentAlignment="Center"/>
+                                    </Grid>
 
-                                <Button Content="➕ Register &amp; Apply Rule" Width="180" Height="36" Background="#38BDF8" Foreground="#0F172A" FontWeight="Bold" BorderThickness="0" Click="AddCustomRule_Click" Cursor="Hand" HorizontalAlignment="Left">
-                                    <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style></Button.Resources>
-                                </Button>
-                            </StackPanel>
-                        </Border>
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="110"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Protocol:" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                                        <ComboBox Grid.Column="1" x:Name="RuleProtoCombo" SelectedIndex="0" Background="#1E293B" Foreground="#F8FAFC" BorderBrush="#334155" Height="32">
+                                            <ComboBoxItem Content="TCP"/>
+                                            <ComboBoxItem Content="UDP"/>
+                                        </ComboBox>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="110"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Direction:" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                                        <ComboBox Grid.Column="1" x:Name="RuleDirectionCombo" SelectedIndex="0" Background="#1E293B" Foreground="#F8FAFC" BorderBrush="#334155" Height="32">
+                                            <ComboBoxItem Content="Inbound"/>
+                                            <ComboBoxItem Content="Outbound"/>
+                                        </ComboBox>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,15">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="110"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Action:" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                                        <ComboBox Grid.Column="1" x:Name="RuleActionCombo" SelectedIndex="0" Background="#1E293B" Foreground="#F8FAFC" BorderBrush="#334155" Height="32">
+                                            <ComboBoxItem Content="Allow"/>
+                                            <ComboBoxItem Content="Block"/>
+                                        </ComboBox>
+                                    </Grid>
+
+                                    <Button Content="➕ Apply Custom Firewall Rule" Height="36" Background="#38BDF8" Foreground="#0F172A" FontWeight="Bold" BorderThickness="0" Click="AddCustomRule_Click" Cursor="Hand" HorizontalAlignment="Stretch">
+                                        <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style></Button.Resources>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Right: Live Firewall Rules DataGrid / ListView -->
+                            <Border Grid.Column="1" Background="#020617" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="12" Padding="20">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <Grid Grid.Row="0" Margin="0,0,0,10">
+                                        <TextBlock Text="ACTIVE ALAMS FIREWALL RULES" Foreground="#F43F5E" FontSize="12" FontWeight="Bold" VerticalAlignment="Center"/>
+                                        <Button Content="🔄 Refresh Rules List" Width="140" Height="28" Background="#1E293B" Foreground="#38BDF8" BorderBrush="#38BDF8" BorderThickness="1" FontWeight="Bold" FontSize="11" Click="RefreshFirewallRules_Click" Cursor="Hand" HorizontalAlignment="Right">
+                                            <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style></Button.Resources>
+                                        </Button>
+                                    </Grid>
+
+                                    <ListBox Grid.Row="1" x:Name="FirewallRulesListBox" Background="#0F172A" Foreground="#F8FAFC" BorderBrush="#334155" FontFamily="Consolas" FontSize="12" Padding="5">
+                                        <ListBoxItem Content="Click 'Refresh Rules List' to load active Windows Firewall rules."/>
+                                    </ListBox>
+
+                                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+                                        <Button Content="🗑️ Remove Selected Rule" Height="32" Padding="12,0" Background="#7F1D1D" Foreground="#FCA5A5" FontWeight="Bold" BorderThickness="0" Click="RemoveSelectedRule_Click" Cursor="Hand">
+                                            <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style></Button.Resources>
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </Grid>
                     </Grid>
                 </TabItem>
+
 
                 <!-- TAB 3: BACKUP AND RECOVERY -->
                 <TabItem Header="Backup">

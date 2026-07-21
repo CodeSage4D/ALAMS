@@ -467,41 +467,127 @@ namespace AlamsServerConsole
         // --- FIREWALL UTILITIES ---
         private void ApplyFirewallRules_Click(object sender, RoutedEventArgs e)
         {
-            AppendLog("[FIREWALL] Requesting UAC elevation to apply inbound port rules...");
+            AppendLog("[FIREWALL] Requesting UAC elevation to apply full Server Firewall rules...");
             RunPowerShellAsAdmin(
                 "New-NetFirewallRule -DisplayName 'ALAMS Port 5000' -Direction Inbound -Protocol TCP -LocalPort 5000 -Action Allow -Force; " +
                 "New-NetFirewallRule -DisplayName 'ALAMS Port 3000' -Direction Inbound -Protocol TCP -LocalPort 3000 -Action Allow -Force; " +
-                "New-NetFirewallRule -DisplayName 'ALAMS UDP Beacon' -Direction Inbound -Protocol UDP -LocalPort 35200 -Action Allow -Force",
-                "Applied standard ports (5000, 3000, 35200) firewall rules successfully."
+                "New-NetFirewallRule -DisplayName 'ALAMS PostgreSQL 5432' -Direction Inbound -Protocol TCP -LocalPort 5432 -Action Allow -Force; " +
+                "New-NetFirewallRule -DisplayName 'ALAMS HTTP 80' -Direction Inbound -Protocol TCP -LocalPort 80 -Action Allow -Force; " +
+                "New-NetFirewallRule -DisplayName 'ALAMS HTTPS 443' -Direction Inbound -Protocol TCP -LocalPort 443 -Action Allow -Force; " +
+                "New-NetFirewallRule -DisplayName 'ALAMS UDP Beacon' -Direction Inbound -Protocol UDP -LocalPort 35200 -Action Allow -Force; " +
+                "New-NetFirewallRule -DisplayName 'ALAMS ICMP Echo' -Direction Inbound -Protocol ICMPv4 -IcmpType 8 -Action Allow -Force",
+                "Applied dedicated Server firewall rules (5000, 3000, 5432, 80, 443, 35200, ICMP) successfully."
             );
+            RefreshFirewallRules_Click(sender, e);
         }
 
         private void RemoveFirewallRules_Click(object sender, RoutedEventArgs e)
         {
-            AppendLog("[FIREWALL] Removing local rules...");
+            AppendLog("[FIREWALL] Removing all ALAMS firewall rules...");
             RunPowerShellAsAdmin(
-                "Remove-NetFirewallRule -DisplayName 'ALAMS Port 5000' -ErrorAction SilentlyContinue; " +
-                "Remove-NetFirewallRule -DisplayName 'ALAMS Port 3000' -ErrorAction SilentlyContinue; " +
-                "Remove-NetFirewallRule -DisplayName 'ALAMS UDP Beacon' -ErrorAction SilentlyContinue",
-                "Removed local firewall rules successfully."
+                "Get-NetFirewallRule -DisplayName 'ALAMS*' | Remove-NetFirewallRule -ErrorAction SilentlyContinue",
+                "Removed all ALAMS firewall rules successfully."
             );
+            RefreshFirewallRules_Click(sender, e);
+        }
+
+        private void ApplyLanSubnetRule_Click(object sender, RoutedEventArgs e)
+        {
+            AppendLog("[FIREWALL] Applying LAN-Only Subnet Rule (restricts inbound access to LAN)...");
+            RunPowerShellAsAdmin(
+                "New-NetFirewallRule -DisplayName 'ALAMS Subnet Restrict' -Direction Inbound -RemoteAddress LocalSubnet -Action Allow -Force",
+                "Applied LAN Subnet restriction rule successfully."
+            );
+            RefreshFirewallRules_Click(sender, e);
         }
 
         private void AddCustomRule_Click(object sender, RoutedEventArgs e)
         {
             string name = RuleNameTxt.Text.Trim();
             string port = RulePortTxt.Text.Trim();
-            string proto = RuleProtoCombo.Text.Trim();
+            string proto = (RuleProtoCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "TCP";
+            string direction = (RuleDirectionCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Inbound";
+            string action = (RuleActionCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Allow";
 
             if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(port))
             {
-                MessageBox.Show("Please specify both a Rule Name and Port.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Please specify both a Rule Name and Port Number.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            AppendLog($"[FIREWALL] Creating custom inbound rule: {name} ({proto} Port {port})...");
-            string script = $"New-NetFirewallRule -DisplayName '{name}' -Direction Inbound -Protocol {proto} -LocalPort {port} -Action Allow -Force";
+            AppendLog($"[FIREWALL] Creating custom {direction} rule: {name} ({proto} Port {port}, {action})...");
+            string script = $"New-NetFirewallRule -DisplayName '{name}' -Direction {direction} -Protocol {proto} -LocalPort {port} -Action {action} -Force";
             RunPowerShellAsAdmin(script, $"Custom Firewall Rule '{name}' applied successfully.");
+            RefreshFirewallRules_Click(sender, e);
+        }
+
+        private void RefreshFirewallRules_Click(object? sender, RoutedEventArgs? e)
+        {
+            AppendLog("[FIREWALL] Querying active ALAMS firewall rules...");
+            try
+            {
+                var proc = new Process();
+                proc.StartInfo.FileName = "powershell.exe";
+                proc.StartInfo.Arguments = "-NoProfile -ExecutionPolicy Bypass -Command \"Get-NetFirewallRule -DisplayName 'ALAMS*' -ErrorAction SilentlyContinue | Select-Object DisplayName, Direction, Action, Enabled | ConvertTo-Json\"";
+                proc.StartInfo.UseShellExecute = false;
+                proc.StartInfo.RedirectStandardOutput = true;
+                proc.StartInfo.CreateNoWindow = true;
+
+                proc.Start();
+                string json = proc.StandardOutput.ReadToEnd();
+                proc.WaitForExit();
+
+                FirewallRulesListBox.Items.Clear();
+
+                if (string.IsNullOrWhiteSpace(json) || json.Trim() == "null")
+                {
+                    FirewallRulesListBox.Items.Add("No active ALAMS Firewall rules found. Click 'Apply Server Firewall Preset' above.");
+                    return;
+                }
+
+                if (json.Trim().StartsWith("{"))
+                {
+                    json = "[" + json.Trim() + "]";
+                }
+
+                using var doc = JsonDocument.Parse(json);
+                foreach (var element in doc.RootElement.EnumerateArray())
+                {
+                    string name = element.GetProperty("DisplayName").GetString() ?? "Unknown";
+                    string dir = element.GetProperty("Direction").GetInt32() == 1 ? "Inbound" : "Outbound";
+                    string act = element.GetProperty("Action").GetInt32() == 2 ? "ALLOW" : "BLOCK";
+                    bool enabled = element.GetProperty("Enabled").GetInt32() == 1;
+
+                    FirewallRulesListBox.Items.Add($"[{act}] {name} ({dir}) - Enabled: {enabled}");
+                }
+
+                AppendLog($"[FIREWALL] Displaying {FirewallRulesListBox.Items.Count} active firewall rules.");
+            }
+            catch (Exception ex)
+            {
+                AppendLog($"[ERROR] Failed to query firewall rules: {ex.Message}");
+            }
+        }
+
+        private void RemoveSelectedRule_Click(object sender, RoutedEventArgs e)
+        {
+            var selected = FirewallRulesListBox.SelectedItem?.ToString();
+            if (string.IsNullOrEmpty(selected) || selected.StartsWith("No active") || selected.StartsWith("Click"))
+            {
+                MessageBox.Show("Please select an active firewall rule from the list to remove.", "Selection Required", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // Extract display name from format: "[ALLOW] ALAMS Port 5000 (Inbound) - Enabled: True"
+            int startIdx = selected.IndexOf(']') + 2;
+            int endIdx = selected.IndexOf('(') - 1;
+            if (startIdx > 0 && endIdx > startIdx)
+            {
+                string ruleName = selected.Substring(startIdx, endIdx - startIdx).Trim();
+                AppendLog($"[FIREWALL] Removing selected firewall rule: '{ruleName}'...");
+                RunPowerShellAsAdmin($"Remove-NetFirewallRule -DisplayName '{ruleName}' -ErrorAction SilentlyContinue", $"Rule '{ruleName}' removed successfully.");
+                RefreshFirewallRules_Click(sender, e);
+            }
         }
 
         private async void RemoteSyncFirewall_Click(object sender, RoutedEventArgs e)
@@ -537,6 +623,7 @@ namespace AlamsServerConsole
                 AppendLog("[ERROR] Failed to dispatch remote firewall command: " + ex.Message);
             }
         }
+
 
         private void RunPowerShellAsAdmin(string script, string successMessage)
         {
