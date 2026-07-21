@@ -69,9 +69,10 @@ import { getPilotAnalytics, recordFailedLogin } from "./controllers/analyticsCon
 import { authenticateJWT, authorizeRoles } from "./middleware/auth";
 import { initWebSocketServer, requestDiagnosticsFromClient } from "./websocket";
 import { startUdpBeacon } from "./utils/udpBeacon";
-import prisma from "./prisma";
+import prisma, { ensureDefaultLabs } from "./prisma";
 
 import { requestOTP, verifyOTP } from "./controllers/otpController";
+
 import { getEmailConfig, updateEmailConfig, testEmailConnection, getEmailDashboardStats } from "./controllers/emailConfigController";
 import { startBackgroundWorkers } from "./services/queueProcessor";
 
@@ -223,9 +224,8 @@ app.get("/api/v1/student/attendance", authenticateJWT, authorizeRoles("STUDENT",
 
 // Initialize HTTP server with attached WebSockets
 const server = http.createServer(app);
-initWebSocketServer(server);
-
 // Database Warmup Connection Retry Loop
+
 async function warmupDatabase(retries = 10, delayMs = 5000): Promise<boolean> {
   console.log(`[ALAMS DATABASE] Connecting to database...`);
   for (let i = 1; i <= retries; i++) {
@@ -237,8 +237,13 @@ async function warmupDatabase(retries = 10, delayMs = 5000): Promise<boolean> {
         CREATE UNIQUE INDEX IF NOT EXISTS unique_active_user_session ON sessions (user_id) WHERE (status = 'ACTIVE');
       `);
       console.log(`[ALAMS DATABASE] Database active user session unique index successfully verified/created.`);
+      
+      // Auto-seed and preserve the 6 Default Computer Labs
+      await ensureDefaultLabs();
+      
       return true;
     } catch (err: any) {
+
       console.warn(`[ALAMS DATABASE] [Attempt ${i}/${retries}] Connection failed: ${err.message || err}`);
       if (i < retries) {
         console.log(`[ALAMS DATABASE] Retrying in ${delayMs / 1000} seconds...`);

@@ -1429,12 +1429,38 @@ namespace AlamsClient
             }
         }
 
+        private void SaveSecurityState(bool isLocked, string student)
+        {
+            try
+            {
+                string path = @"C:\ProgramData\ALAMS\security_state.json";
+                string dir = System.IO.Path.GetDirectoryName(path) ?? @"C:\ProgramData\ALAMS";
+                if (!System.IO.Directory.Exists(dir)) System.IO.Directory.CreateDirectory(dir);
+
+                var state = new
+                {
+                    isLocked = isLocked,
+                    loggedStudent = student,
+                    timestamp = DateTime.UtcNow
+                };
+
+                string json = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
+                System.IO.File.WriteAllText(path, json);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[CLIENT] SaveSecurityState error: {ex.Message}");
+            }
+        }
+
         private void UnlockWorkstation(string studentEnrollment)
         {
             _isUnlocked = true;
+            SaveSecurityState(false, studentEnrollment);
             
             // Notify Daemon to lift restrictions and launch desktop
             _ = SendIpcMessageAsync(new { type = "unlock", enrollment = studentEnrollment });
+
 
             this.Hide(); // Hide locked UI shell
             
@@ -1472,6 +1498,8 @@ namespace AlamsClient
         {
             _isUnlocked = false;
             _activeSessionId = "";
+            SaveSecurityState(true, "None");
+
 
             // Handle offline session checkout logs
             if (!string.IsNullOrEmpty(_activeOfflineTransactionId))

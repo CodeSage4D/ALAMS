@@ -5,8 +5,13 @@ import path from "path";
 const localOfflineUrl = process.env.LOCAL_DATABASE_URL || process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/alams?sslmode=disable";
 const prisma = new PrismaClient({ datasources: { db: { url: localOfflineUrl } } });
 
+import { ensureDefaultLabs } from "../prisma";
+
 export async function runNativeStudentSeed(): Promise<{ success: boolean; count: number; message: string }> {
   console.log("🌱 [NATIVE DB SEEDER] Starting pure Node.js/Prisma student database seeding...");
+
+  await ensureDefaultLabs();
+
 
   const sqlFilePath = path.resolve(__dirname, "../../../database-setup/seed_students.sql");
   if (!fs.existsSync(sqlFilePath)) {

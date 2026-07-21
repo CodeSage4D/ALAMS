@@ -241,14 +241,75 @@ namespace AlamsDaemon
             }
         }
 
+        private const string SecurityStatePath = @"C:\ProgramData\ALAMS\security_state.json";
+
+        private void LoadSecurityState()
+        {
+            try
+            {
+                if (File.Exists(SecurityStatePath))
+                {
+                    string json = File.ReadAllText(SecurityStatePath);
+                    using (JsonDocument doc = JsonDocument.Parse(json))
+                    {
+                        var root = doc.RootElement;
+                        if (root.TryGetProperty("isLocked", out var lockVal))
+                        {
+                            _isLocked = lockVal.GetBoolean();
+                        }
+                        if (root.TryGetProperty("loggedStudent", out var studVal))
+                        {
+                            _loggedStudent = studVal.GetString() ?? "None";
+                        }
+                    }
+                }
+                else
+                {
+                    _isLocked = true; // Default locked state on clean installation / boot
+                    SaveSecurityState(true, "None");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[DAEMON] Error loading security state: {ex.Message}");
+                _isLocked = true;
+            }
+        }
+
+        private void SaveSecurityState(bool isLocked, string student)
+        {
+            try
+            {
+                string dir = Path.GetDirectoryName(SecurityStatePath) ?? @"C:\ProgramData\ALAMS";
+                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+
+                var state = new
+                {
+                    isLocked = isLocked,
+                    loggedStudent = student,
+                    timestamp = DateTime.UtcNow
+                };
+
+                string json = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(SecurityStatePath, json);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[DAEMON] Error saving security state: {ex.Message}");
+            }
+        }
+
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             Console.WriteLine("[ALAMS DAEMON] Daemon background service monitoring initialized.");
             
-            // Apply registry lockdown on start if not already unlocked
+            LoadSecurityState();
+
+            // Strict lockdown on start if locked
             if (_isLocked)
             {
                 SetRestrictions(true);
+                TerminateExplorer();
             }
 
             // Start IPC Pipe Server
@@ -271,7 +332,18 @@ namespace AlamsDaemon
                 // Enforce central policy settings
                 EnforceLocalPolicies();
 
-                // If explorer is active but ALAMS lockscreen is terminated, bypass has occurred
+                // STRICT SECURITY: If locked, kill explorer.exe immediately
+                if (_isLocked)
+                {
+                    SetRestrictions(true);
+                    if (isDesktopActive)
+                    {
+                        Console.WriteLine("[STRICT SECURITY] Terminating desktop shell because workstation is locked.");
+                        TerminateExplorer();
+                    }
+                }
+
+                // If explorer is active but ALAMS lockscreen is terminated while locked, force logoff
                 if (isDesktopActive && !isClientRunning && _isLocked)
                 {
                     Console.WriteLine("[WARNING] Bypass detected! Explorer running without ALAMS Client in lock state. Terminating session...");
@@ -283,6 +355,7 @@ namespace AlamsDaemon
                 _heartbeatCounter++;
                 if (_heartbeatCounter >= 5)
                 {
+
                     _heartbeatCounter = 0;
                     await SendWatchdogHeartbeatAsync();
                 }
@@ -318,6 +391,7 @@ namespace AlamsDaemon
                                     {
                                         _isLocked = true;
                                         _loggedStudent = "None";
+                                        SaveSecurityState(true, "None");
                                         SetRestrictions(true);
                                         TerminateExplorer();
                                     }
@@ -325,6 +399,7 @@ namespace AlamsDaemon
                                     {
                                         _isLocked = false;
                                         _loggedStudent = message.TryGetProperty("enrollment", out var eVal) ? eVal.GetString() ?? "Student" : "Student";
+                                        SaveSecurityState(false, _loggedStudent);
                                         SetRestrictions(false);
                                         StartExplorer();
                                     }

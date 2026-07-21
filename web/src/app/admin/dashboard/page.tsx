@@ -1208,102 +1208,61 @@ export default function AdminDashboard() {
       <aside className="w-64 bg-white/90 backdrop-blur-md border-r border-sky-200 flex flex-col justify-between shrink-0 shadow-lg">
 
         <div className="py-6">
-          <div className="px-6 flex items-center space-x-3 mb-10">
-            <div className="w-8 h-8 rounded bg-emerald-500 flex items-center justify-center text-darkBg font-black">A</div>
+          <div className="px-6 flex items-center space-x-3 mb-8">
+            <div className="w-9 h-9 rounded-xl bg-sky-600 flex items-center justify-center text-white font-black shadow-md shadow-sky-600/30 text-lg">A</div>
             <div>
-              <h2 className="font-black text-sm tracking-wide">SCSIT ALAMS</h2>
-              <p className="text-xs text-gray-500 font-bold uppercase">Control Deck</p>
+              <h2 className="font-black text-slate-900 text-base tracking-tight">ALAMS Suite</h2>
+              <p className="text-[11px] text-sky-700 font-bold uppercase tracking-wider">SUAS Lab Management</p>
             </div>
           </div>
 
-          <nav className="space-y-1.5 px-3">
-            <button
-              onClick={() => setActiveTab("monitor")}
-              className={`w-full flex items-center space-x-3 px-4 py-3 text-sm font-semibold rounded-xl transition duration-150 ${activeTab === "monitor" ? "bg-emerald-500 text-darkBg" : "text-gray-400 hover:bg-darkHover hover:text-white"}`}
-            >
-              <Activity size={18} />
-              <span>Live Monitor</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("analytics")}
-              className={`w-full flex items-center space-x-3 px-4 py-3 text-sm font-semibold rounded-xl transition duration-150 ${activeTab === "analytics" ? "bg-emerald-500 text-darkBg" : "text-gray-400 hover:bg-darkHover hover:text-white"}`}
-            >
-              <BarChart3 size={18} />
-              <span>Pilot Analytics</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("faculty")}
-              className={`w-full flex items-center space-x-3 px-4 py-3 text-sm font-semibold rounded-xl transition duration-150 ${activeTab === "faculty" ? "bg-emerald-500 text-darkBg" : "text-gray-400 hover:bg-darkHover hover:text-white"}`}
-            >
-              <BookOpen size={18} />
-              <span>Faculty Attendance</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("sessions")}
-              className={`w-full flex items-center space-x-3 px-4 py-3 text-sm font-semibold rounded-xl transition duration-150 ${activeTab === "sessions" ? "bg-emerald-500 text-darkBg" : "text-gray-400 hover:bg-darkHover hover:text-white"}`}
-            >
-              <Clock size={18} />
-              <span>Session Audits</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("students")}
-              className={`w-full flex items-center space-x-3 px-4 py-3 text-sm font-semibold rounded-xl transition duration-150 ${activeTab === "students" ? "bg-emerald-500 text-darkBg" : "text-gray-400 hover:bg-darkHover hover:text-white"}`}
-            >
-              <Users size={18} />
-              <span>Student Directory</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("labs")}
-              className={`w-full flex items-center space-x-3 px-4 py-3 text-sm font-semibold rounded-xl transition duration-150 ${activeTab === "labs" ? "bg-emerald-500 text-darkBg" : "text-gray-400 hover:bg-darkHover hover:text-white"}`}
-            >
-              <Settings size={18} />
-              <span>Labs & Hardware</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("attendance")}
-              className={`w-full flex items-center space-x-3 px-4 py-3 text-sm font-semibold rounded-xl transition duration-150 ${activeTab === "attendance" ? "bg-emerald-500 text-darkBg" : "text-gray-400 hover:bg-darkHover hover:text-white"}`}
-            >
-              <FolderClosed size={18} />
-              <span>Attendance Ledger</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("alerts")}
-              className={`w-full flex items-center space-x-3 px-4 py-3 text-sm font-semibold rounded-xl transition duration-150 ${activeTab === "alerts" ? "bg-emerald-500 text-darkBg" : "text-gray-400 hover:bg-darkHover hover:text-white"}`}
-            >
-              <div className="relative">
-                <AlertTriangle size={18} />
-                {alerts.filter(a => !a.resolved).length > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-red-500 border-2 border-darkCard rounded-full" />
-                )}
-              </div>
-              <span>Security Audits</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("inventory")}
-              className={`w-full flex items-center space-x-3 px-4 py-3 text-sm font-semibold rounded-xl transition duration-150 ${activeTab === "inventory" ? "bg-emerald-500 text-darkBg" : "text-gray-400 hover:bg-darkHover hover:text-white"}`}
-            >
-              <FileSpreadsheet size={18} />
-              <span>Asset Inventory</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("email")}
-              className={`w-full flex items-center space-x-3 px-4 py-3 text-sm font-semibold rounded-xl transition duration-150 ${activeTab === "email" ? "bg-emerald-500 text-darkBg" : "text-gray-400 hover:bg-darkHover hover:text-white"}`}
-            >
-              <Mail size={18} />
-              <span>Email Gateway</span>
-            </button>
+          <nav className="space-y-1 px-3">
+            {[
+              { id: "monitor", label: "Live Monitor", icon: Activity },
+              { id: "analytics", label: "Pilot Analytics", icon: BarChart3 },
+              { id: "faculty", label: "Faculty Portal", icon: BookOpen },
+              { id: "sessions", label: "Session Audits", icon: Clock },
+              { id: "students", label: "Student Directory", icon: Users },
+              { id: "labs", label: "Labs & Hardware", icon: Settings },
+              { id: "attendance", label: "Attendance Ledger", icon: FolderClosed },
+              { id: "alerts", label: "Security Audits", icon: AlertTriangle, hasAlerts: alerts.filter(a => !a.resolved).length > 0 },
+              { id: "inventory", label: "Asset Inventory", icon: FileSpreadsheet },
+              { id: "email", label: "Email Gateway", icon: Mail },
+            ].map(tab => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`w-full flex items-center space-x-3 px-4 py-2.5 text-xs font-bold rounded-xl transition duration-150 ${
+                    isActive
+                      ? "bg-sky-600 text-white shadow-md shadow-sky-600/25"
+                      : "text-slate-700 hover:bg-sky-100/70 hover:text-sky-900"
+                  }`}
+                >
+                  <div className="relative">
+                    <Icon size={17} />
+                    {tab.hasAlerts && (
+                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 border-2 border-white rounded-full" />
+                    )}
+                  </div>
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
           </nav>
         </div>
 
         {/* User profile footer */}
-        <div className="p-4 border-t border-darkBorder flex justify-between items-center bg-darkBg/30">
+        <div className="p-4 border-t border-sky-200/80 flex justify-between items-center bg-sky-50/50">
           <div>
-            <p className="text-xs text-gray-500 font-bold">OPERATOR</p>
-            <p className="text-sm font-bold text-gray-300 truncate w-36">{adminUser?.fullName || "Grace Hopper"}</p>
+            <p className="text-[10px] text-sky-800 font-extrabold uppercase tracking-wider">ADMIN OPERATOR</p>
+            <p className="text-xs font-black text-slate-900 truncate w-36">{adminUser?.fullName || "System Admin"}</p>
           </div>
           <button
             onClick={handleLogout}
-            className="p-2 text-gray-400 hover:text-red-400 rounded-lg hover:bg-darkHover transition"
+            className="p-2 text-slate-500 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition"
             title="Log Out"
           >
             <LogOut size={18} />
@@ -1312,32 +1271,32 @@ export default function AdminDashboard() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-gradient-to-b from-[#0F172A] to-darkBg">
+      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-slate-50">
         {/* Top Header */}
-        <header className="h-16 border-b border-darkBorder flex items-center justify-between px-8 bg-darkCard/50 shrink-0">
+        <header className="h-16 border-b border-sky-200 flex items-center justify-between px-8 bg-white/90 backdrop-blur-md shrink-0 shadow-sm">
           <div className="flex items-center space-x-3">
-            <h1 className="text-xl font-black capitalize tracking-tight">{activeTab} Control Suite</h1>
-            {loading && <RefreshCw size={14} className="animate-spin text-gray-500" />}
+            <h1 className="text-lg font-black text-slate-900 capitalize tracking-tight">{activeTab} Control Suite</h1>
+            {loading && <RefreshCw size={14} className="animate-spin text-sky-600" />}
           </div>
 
           <div className="flex items-center space-x-3">
             <button
               onClick={handleForceDbSync}
-              className="px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-lg transition flex items-center space-x-1.5 text-xs font-bold"
+              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition flex items-center space-x-1.5 text-xs font-bold shadow-sm"
               title="Trigger dual database replication (Local <-> Cloud) and save backup snapshot"
             >
               <span>⚡ Force DB Sync</span>
             </button>
             <button
               onClick={triggerRefresh}
-              className="p-2 bg-darkCard hover:bg-darkHover text-gray-400 hover:text-white rounded-lg border border-darkBorder transition flex items-center space-x-2 text-xs font-semibold"
+              className="p-2 bg-white hover:bg-sky-50 text-slate-700 hover:text-sky-900 rounded-xl border border-sky-200 transition flex items-center space-x-2 text-xs font-bold shadow-sm"
             >
               <RefreshCw size={14} />
               <span>Refresh Deck</span>
             </button>
           </div>
-
         </header>
+
 
         {/* Tab contents wrapper */}
         <div className="p-8 flex-1">
@@ -1353,31 +1312,32 @@ export default function AdminDashboard() {
             <div className="space-y-8">
               {/* Stat metrics */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                <div className="bg-darkCard p-6 rounded-2xl border border-darkBorder flex flex-col justify-between shadow-lg">
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Active Terminals</span>
-                  <span className="text-3xl font-black mt-2 text-emerald-400">
+                <div className="bg-white p-6 rounded-2xl border border-slate-200 flex flex-col justify-between shadow-sm">
+                  <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Active Terminals</span>
+                  <span className="text-3xl font-black mt-2 text-emerald-600">
                     {computers.filter(c => c.status === "IN_USE").length}
                   </span>
                 </div>
-                <div className="bg-darkCard p-6 rounded-2xl border border-darkBorder flex flex-col justify-between shadow-lg">
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Locked Online</span>
-                  <span className="text-3xl font-black mt-2 text-amber-400">
+                <div className="bg-white p-6 rounded-2xl border border-slate-200 flex flex-col justify-between shadow-sm">
+                  <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Locked Online</span>
+                  <span className="text-3xl font-black mt-2 text-amber-600">
                     {computers.filter(c => c.status === "LOCKED").length}
                   </span>
                 </div>
-                <div className="bg-darkCard p-6 rounded-2xl border border-darkBorder flex flex-col justify-between shadow-lg">
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Total Standby</span>
-                  <span className="text-3xl font-black mt-2 text-sky-400">
+                <div className="bg-white p-6 rounded-2xl border border-slate-200 flex flex-col justify-between shadow-sm">
+                  <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Total Standby</span>
+                  <span className="text-3xl font-black mt-2 text-sky-600">
                     {computers.filter(c => c.status === "ONLINE").length + computers.filter(c => c.status === "LOCKED").length + computers.filter(c => c.status === "IN_USE").length}
                   </span>
                 </div>
-                <div className="bg-darkCard p-6 rounded-2xl border border-darkBorder flex flex-col justify-between shadow-lg">
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Open Security Alerts</span>
-                  <span className={`text-3xl font-black mt-2 ${alerts.filter(a => !a.resolved).length > 0 ? "text-red-400" : "text-gray-400"}`}>
+                <div className="bg-white p-6 rounded-2xl border border-slate-200 flex flex-col justify-between shadow-sm">
+                  <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Open Security Alerts</span>
+                  <span className={`text-3xl font-black mt-2 ${alerts.filter(a => !a.resolved).length > 0 ? "text-rose-600" : "text-slate-400"}`}>
                     {alerts.filter(a => !a.resolved).length}
                   </span>
                 </div>
               </div>
+
 
               {/* Faculty Command Deck */}
               {(adminUser?.role === "FACULTY" || adminUser?.role === "ADMIN" || adminUser?.role === "SUPERVISOR") && (
@@ -1596,46 +1556,46 @@ export default function AdminDashboard() {
                       return (
                         <div
                           key={pc.id}
-                          className="bg-darkCard border border-darkBorder hover:border-sky-500/40 rounded-2xl p-6 flex flex-col justify-between space-y-5 shadow-xl transition-all duration-200"
+                          className="bg-white border border-slate-200 hover:border-sky-400 rounded-2xl p-6 flex flex-col justify-between space-y-5 shadow-sm hover:shadow-md transition-all duration-200"
                         >
                           <div className="space-y-3">
                             <div className="flex justify-between items-center">
-                              <span className="text-xl font-black text-white tracking-wide">{pc.pcNumber}</span>
+                              <span className="text-xl font-black text-slate-900 tracking-wide">{pc.pcNumber}</span>
                               {getStatusBadge(pc.status)}
                             </div>
                             
                             <div className="flex justify-between items-center text-xs">
-                              <span className="font-bold text-sky-400 font-mono">{pc.deviceName}</span>
-                              <span className="text-gray-400 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700">{pc.lab?.name || "Unassigned Zone"}</span>
+                              <span className="font-bold text-sky-700 font-mono">{pc.deviceName}</span>
+                              <span className="text-slate-700 font-bold bg-sky-50 px-2 py-0.5 rounded border border-sky-200">{pc.lab?.name || "Unassigned Zone"}</span>
                             </div>
 
                             {/* Active User Pill */}
-                            <div className="p-2.5 bg-slate-900/90 rounded-xl border border-slate-800 flex items-center justify-between">
-                              <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Active User</span>
+                            <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+                              <span className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider">Active User</span>
                               <div className="flex items-center space-x-1.5 truncate max-w-[130px]">
                                 {pc.loggedStudent ? (
                                   <>
-                                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                                    <span className="text-xs font-bold text-emerald-300 truncate" title={pc.loggedStudent}>{pc.loggedStudent}</span>
+                                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                                    <span className="text-xs font-black text-slate-900 truncate" title={pc.loggedStudent}>{pc.loggedStudent}</span>
                                   </>
                                 ) : (
-                                  <span className="text-xs font-medium text-gray-500 italic">Idle / Standby</span>
+                                  <span className="text-xs font-semibold text-slate-400 italic">Idle / Standby</span>
                                 )}
                               </div>
                             </div>
                           </div>
 
                           {/* Telemetry Gauge Bars */}
-                          <div className="space-y-3 pt-1 border-t border-darkBorder">
+                          <div className="space-y-3 pt-1 border-t border-slate-200">
                             {/* CPU Bar */}
                             <div className="space-y-1">
                               <div className="flex justify-between text-[11px]">
-                                <span className="text-gray-400 font-semibold">CPU Utilization</span>
-                                <span className="font-mono font-bold text-white">{pc.cpuUsage != null ? `${cpuVal.toFixed(0)}%` : "0%"}</span>
+                                <span className="text-slate-600 font-bold">CPU Utilization</span>
+                                <span className="font-mono font-extrabold text-slate-900">{pc.cpuUsage != null ? `${cpuVal.toFixed(0)}%` : "0%"}</span>
                               </div>
-                              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                              <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
                                 <div
-                                  className={`h-full transition-all duration-500 ${cpuVal >= 85 ? "bg-rose-500" : cpuVal >= 60 ? "bg-amber-400" : "bg-emerald-400"}`}
+                                  className={`h-full transition-all duration-500 ${cpuVal >= 85 ? "bg-rose-500" : cpuVal >= 60 ? "bg-amber-500" : "bg-emerald-500"}`}
                                   style={{ width: `${Math.max(cpuVal, 5)}%` }}
                                 />
                               </div>
@@ -1644,12 +1604,12 @@ export default function AdminDashboard() {
                             {/* RAM Bar */}
                             <div className="space-y-1">
                               <div className="flex justify-between text-[11px]">
-                                <span className="text-gray-400 font-semibold">Memory Usage</span>
-                                <span className="font-mono font-bold text-white">{pc.ramUsage != null ? `${ramVal.toFixed(0)}%` : "0%"}</span>
+                                <span className="text-slate-600 font-bold">Memory Usage</span>
+                                <span className="font-mono font-extrabold text-slate-900">{pc.ramUsage != null ? `${ramVal.toFixed(0)}%` : "0%"}</span>
                               </div>
-                              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                              <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
                                 <div
-                                  className={`h-full transition-all duration-500 ${ramVal >= 85 ? "bg-rose-500" : ramVal >= 60 ? "bg-sky-400" : "bg-sky-500"}`}
+                                  className={`h-full transition-all duration-500 ${ramVal >= 85 ? "bg-rose-500" : ramVal >= 60 ? "bg-sky-500" : "bg-sky-600"}`}
                                   style={{ width: `${Math.max(ramVal, 5)}%` }}
                                 />
                               </div>
@@ -1657,21 +1617,21 @@ export default function AdminDashboard() {
                           </div>
 
                           {/* Network & Service Health Status */}
-                          <div className="text-xs space-y-2 pt-2 border-t border-darkBorder/60">
-                            <div className="flex justify-between items-center text-gray-400 text-[11px]">
-                              <span>IP Address:</span>
-                              <span className="font-mono text-gray-300 font-semibold">{pc.ipAddress}</span>
+                          <div className="text-xs space-y-2 pt-2 border-t border-slate-200">
+                            <div className="flex justify-between items-center text-slate-600 text-[11px]">
+                              <span className="font-bold">IP Address:</span>
+                              <span className="font-mono text-slate-900 font-extrabold">{pc.ipAddress}</span>
                             </div>
                             <div className="flex justify-between items-center text-[11px]">
-                              <span className="text-gray-400">Agent Connection:</span>
-                              <span className={`font-bold flex items-center space-x-1 ${isClientOnline ? "text-emerald-400" : "text-rose-400"}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full inline-block ${isClientOnline ? "bg-emerald-400" : "bg-rose-400"}`} />
+                              <span className="text-slate-600 font-bold">Agent Connection:</span>
+                              <span className={`font-extrabold flex items-center space-x-1 ${isClientOnline ? "text-emerald-700" : "text-rose-600"}`}>
+                                <span className={`w-2 h-2 rounded-full inline-block ${isClientOnline ? "bg-emerald-500" : "bg-rose-500"}`} />
                                 <span>{isClientOnline ? "ONLINE" : "OFFLINE"}</span>
                               </span>
                             </div>
                             <div className="flex justify-between items-center text-[11px]">
-                              <span className="text-gray-400">Watchdog Service:</span>
-                              <span className={`font-bold ${isWatchdogActive ? "text-emerald-400" : "text-amber-400"}`}>
+                              <span className="text-slate-600 font-bold">Watchdog Service:</span>
+                              <span className={`font-extrabold ${isWatchdogActive ? "text-emerald-700" : "text-amber-700"}`}>
                                 {isWatchdogActive ? "🛡️ ACTIVE" : "⚠️ MISSING"}
                               </span>
                             </div>
@@ -1683,24 +1643,25 @@ export default function AdminDashboard() {
                               <button
                                 onClick={() => handleRemoteLock(pc.id)}
                                 disabled={actionLoading === pc.id}
-                                className="col-span-2 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition disabled:opacity-50"
+                                className="col-span-2 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition shadow-sm disabled:opacity-50"
                               >
-                                <Square size={12} fill="white" />
+                                <Square size={13} fill="white" />
                                 <span>Force Lock</span>
                               </button>
                             ) : (
                               <button
                                 onClick={() => handleRemoteUnlock(pc.id)}
                                 disabled={actionLoading === pc.id}
-                                className="col-span-2 py-2 bg-emerald-500 hover:bg-emerald-400 disabled:bg-[#1F2937] text-darkBg disabled:text-gray-600 font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition disabled:opacity-50"
+                                className="col-span-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition shadow-sm disabled:opacity-50"
                               >
-                                <Play size={12} fill="currentColor" />
+                                <Play size={13} fill="currentColor" />
                                 <span>Bypass Unlock</span>
                               </button>
                             )}
                           </div>
                         </div>
                       );
+
                     })}
                   </div>
                 )}
