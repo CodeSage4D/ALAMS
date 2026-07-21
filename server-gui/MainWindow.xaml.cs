@@ -773,18 +773,67 @@ namespace AlamsServerConsole
 
         private void FreshDbReset_Click(object sender, RoutedEventArgs e)
         {
-            var result = MessageBox.Show(
-                "Are you sure you want to perform a database reset and run Prisma migrations?",
-                "Database Migration Reset",
+            var res = MessageBox.Show(
+                "WARNING: This will reset the central database to initial seed data. All temporary logs, uncommitted metrics, and custom sessions will be cleared.\n\nAre you sure you want to proceed?",
+                "Confirm Fresh Database Reset",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning
             );
 
-            if (result == MessageBoxResult.Yes)
+            if (res == MessageBoxResult.Yes)
             {
-                AppendLog("[INFO] Triggering Prisma schema push...");
-                RunNpmScriptInServer("run prisma:generate", "Prisma client compiled successfully.");
-                RunNpmScriptInServer("run prisma:seed", "Database reset and default seeds compiled.");
+                AppendLog("[DB-RESET] Triggering fresh database reset procedure...");
+                try
+                {
+                    string serverDir = FindServerDirectory();
+                    string scriptPath = Path.Combine(serverDir, "..\\database-setup\\run_seed_students.bat");
+
+                    Process proc = new Process();
+                    proc.StartInfo.FileName = "cmd.exe";
+                    proc.StartInfo.Arguments = $"/c \"{scriptPath}\"";
+                    proc.StartInfo.WorkingDirectory = serverDir;
+                    proc.StartInfo.UseShellExecute = false;
+                    proc.StartInfo.RedirectStandardOutput = true;
+                    proc.StartInfo.CreateNoWindow = true;
+
+                    proc.OutputDataReceived += (s, ev) => { if (ev.Data != null) AppendLog($"[DB-RESET] {ev.Data}"); };
+                    proc.Start();
+                    proc.BeginOutputReadLine();
+                }
+                catch (Exception ex)
+                {
+                    AppendLog($"[ERROR] DB Reset failed: {ex.Message}");
+                }
+            }
+        }
+
+        private void TriggerOfflineStudentSeed_Click(object sender, RoutedEventArgs e)
+        {
+            AppendLog("[OFFLINE-SEED] Triggering offline student database SQL seed (406 student records)...");
+            try
+            {
+                string serverDir = FindServerDirectory();
+                string scriptPath = Path.GetFullPath(Path.Combine(serverDir, "..\\database-setup\\run_seed_students.bat"));
+
+                if (!File.Exists(scriptPath))
+                {
+                    AppendLog($"[ERROR] Seed script not found at: {scriptPath}");
+                    return;
+                }
+
+                Process proc = new Process();
+                proc.StartInfo.FileName = "cmd.exe";
+                proc.StartInfo.Arguments = $"/c \"\"{scriptPath}\"\"";
+                proc.StartInfo.WorkingDirectory = Path.GetDirectoryName(scriptPath);
+                proc.StartInfo.UseShellExecute = true;
+                proc.StartInfo.CreateNoWindow = false;
+
+                proc.Start();
+                AppendLog("[SUCCESS] Offline student database seed script launched in console window.");
+            }
+            catch (Exception ex)
+            {
+                AppendLog($"[ERROR] Seed trigger failed: {ex.Message}");
             }
         }
 

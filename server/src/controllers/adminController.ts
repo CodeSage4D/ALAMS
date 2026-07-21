@@ -693,6 +693,195 @@ function generateSecurePassword(enrollment: string): string {
   return hash.substring(0, 8);
 }
 
+// --- STUDENT & LAB MANAGEMENT ---
+export async function getStudents(req: AuthenticatedRequest, res: Response) {
+  const { semester, department, section, trash } = req.query;
+  try {
+    const isTrash = trash === "true";
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    // Auto-purge soft-deleted students older than 7 days
+    await prisma.user.deleteMany({
+      where: {
+        role: "STUDENT",
+        deletedAt: { lte: sevenDaysAgo }
+      }
+    });
+
+    const whereClause: any = {
+      role: "STUDENT",
+      deletedAt: isTrash ? { not: null } : null,
+    };
+
+    if (semester && semester !== "ALL") whereClause.semester = String(semester);
+    if (department && department !== "ALL") whereClause.department = String(department);
+    if (section && section !== "ALL") whereClause.section = String(section);
+
+    const students = await prisma.user.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        enrollmentNumber: true,
+        fullName: true,
+        email: true,
+        semester: true,
+        year: true,
+        department: true,
+        section: true,
+        isActive: true,
+        mustChangePassword: true,
+        deletedAt: true,
+        createdAt: true,
+      },
+      orderBy: { enrollmentNumber: "asc" }
+    });
+
+    return res.json(students);
+  } catch (err: any) {
+    return res.status(500).json({ error: "Failed to retrieve student records" });
+  }
+}
+
+export async function createStudent(req: AuthenticatedRequest, res: Response) {
+  const { enrollmentNumber, fullName, email, semester, year, department, section } = req.body;
+  if (!enrollmentNumber || !fullName) {
+    return res.status(400).json({ error: "Enrollment Number and Full Name are required" });
+  }
+
+  try {
+    const existing = await prisma.user.findUnique({ where: { enrollmentNumber } });
+    if (existing) {
+      return res.status(400).json({ error: `Student with enrollment ${enrollmentNumber} already exists` });
+    }
+
+    const defaultPinHash = await hashValue("123456");
+    const tempPassword = generateSecurePassword(enrollmentNumber);
+    const passwordHash = await hashValue(tempPassword);
+    const finalEmail = email || `${enrollmentNumber}@student.suas.ac.in`;
+
+    const student = await prisma.user.create({
+      data: {
+        enrollmentNumber,
+        fullName,
+        email: finalEmail,
+        semester: semester || "1",
+        year: year || null,
+        department: department || "B.Tech-CSIT",
+        section: section || null,
+        passwordHash,
+        pinHash: defaultPinHash,
+        role: "STUDENT",
+        mustChangePassword: true,
+        isActive: true,
+      }
+    });
+
+    await createAuditLog("STUDENT_CREATED", `Admin created student ${fullName} (${enrollmentNumber})`, req.user?.userId);
+    return res.status(201).json({ student, tempPassword });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || "Failed to create student profile" });
+  }
+}
+
+export async function softDeleteStudent(req: AuthenticatedRequest, res: Response) {
+  const { id } = req.params;
+  try {
+    const student = await prisma.user.update({
+      where: { id },
+      data: { deletedAt: new Date() }
+    });
+    await createAuditLog("STUDENT_SOFT_DELETED", `Soft deleted student ${student.fullName} (${student.enrollmentNumber}). Kept in 7-day trash recovery.`, req.user?.userId);
+    return res.json({ message: "Student moved to 7-Day Trash Recovery Bin", student });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Failed to soft-delete student" });
+  }
+}
+
+export async function restoreStudent(req: AuthenticatedRequest, res: Response) {
+  const { id } = req.params;
+  try {
+    const student = await prisma.user.update({
+      where: { id },
+      data: { deletedAt: null }
+    });
+    await createAuditLog("STUDENT_RESTORED", `Restored student ${student.fullName} (${student.enrollmentNumber}) from trash`, req.user?.userId);
+    return res.json({ message: "Student restored successfully", student });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Failed to restore student profile" });
+  }
+}
+
+export async function purgeTrashStudent(req: AuthenticatedRequest, res: Response) {
+  const { id } = req.params;
+  try {
+    await prisma.attendance.deleteMany({ where: { userId: id } });
+    await prisma.session.deleteMany({ where: { userId: id } });
+    const student = await prisma.user.delete({ where: { id } });
+    await createAuditLog("STUDENT_PERMANENT_PURGED", `Permanently purged student ${student.fullName} (${student.enrollmentNumber})`, req.user?.userId);
+    return res.json({ message: "Student profile permanently purged" });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Failed to permanently purge student profile" });
+  }
+}
+
+export async function bulkPromoteDemoteStudents(req: AuthenticatedRequest, res: Response) {
+  const { action, studentIds, semester, department } = req.body;
+  if (!action || (action !== "PROMOTE" && action !== "DEMOTE")) {
+    return res.status(400).json({ error: "Action must be PROMOTE or DEMOTE" });
+  }
+
+  try {
+    const whereClause: any = { role: "STUDENT", deletedAt: null };
+    if (studentIds && Array.isArray(studentIds) && studentIds.length > 0) {
+      whereClause.id = { in: studentIds };
+    }
+    if (semester && semester !== "ALL") whereClause.semester = String(semester);
+    if (department && department !== "ALL") whereClause.department = String(department);
+
+    const targets = await prisma.user.findMany({ where: whereClause });
+    let count = 0;
+
+    for (const student of targets) {
+      const currentSem = parseInt(student.semester || "1", 10);
+      if (isNaN(currentSem)) continue;
+
+      let newSem = action === "PROMOTE" ? currentSem + 1 : currentSem - 1;
+      if (newSem < 1) newSem = 1;
+      if (newSem > 8) newSem = 8;
+
+      await prisma.user.update({
+        where: { id: student.id },
+        data: { semester: String(newSem) }
+      });
+      count++;
+    }
+
+    await createAuditLog("BULK_SEMESTER_UPDATE", `Bulk ${action} executed for ${count} students.`, req.user?.userId);
+    return res.json({ message: `Successfully ${action === "PROMOTE" ? "promoted" : "demoted"} ${count} students.`, count });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || "Failed to update semester records" });
+  }
+}
+
+export async function updateLabDetails(req: AuthenticatedRequest, res: Response) {
+  const { id } = req.params;
+  const { name, location, subnet } = req.body;
+  try {
+    const lab = await prisma.lab.update({
+      where: { id },
+      data: {
+        ...(name && { name }),
+        ...(location !== undefined && { location }),
+        ...(subnet !== undefined && { subnet })
+      }
+    });
+    await createAuditLog("LAB_UPDATED", `Updated lab ${lab.name} (${lab.location}, Subnet: ${lab.subnet})`, req.user?.userId);
+    return res.json(lab);
+  } catch (err: any) {
+    return res.status(500).json({ error: "Failed to update lab details" });
+  }
+}
+
 // Bulk import students
 export async function importStudents(req: AuthenticatedRequest, res: Response) {
   const studentsList = req.body;
@@ -758,6 +947,7 @@ export async function importStudents(req: AuthenticatedRequest, res: Response) {
       `Bulk imported ${createdCount} student profiles. Skipped/Existing: ${skippedCount}`,
       req.user?.userId
     );
+
 
     return res.json({
       message: `Successfully imported ${createdCount} students. Skipped ${skippedCount} existing or invalid records.`,

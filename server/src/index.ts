@@ -42,7 +42,14 @@ import {
   updateComputer,
   deleteComputer,
   getComputerHistory,
+  createStudent,
+  softDeleteStudent,
+  restoreStudent,
+  purgeTrashStudent,
+  bulkPromoteDemoteStudents,
+  updateLabDetails,
 } from "./controllers/adminController";
+
 import {
   getQRToken,
   verifyLocalPINAuth,
@@ -130,13 +137,20 @@ app.post("/api/v1/auth/reset-password", resetPassword);
 
 // Admin / Supervisor / Faculty APIs
 app.get("/api/v1/admin/students", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR", "FACULTY"), getStudents);
+app.post("/api/v1/admin/students", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR"), createStudent);
 app.put("/api/v1/admin/students/:id/status", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR"), toggleStudentStatus);
+app.delete("/api/v1/admin/students/:id", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR"), softDeleteStudent);
+app.post("/api/v1/admin/students/:id/restore", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR"), restoreStudent);
+app.delete("/api/v1/admin/students/:id/purge", authenticateJWT, authorizeRoles("ADMIN"), purgeTrashStudent);
+app.post("/api/v1/admin/students/bulk-semester", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR"), bulkPromoteDemoteStudents);
 app.post("/api/v1/admin/students/import", authenticateJWT, authorizeRoles("ADMIN"), importStudents);
 app.post("/api/v1/admin/students/bulk-generate-passwords", authenticateJWT, authorizeRoles("ADMIN"), bulkGeneratePasswords);
 app.post("/api/v1/admin/students/:id/reset-password", authenticateJWT, authorizeRoles("ADMIN"), adminResetStudentPassword);
 
 app.get("/api/v1/admin/labs", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR", "FACULTY"), getLabs);
 app.post("/api/v1/admin/labs", authenticateJWT, authorizeRoles("ADMIN"), createLab);
+app.put("/api/v1/admin/labs/:id", authenticateJWT, authorizeRoles("ADMIN"), updateLabDetails);
+
 
 app.get("/api/v1/admin/computers", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR", "FACULTY"), getComputers);
 app.get("/api/v1/admin/computers/pending", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR", "FACULTY"), getPendingComputers);

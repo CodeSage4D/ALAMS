@@ -380,9 +380,14 @@
                                     <Button Content="🧹 Fresh Seed Database" Height="36" Background="#7F1D1D" Foreground="#FCA5A5" BorderThickness="0" Click="FreshDbReset_Click" Cursor="Hand">
                                         <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style></Button.Resources>
                                     </Button>
+
+                                    <Button Content="🌱 Trigger Offline Student DB Seed (406 Students)" Height="40" Background="#1E293B" Foreground="#22C55E" BorderBrush="#22C55E" BorderThickness="1" FontWeight="Bold" Margin="0,10,0,0" Click="TriggerOfflineStudentSeed_Click" Cursor="Hand">
+                                        <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style></Button.Resources>
+                                    </Button>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
+
 
                         <!-- Right Side: Restore interface -->
                         <Border Grid.Column="1" Background="#020617" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="12" Padding="20">

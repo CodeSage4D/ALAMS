@@ -30,6 +30,23 @@ set "PG_BIN=C:\Program Files\PostgreSQL\16\bin\psql.exe"
 if not exist "%PG_BIN%" set "PG_BIN=C:\Program Files\PostgreSQL\15\bin\psql.exe"
 if not exist "%PG_BIN%" set "PG_BIN=psql"
 
+if "%PGPASSWORD%"=="" set "PGPASSWORD=postgres"
+
+echo  [1/3] Ensuring local PostgreSQL database "alams" exists...
+"%PG_BIN%" -U postgres -c "CREATE DATABASE alams;" >nul 2>&1
+
+echo  [2/3] Executing Prisma Database Schema Push...
+set "SERVER_DIR=%SCRIPT_DIR%..\server"
+if exist "%SERVER_DIR%" (
+    cd /d "%SERVER_DIR%"
+    set "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/alams?sslmode=disable"
+    set "DIRECT_URL=postgresql://postgres:postgres@localhost:5432/alams?sslmode=disable"
+    call npx prisma generate >nul 2>&1
+    call npx prisma db push --accept-data-loss >nul 2>&1
+)
+
+echo  [3/3] Executing Offline SQL Seed...
+cd /d "%SCRIPT_DIR%"
 "%PG_BIN%" -U postgres -d alams -f "%SQL_FILE%"
 if %errorlevel% equ 0 (
     echo.
@@ -39,9 +56,10 @@ if %errorlevel% equ 0 (
     echo.
 ) else (
     echo.
-    echo  WARNING: psql returned exit code %errorlevel%. Check PostgreSQL credentials.
+    echo  WARNING: psql returned exit code %errorlevel%. Check PostgreSQL service status.
     echo.
 )
 
 pause
 endlocal
+

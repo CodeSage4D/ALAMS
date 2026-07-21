@@ -135,7 +135,20 @@ export default function AdminDashboard() {
   const studentsPerPage = 10;
   const [selectedPC, setSelectedPC] = useState<any>(null);
 
+  // Enhanced Student Management & Trash States
+  const [selectedSemFilter, setSelectedSemFilter] = useState("ALL");
+  const [selectedDeptFilter, setSelectedDeptFilter] = useState("ALL");
+  const [showTrashView, setShowTrashView] = useState(false);
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  
+  // Lab Editing State
+  const [editingLab, setEditingLab] = useState<any | null>(null);
+  const [editLabName, setEditLabName] = useState("");
+  const [editLabLoc, setEditLabLoc] = useState("");
+  const [editLabSubnet, setEditLabSubnet] = useState("");
+
   // Asset Inventory Filter & Sorting States
+
   const [invSearch, setInvSearch] = useState("");
   const [invStatusFilter, setInvStatusFilter] = useState("ALL");
   const [invLabFilter, setInvLabFilter] = useState("ALL");
@@ -265,7 +278,7 @@ export default function AdminDashboard() {
           fetch(API_URL + "/api/v1/admin/labs", { headers }),
           fetch(API_URL + "/api/v1/admin/computers", { headers }),
           fetch(API_URL + "/api/v1/admin/computers/pending", { headers }),
-          fetch(API_URL + "/api/v1/admin/students", { headers }),
+          fetch(`${API_URL}/api/v1/admin/students?trash=${showTrashView}&semester=${selectedSemFilter}&department=${selectedDeptFilter}`, { headers }),
           fetch(API_URL + "/api/v1/admin/reports/attendance", { headers }),
           fetch(API_URL + "/api/v1/admin/logs/security", { headers }),
           fetch(API_URL + "/api/v1/admin/analytics/pilot", { headers }),
@@ -290,7 +303,8 @@ export default function AdminDashboard() {
     // Auto-refresh monitor grid every 8 seconds
     const interval = setInterval(fetchData, 8000);
     return () => clearInterval(interval);
-  }, [adminUser, refreshes]);
+  }, [adminUser, refreshes, showTrashView, selectedSemFilter, selectedDeptFilter]);
+
 
   const triggerRefresh = () => setRefreshes(prev => prev + 1);
 
@@ -687,6 +701,129 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleSoftDeleteStudent = async (id: string) => {
+    if (!confirm("Move this student to 7-Day Trash Recovery Bin?")) return;
+    const token = localStorage.getItem("admin_token");
+    try {
+      const res = await fetch(`${API_URL}/api/v1/admin/students/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showFeedback("Student moved to 7-Day Trash Recovery Bin");
+        triggerRefresh();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to soft-delete student.");
+      }
+    } catch (err) {
+      alert("Network error deleting student.");
+    }
+  };
+
+  const handleRestoreStudent = async (id: string) => {
+    const token = localStorage.getItem("admin_token");
+    try {
+      const res = await fetch(`${API_URL}/api/v1/admin/students/${id}/restore`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showFeedback("Student profile restored!");
+        triggerRefresh();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to restore student.");
+      }
+    } catch (err) {
+      alert("Network error restoring student.");
+    }
+  };
+
+  const handlePurgeStudent = async (id: string) => {
+    if (!confirm("PERMANENT DELETE: Are you sure? This action cannot be undone!")) return;
+    const token = localStorage.getItem("admin_token");
+    try {
+      const res = await fetch(`${API_URL}/api/v1/admin/students/${id}/purge`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showFeedback("Student profile permanently purged.");
+        triggerRefresh();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to purge student.");
+      }
+    } catch (err) {
+      alert("Network error purging student.");
+    }
+  };
+
+  const handleBulkPromoteDemote = async (action: "PROMOTE" | "DEMOTE") => {
+    const countDesc = selectedStudentIds.length > 0 ? `${selectedStudentIds.length} selected students` : `all matching filter (${selectedSemFilter === "ALL" ? "All" : "Sem " + selectedSemFilter} / ${selectedDeptFilter})`;
+    if (!confirm(`Are you sure you want to ${action} ${countDesc}?`)) return;
+
+    const token = localStorage.getItem("admin_token");
+    try {
+      const res = await fetch(`${API_URL}/api/v1/admin/students/bulk-semester`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action,
+          studentIds: selectedStudentIds,
+          semester: selectedSemFilter,
+          department: selectedDeptFilter
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        showFeedback(data.message);
+        setSelectedStudentIds([]);
+        triggerRefresh();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to bulk update semester.");
+      }
+    } catch (err) {
+      alert("Network error updating semester.");
+    }
+  };
+
+  const handleUpdateLab = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingLab) return;
+    const token = localStorage.getItem("admin_token");
+    try {
+      const res = await fetch(`${API_URL}/api/v1/admin/labs/${editingLab.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: editLabName,
+          location: editLabLoc,
+          subnet: editLabSubnet
+        })
+      });
+      if (res.ok) {
+        showFeedback("Lab details updated successfully!");
+        setEditingLab(null);
+        triggerRefresh();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to update lab.");
+      }
+    } catch (err) {
+      alert("Network error updating lab.");
+    }
+  };
+
+
   const exportImportedPasswordsCSV = (studentList: any[]) => {
     try {
       const createdOnly = studentList.filter((s: any) => s.status === "CREATED" && s.tempPassword);
@@ -1004,35 +1141,32 @@ export default function AdminDashboard() {
 
   // Status Color Helpers
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "ACTIVE":
-        return <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs px-2.5 py-0.5 rounded-full font-bold">ACTIVE</span>;
-      case "APPROVED":
-        return <span className="bg-sky-500/10 text-sky-400 border border-sky-500/20 text-xs px-2.5 py-0.5 rounded-full font-bold">APPROVED</span>;
-      case "PENDING":
-        return <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs px-2.5 py-0.5 rounded-full font-bold">PENDING</span>;
-      case "MAINTENANCE":
-        return <span className="bg-orange-500/10 text-orange-400 border border-orange-500/20 text-xs px-2.5 py-0.5 rounded-full font-bold">MAINTENANCE</span>;
-      case "BLOCKED":
-        return <span className="bg-red-500/10 text-red-400 border border-red-500/20 text-xs px-2.5 py-0.5 rounded-full font-bold">BLOCKED</span>;
-      case "RETIRED":
-        return <span className="bg-gray-500/10 text-gray-400 border border-gray-500/20 text-xs px-2.5 py-0.5 rounded-full font-bold">RETIRED</span>;
-      default:
-        return <span className="bg-gray-500/10 text-gray-400 border border-gray-500/20 text-xs px-2.5 py-0.5 rounded-full font-bold">{status}</span>;
-    }
+    if (status === "ACTIVE") return <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs px-2.5 py-0.5 rounded-full font-bold">ACTIVE</span>;
+    if (status === "APPROVED") return <span className="bg-sky-500/10 text-sky-400 border border-sky-500/20 text-xs px-2.5 py-0.5 rounded-full font-bold">APPROVED</span>;
+    if (status === "PENDING") return <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs px-2.5 py-0.5 rounded-full font-bold">PENDING</span>;
+    if (status === "MAINTENANCE") return <span className="bg-orange-500/10 text-orange-400 border border-orange-500/20 text-xs px-2.5 py-0.5 rounded-full font-bold">MAINTENANCE</span>;
+    if (status === "BLOCKED") return <span className="bg-red-500/10 text-red-400 border border-red-500/20 text-xs px-2.5 py-0.5 rounded-full font-bold">BLOCKED</span>;
+    if (status === "RETIRED") return <span className="bg-gray-500/10 text-gray-400 border border-gray-500/20 text-xs px-2.5 py-0.5 rounded-full font-bold">RETIRED</span>;
+    return <span className="bg-gray-500/10 text-gray-400 border border-gray-500/20 text-xs px-2.5 py-0.5 rounded-full font-bold">{status}</span>;
   };
+
 
   // Student Search & Pagination Calculations
   const filteredStudents = students.filter(student => {
     const search = studentSearch.toLowerCase();
-    return (
-      student.enrollmentNumber.toLowerCase().includes(search) ||
-      student.fullName.toLowerCase().includes(search) ||
-      (student.email && student.email.toLowerCase().includes(search)) ||
-      (student.department && student.department.toLowerCase().includes(search)) ||
-      (student.semester && student.semester.toLowerCase().includes(search))
-    );
+    const enroll = (student.enrollmentNumber || "").toLowerCase();
+    const name = (student.fullName || "").toLowerCase();
+    const email = (student.email || "").toLowerCase();
+    const dept = (student.department || "").toLowerCase();
+    const sem = (student.semester || "").toLowerCase();
+
+    const matchesSearch = enroll.includes(search) || name.includes(search) || email.includes(search) || dept.includes(search) || sem.includes(search);
+    const matchesSem = selectedSemFilter === "ALL" || String(student.semester) === selectedSemFilter;
+    const matchesDept = selectedDeptFilter === "ALL" || String(student.department) === selectedDeptFilter;
+
+    return matchesSearch && matchesSem && matchesDept;
   });
+
 
   const indexOfLastStudent = studentCurrentPage * studentsPerPage;
   const indexOfFirstStudent = indexOfLastStudent - studentsPerPage;
@@ -1518,17 +1652,82 @@ export default function AdminDashboard() {
                 <div>
                   <div className="p-6 border-b border-darkBorder flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900/30">
                     <div>
-                      <h3 className="font-bold text-lg text-white">Student Enrollment Index</h3>
-                      <p className="text-xs text-gray-500 mt-1">Showing {filteredStudents.length} total students</p>
+                      <h3 className="font-bold text-lg text-white flex items-center space-x-2">
+                        <span>{showTrashView ? "🗑️ 7-Day Trash Recovery Bin" : "Student Enrollment Index"}</span>
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-1">Showing {filteredStudents.length} {showTrashView ? "soft-deleted" : "active"} records</p>
                     </div>
-                    <input
-                      type="text"
-                      placeholder="Search enrollment, name, dept..."
-                      value={studentSearch}
-                      onChange={e => setStudentSearch(e.target.value)}
-                      className="px-4 py-2 rounded-xl bg-darkBg border border-darkBorder focus:border-blue-500 focus:outline-none text-xs text-white w-full sm:w-64"
-                    />
+
+                    <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                      {/* Filter Semester */}
+                      <select
+                        value={selectedSemFilter}
+                        onChange={e => setSelectedSemFilter(e.target.value)}
+                        className="px-3 py-1.5 rounded-xl bg-darkBg border border-darkBorder text-xs text-white focus:outline-none"
+                      >
+                        <option value="ALL">All Semesters</option>
+                        <option value="1">Semester 1</option>
+                        <option value="2">Semester 2</option>
+                        <option value="3">Semester 3</option>
+                        <option value="4">Semester 4</option>
+                        <option value="5">Semester 5</option>
+                        <option value="6">Semester 6</option>
+                        <option value="7">Semester 7</option>
+                        <option value="8">Semester 8</option>
+                      </select>
+
+                      {/* Filter Dept */}
+                      <select
+                        value={selectedDeptFilter}
+                        onChange={e => setSelectedDeptFilter(e.target.value)}
+                        className="px-3 py-1.5 rounded-xl bg-darkBg border border-darkBorder text-xs text-white focus:outline-none"
+                      >
+                        <option value="ALL">All Depts</option>
+                        <option value="B.Tech-CSIT">B.Tech-CSIT</option>
+                        <option value="BCA">BCA</option>
+                        <option value="MCA">MCA</option>
+                        <option value="M.Tech">M.Tech</option>
+                      </select>
+
+                      {/* Trash View Toggle */}
+                      <button
+                        onClick={() => setShowTrashView(!showTrashView)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1 ${showTrashView ? "bg-amber-500/20 text-amber-300 border border-amber-500/30" : "bg-darkBg text-gray-400 border border-darkBorder hover:text-white"}`}
+                      >
+                        <span>{showTrashView ? "Active View" : "🗑️ Trash Bin"}</span>
+                      </button>
+
+                      <input
+                        type="text"
+                        placeholder="Search student..."
+                        value={studentSearch}
+                        onChange={e => setStudentSearch(e.target.value)}
+                        className="px-3 py-1.5 rounded-xl bg-darkBg border border-darkBorder focus:border-blue-500 focus:outline-none text-xs text-white w-full sm:w-40"
+                      />
+                    </div>
                   </div>
+
+                  {/* Bulk Action Bar */}
+                  {!showTrashView && (
+                    <div className="px-6 py-2.5 bg-slate-800/40 border-b border-darkBorder flex items-center justify-between text-xs">
+                      <span className="text-gray-400 font-semibold">Bulk Operations (Filtered/Selection):</span>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleBulkPromoteDemote("PROMOTE")}
+                          className="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 rounded font-bold transition"
+                        >
+                          ⬆️ Promote (+1 Sem)
+                        </button>
+                        <button
+                          onClick={() => handleBulkPromoteDemote("DEMOTE")}
+                          className="px-2.5 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 rounded font-bold transition"
+                        >
+                          ⬇️ Demote (-1 Sem)
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm border-collapse">
                       <thead>
@@ -1536,18 +1735,21 @@ export default function AdminDashboard() {
                           <th className="p-4">Enrollment Number</th>
                           <th className="p-4">Full Name</th>
                           <th className="p-4">Email</th>
-                          <th className="p-4">Sem/Batch</th>
+                          <th className="p-4">Sem</th>
                           <th className="p-4">Dept</th>
-                          <th className="p-4">Sec</th>
-                          <th className="p-4">Status</th>
+                          {showTrashView ? (
+                            <th className="p-4">Deleted Date</th>
+                          ) : (
+                            <th className="p-4">Status</th>
+                          )}
                           <th className="p-4 text-center">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-darkBorder">
                         {filteredStudents.length === 0 ? (
                           <tr>
-                            <td colSpan={8} className="p-8 text-center text-gray-500">
-                              No matching student accounts found.
+                            <td colSpan={7} className="p-8 text-center text-gray-500">
+                              {showTrashView ? "No soft-deleted students in 7-Day Trash." : "No matching student accounts found."}
                             </td>
                           </tr>
                         ) : (
@@ -1556,29 +1758,54 @@ export default function AdminDashboard() {
                               <td className="p-4 font-mono font-bold text-emerald-400">{student.enrollmentNumber}</td>
                               <td className="p-4 text-gray-200 font-semibold">{student.fullName}</td>
                               <td className="p-4 text-gray-400 text-xs">{student.email || "—"}</td>
-                              <td className="p-4 text-gray-300 text-xs">{student.semester || "—"}</td>
+                              <td className="p-4 text-sky-400 font-bold text-xs">Sem {student.semester || "1"}</td>
                               <td className="p-4 text-gray-300 text-xs">{student.department || "—"}</td>
-                              <td className="p-4 text-gray-400 text-xs">{student.section || "—"}</td>
-                              <td className="p-4">
-                                {student.isActive ? (
-                                  <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-xs font-semibold">Active</span>
+                              {showTrashView ? (
+                                <td className="p-4 text-amber-400 text-xs font-mono">
+                                  {student.deletedAt ? new Date(student.deletedAt).toLocaleDateString() : "—"}
+                                </td>
+                              ) : (
+                                <td className="p-4">
+                                  {student.isActive ? (
+                                    <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-xs font-semibold">Active</span>
+                                  ) : (
+                                    <span className="px-2 py-0.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded text-xs font-semibold">Suspended</span>
+                                  )}
+                                </td>
+                              )}
+                              <td className="p-4 text-center flex items-center justify-center space-x-1.5">
+                                {showTrashView ? (
+                                  <>
+                                    <button
+                                      onClick={() => handleRestoreStudent(student.id)}
+                                      className="px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded text-xs font-bold transition"
+                                    >
+                                      ♻️ Restore
+                                    </button>
+                                    <button
+                                      onClick={() => handlePurgeStudent(student.id)}
+                                      className="px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded text-xs font-bold transition"
+                                    >
+                                      ❌ Purge
+                                    </button>
+                                  </>
                                 ) : (
-                                  <span className="px-2 py-0.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded text-xs font-semibold">Suspended</span>
+                                  <>
+                                    <button
+                                      onClick={() => handleResetPassword(student.id)}
+                                      className="px-2 py-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded text-xs font-bold transition"
+                                    >
+                                      Reset
+                                    </button>
+                                    <button
+                                      onClick={() => handleSoftDeleteStudent(student.id)}
+                                      className="px-2 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded text-xs font-bold transition"
+                                      title="Move to 7-Day Trash Recovery Bin"
+                                    >
+                                      🗑️ Delete
+                                    </button>
+                                  </>
                                 )}
-                              </td>
-                              <td className="p-4 text-center flex items-center justify-center space-x-2">
-                                <button
-                                  onClick={() => handleToggleStudent(student.id, student.isActive)}
-                                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition ${student.isActive ? "bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20" : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"}`}
-                                >
-                                  {student.isActive ? "Suspend" : "Activate"}
-                                </button>
-                                <button
-                                  onClick={() => handleResetPassword(student.id)}
-                                  className="px-2.5 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-400 rounded-lg text-xs font-bold transition"
-                                >
-                                  Reset Pass
-                                </button>
                               </td>
                             </tr>
                           ))
@@ -1587,6 +1814,7 @@ export default function AdminDashboard() {
                     </table>
                   </div>
                 </div>
+
 
                 {/* Pagination Controls */}
                 {totalStudentPages > 1 && (
@@ -3772,9 +4000,62 @@ export default function AdminDashboard() {
                 </div>
               </div>
             </div>
+          {/* Edit Lab Modal */}
+          {editingLab && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-darkCard border border-darkBorder rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+                <h3 className="font-bold text-lg text-white">Edit Lab Details</h3>
+                <form onSubmit={handleUpdateLab} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Lab Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={editLabName}
+                      onChange={e => setEditLabName(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl bg-darkBg border border-darkBorder text-sm text-white focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Location / Room</label>
+                    <input
+                      type="text"
+                      value={editLabLoc}
+                      onChange={e => setEditLabLoc(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl bg-darkBg border border-darkBorder text-sm text-white focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Subnet CIDR (e.g. 192.168.128.0/24)</label>
+                    <input
+                      type="text"
+                      value={editLabSubnet}
+                      onChange={e => setEditLabSubnet(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl bg-darkBg border border-darkBorder text-sm text-white focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div className="flex justify-end space-x-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditingLab(null)}
+                      className="px-4 py-2 bg-darkBg border border-darkBorder hover:bg-darkHover text-gray-300 font-bold rounded-xl text-xs transition"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-blue-500 hover:bg-blue-400 text-white font-bold rounded-xl text-xs transition"
+                    >
+                      Save Changes
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
           )}
         </div>
       </main>
     </div>
   );
 }
+
