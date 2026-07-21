@@ -250,15 +250,39 @@ async function warmupDatabase(retries = 10, delayMs = 5000): Promise<boolean> {
   return false;
 }
 
+import { startDbSyncWorker, forceDatabaseSync } from "./services/dbSyncService";
+
+// Global Process Crash Guards
+process.on("uncaughtException", (err) => {
+  console.error("🔥 [CRITICAL PROCESS GUARD] Uncaught Exception caught:", err?.message || err);
+  console.error(err?.stack);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("🔥 [CRITICAL PROCESS GUARD] Unhandled Promise Rejection:", reason);
+});
+
+app.post("/api/v1/admin/db/force-sync", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR"), async (req, res) => {
+  try {
+    const result = await forceDatabaseSync();
+    return res.json(result);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || "Database synchronization failed" });
+  }
+});
+
 // Start database warmup and server listening
 warmupDatabase().then(() => {
   server.listen(port, () => {
     console.log(`====================================================`);
     console.log(`[ALAMS SERVER] Operating at http://localhost:${port}`);
     console.log(`====================================================`);
-    // Start UDP Discovery Beacon
+    // Start UDP Discovery Beacon across all NICs
     startUdpBeacon(port);
     // Start Background workers
     startBackgroundWorkers();
+    // Start Background Dual-DB Synchronization worker
+    startDbSyncWorker();
   });
 });
+

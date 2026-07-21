@@ -837,6 +837,29 @@ namespace AlamsServerConsole
             }
         }
 
+        private async void ForceDbSync_Click(object sender, RoutedEventArgs e)
+        {
+            AppendLog("[DB-SYNC] Triggering dual database synchronization (Local <-> Cloud)...");
+            try
+            {
+                var response = await _httpClient.PostAsync("http://localhost:5000/api/v1/admin/db/force-sync", null);
+                if (response.IsSuccessStatusCode)
+                {
+                    string json = await response.Content.ReadAsStringAsync();
+                    AppendLog($"[SUCCESS] Database Sync completed: {json}");
+                }
+                else
+                {
+                    AppendLog($"[WARN] Database Sync returned status code: {response.StatusCode}");
+                }
+            }
+            catch (Exception ex)
+            {
+                AppendLog($"[ERROR] Database sync trigger failed: {ex.Message}");
+            }
+        }
+
+
         private void RunNpmScriptInServer(string args, string successMessage)
         {
             try

@@ -56,7 +56,9 @@ interface Student {
   department?: string | null;
   section?: string | null;
   isActive: boolean;
+  deletedAt?: string | null;
 }
+
 
 interface Attendance {
   id: string;
@@ -823,6 +825,28 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleForceDbSync = async () => {
+    const token = localStorage.getItem("admin_token");
+    try {
+      const res = await fetch(`${API_URL}/api/v1/admin/db/force-sync`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        showFeedback(`⚡ DB Sync Success: ${data.message}`);
+        triggerRefresh();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to trigger database sync.");
+      }
+    } catch (err) {
+      alert("Network error triggering database sync.");
+    }
+  };
+
+
+
 
   const exportImportedPasswordsCSV = (studentList: any[]) => {
     try {
@@ -1298,6 +1322,13 @@ export default function AdminDashboard() {
 
           <div className="flex items-center space-x-3">
             <button
+              onClick={handleForceDbSync}
+              className="px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-lg transition flex items-center space-x-1.5 text-xs font-bold"
+              title="Trigger dual database replication (Local <-> Cloud) and save backup snapshot"
+            >
+              <span>⚡ Force DB Sync</span>
+            </button>
+            <button
               onClick={triggerRefresh}
               className="p-2 bg-darkCard hover:bg-darkHover text-gray-400 hover:text-white rounded-lg border border-darkBorder transition flex items-center space-x-2 text-xs font-semibold"
             >
@@ -1305,6 +1336,7 @@ export default function AdminDashboard() {
               <span>Refresh Deck</span>
             </button>
           </div>
+
         </header>
 
         {/* Tab contents wrapper */}
@@ -4000,7 +4032,11 @@ export default function AdminDashboard() {
                 </div>
               </div>
             </div>
+          )}
+
           {/* Edit Lab Modal */}
+
+
           {editingLab && (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
               <div className="bg-darkCard border border-darkBorder rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
