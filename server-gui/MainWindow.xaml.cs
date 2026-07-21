@@ -208,28 +208,30 @@ namespace AlamsServerConsole
             UpdateNavButtonsLook(NavBackupBtn);
         }
 
-        private async void NavWebBtn_Click(object sender, RoutedEventArgs e)
+        private void NavWebBtn_Click(object sender, RoutedEventArgs e)
         {
             WorkspaceHeaderTitle.Text = "Embedded Web Panel";
             MainTabControl.SelectedIndex = 3;
             UpdateNavButtonsLook(NavWebBtn);
-            
-            if (!_isWebViewInitialized)
+        }
+
+        private void OpenWebPortalBrowser_Click(object sender, RoutedEventArgs e)
+        {
+            try
             {
-                _isWebViewInitialized = true;
-                AppendLog("[WEBVIEW] Launching WebView2 component...");
-                try
+                Process.Start(new ProcessStartInfo
                 {
-                    await MyWebView.EnsureCoreWebView2Async(null);
-                    MyWebView.Source = new Uri("http://localhost:3000/admin/dashboard");
-                    AppendLog("[WEBVIEW] Loaded dashboard portal.");
-                }
-                catch (Exception ex)
-                {
-                    AppendLog($"[WEBVIEW] Initialization error: {ex.Message}");
-                }
+                    FileName = "http://localhost:3000/admin/dashboard",
+                    UseShellExecute = true
+                });
+                AppendLog("[WEBPORTAL] Launched admin web console in browser (http://localhost:3000).");
+            }
+            catch (Exception ex)
+            {
+                AppendLog($"[ERROR] Could not launch browser: {ex.Message}");
             }
         }
+
 
         private void UpdateNavButtonsLook(Button activeBtn)
         {

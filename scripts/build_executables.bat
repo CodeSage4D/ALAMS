@@ -41,7 +41,8 @@ echo ===========================================================================
 echo [ALAMS BUILD] 3/3: Publishing WPF Server GUI console Dashboard...
 echo =============================================================================
 cd /d "%WORKSPACE_DIR%\server-gui"
-call dotnet publish AlamsServerConsole.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o "%PUBLISH_DIR%\server-gui"
+call dotnet publish AlamsServerConsole.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o "%PUBLISH_DIR%\server-gui"
+
 
 if %ERRORLEVEL% equ 0 (
     echo [SUCCESS] Server GUI Console published to: %PUBLISH_DIR%\server-gui\AlamsServerConsole.exe
