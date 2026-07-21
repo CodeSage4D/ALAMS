@@ -47,10 +47,12 @@ namespace AlamsServerConsole
         {
             Dispatcher.Invoke(() =>
             {
+                if (LogTextBox == null || LogScrollViewer == null) return;
                 LogTextBox.AppendText($"[{DateTime.Now:HH:mm:ss}] {text}\n");
                 LogScrollViewer.ScrollToEnd();
             });
         }
+
 
         private void AuthenticateBtn_Click(object sender, RoutedEventArgs e)
         {

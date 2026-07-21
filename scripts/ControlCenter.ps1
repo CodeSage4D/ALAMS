@@ -49,7 +49,7 @@ function Start-AlamsServer {
     }
     
     Write-Host "[INFO] Starting ALAMS Central Server in a background process..." -ForegroundColor Cyan
-    Start-Process powershell.exe -ArgumentList "-NoExit -ExecutionPolicy Bypass -File `"$PSScriptRoot\start_server.bat`"" -WindowStyle Normal
+    Start-Process cmd.exe -ArgumentList "/k `"$PSScriptRoot\start_server.bat`"" -WindowStyle Normal
     Start-Sleep -Seconds 3
     
     $status = Test-ServerConnection
@@ -63,15 +63,15 @@ function Start-AlamsServer {
 
 function Stop-AlamsServer {
     Write-Host "[INFO] Stopping ALAMS Central Server..." -ForegroundColor Cyan
-    & "$PSScriptRoot\stop_server.bat"
+    cmd.exe /c "`"$PSScriptRoot\stop_server.bat`""
     Read-Enter
 }
 
 function Restart-AlamsServer {
     Write-Host "[INFO] Restarting ALAMS Central Server..." -ForegroundColor Cyan
-    & "$PSScriptRoot\stop_server.bat"
+    cmd.exe /c "`"$PSScriptRoot\stop_server.bat`""
     Start-Sleep -Seconds 2
-    Start-Process powershell.exe -ArgumentList "-NoExit -ExecutionPolicy Bypass -File `"$PSScriptRoot\start_server.bat`"" -WindowStyle Normal
+    Start-Process cmd.exe -ArgumentList "/k `"$PSScriptRoot\start_server.bat`"" -WindowStyle Normal
     Start-Sleep -Seconds 3
     
     $status = Test-ServerConnection
@@ -82,6 +82,7 @@ function Restart-AlamsServer {
     }
     Read-Enter
 }
+
 
 function Backup-Database {
     Write-Host "[INFO] Triggering Database Backup..." -ForegroundColor Cyan
