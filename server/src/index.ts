@@ -250,7 +250,8 @@ async function warmupDatabase(retries = 10, delayMs = 5000): Promise<boolean> {
   return false;
 }
 
-import { startDbSyncWorker, forceDatabaseSync } from "./services/dbSyncService";
+import { startDbSyncWorker, forceDatabaseSync, getAvailableBackups, restoreDatabaseSnapshot } from "./services/dbSyncService";
+import { runNativeStudentSeed } from "./scripts/seedLocalDb";
 
 // Global Process Crash Guards
 process.on("uncaughtException", (err) => {
@@ -270,6 +271,37 @@ app.post("/api/v1/admin/db/force-sync", authenticateJWT, authorizeRoles("ADMIN",
     return res.status(500).json({ error: err.message || "Database synchronization failed" });
   }
 });
+
+app.post("/api/v1/admin/db/seed", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR"), async (req, res) => {
+  try {
+    const result = await runNativeStudentSeed();
+    return res.json(result);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || "Native database seeding failed" });
+  }
+});
+
+app.get("/api/v1/admin/db/backups", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR"), async (req, res) => {
+  try {
+    const backups = getAvailableBackups();
+    return res.json(backups);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || "Failed to retrieve backups" });
+  }
+});
+
+app.post("/api/v1/admin/db/restore", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR"), async (req, res) => {
+  const { filename } = req.body;
+  if (!filename) return res.status(400).json({ error: "Filename is required for restore" });
+
+  try {
+    const result = await restoreDatabaseSnapshot(filename);
+    return res.json(result);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || "Database restore failed" });
+  }
+});
+
 
 // Start database warmup and server listening
 warmupDatabase().then(() => {

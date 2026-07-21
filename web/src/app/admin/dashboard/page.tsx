@@ -1590,68 +1590,100 @@ export default function AdminDashboard() {
                       // Calculate Watchdog status (active if watchdogHeartbeat is under 20 seconds)
                       const isWatchdogActive = pc.watchdogHeartbeat && (Date.now() - new Date(pc.watchdogHeartbeat).getTime()) < 20000;
 
+                      const cpuVal = pc.cpuUsage != null ? Math.min(Math.max(pc.cpuUsage, 0), 100) : 0;
+                      const ramVal = pc.ramUsage != null ? Math.min(Math.max(pc.ramUsage, 0), 100) : 0;
+
                       return (
                         <div
                           key={pc.id}
-                          className="bg-darkCard border border-darkBorder rounded-2xl p-6 flex flex-col justify-between space-y-6 shadow-xl hover:border-darkHover transition"
+                          className="bg-darkCard border border-darkBorder hover:border-sky-500/40 rounded-2xl p-6 flex flex-col justify-between space-y-5 shadow-xl transition-all duration-200"
                         >
-                          <div className="space-y-2">
+                          <div className="space-y-3">
                             <div className="flex justify-between items-center">
-                              <span className="text-lg font-black text-white">{pc.pcNumber}</span>
+                              <span className="text-xl font-black text-white tracking-wide">{pc.pcNumber}</span>
                               {getStatusBadge(pc.status)}
                             </div>
-                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{pc.deviceName}</p>
-                            <p className="text-xs text-gray-400">{pc.lab?.name || "Unassigned"}</p>
+                            
+                            <div className="flex justify-between items-center text-xs">
+                              <span className="font-bold text-sky-400 font-mono">{pc.deviceName}</span>
+                              <span className="text-gray-400 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700">{pc.lab?.name || "Unassigned Zone"}</span>
+                            </div>
+
+                            {/* Active User Pill */}
+                            <div className="p-2.5 bg-slate-900/90 rounded-xl border border-slate-800 flex items-center justify-between">
+                              <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Active User</span>
+                              <div className="flex items-center space-x-1.5 truncate max-w-[130px]">
+                                {pc.loggedStudent ? (
+                                  <>
+                                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                                    <span className="text-xs font-bold text-emerald-300 truncate" title={pc.loggedStudent}>{pc.loggedStudent}</span>
+                                  </>
+                                ) : (
+                                  <span className="text-xs font-medium text-gray-500 italic">Idle / Standby</span>
+                                )}
+                              </div>
+                            </div>
                           </div>
 
-                          <div className="text-xs border-t border-darkBorder pt-4 space-y-2.5">
-                            <div className="flex justify-between text-gray-500">
-                              <span>IP Allocation:</span>
-                              <span className="text-gray-300 font-semibold">{pc.ipAddress}</span>
+                          {/* Telemetry Gauge Bars */}
+                          <div className="space-y-3 pt-1 border-t border-darkBorder">
+                            {/* CPU Bar */}
+                            <div className="space-y-1">
+                              <div className="flex justify-between text-[11px]">
+                                <span className="text-gray-400 font-semibold">CPU Utilization</span>
+                                <span className="font-mono font-bold text-white">{pc.cpuUsage != null ? `${cpuVal.toFixed(0)}%` : "0%"}</span>
+                              </div>
+                              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full transition-all duration-500 ${cpuVal >= 85 ? "bg-rose-500" : cpuVal >= 60 ? "bg-amber-400" : "bg-emerald-400"}`}
+                                  style={{ width: `${Math.max(cpuVal, 5)}%` }}
+                                />
+                              </div>
                             </div>
-                            <div className="flex justify-between text-gray-500">
-                              <span>Active User:</span>
-                              <span className="text-gray-300 font-semibold truncate max-w-[120px]" title={pc.loggedStudent || "None"}>{pc.loggedStudent || "None"}</span>
+
+                            {/* RAM Bar */}
+                            <div className="space-y-1">
+                              <div className="flex justify-between text-[11px]">
+                                <span className="text-gray-400 font-semibold">Memory Usage</span>
+                                <span className="font-mono font-bold text-white">{pc.ramUsage != null ? `${ramVal.toFixed(0)}%` : "0%"}</span>
+                              </div>
+                              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full transition-all duration-500 ${ramVal >= 85 ? "bg-rose-500" : ramVal >= 60 ? "bg-sky-400" : "bg-sky-500"}`}
+                                  style={{ width: `${Math.max(ramVal, 5)}%` }}
+                                />
+                              </div>
                             </div>
-                            <div className="flex justify-between text-gray-500">
-                              <span>CPU / RAM:</span>
-                              <span className="text-gray-300 font-semibold">
-                                {pc.cpuUsage !== undefined && pc.cpuUsage !== null ? `${pc.cpuUsage.toFixed(0)}%` : "—"} / {pc.ramUsage !== undefined && pc.ramUsage !== null ? `${pc.ramUsage.toFixed(0)}%` : "—"}
+                          </div>
+
+                          {/* Network & Service Health Status */}
+                          <div className="text-xs space-y-2 pt-2 border-t border-darkBorder/60">
+                            <div className="flex justify-between items-center text-gray-400 text-[11px]">
+                              <span>IP Address:</span>
+                              <span className="font-mono text-gray-300 font-semibold">{pc.ipAddress}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-[11px]">
+                              <span className="text-gray-400">Agent Connection:</span>
+                              <span className={`font-bold flex items-center space-x-1 ${isClientOnline ? "text-emerald-400" : "text-rose-400"}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full inline-block ${isClientOnline ? "bg-emerald-400" : "bg-rose-400"}`} />
+                                <span>{isClientOnline ? "ONLINE" : "OFFLINE"}</span>
                               </span>
                             </div>
-                            <div className="flex justify-between text-gray-500">
-                              <span>Local Fallback:</span>
-                              <span className={pc.fallbackEnabled ? "text-emerald-400" : "text-red-400"}>
-                                {pc.fallbackEnabled ? "Enabled" : "Disabled"}
-                              </span>
-                            </div>
-                            <div className="flex justify-between text-gray-500">
-                              <span>Client Agent:</span>
-                              <span className={isClientOnline ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>
-                                {isClientOnline ? "ONLINE" : "OFFLINE"}
-                              </span>
-                            </div>
-                            <div className="flex justify-between text-gray-500">
-                              <span>Watchdog Service:</span>
-                              <span className={isWatchdogActive ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>
-                                {isWatchdogActive ? "ACTIVE" : "MISSING"}
-                              </span>
-                            </div>
-                            <div className="flex justify-between text-gray-500">
-                              <span>Last Contact:</span>
-                              <span className="text-gray-400 font-mono text-[10px]">
-                                {pc.lastSeen ? new Date(pc.lastSeen).toLocaleTimeString() : "—"}
+                            <div className="flex justify-between items-center text-[11px]">
+                              <span className="text-gray-400">Watchdog Service:</span>
+                              <span className={`font-bold ${isWatchdogActive ? "text-emerald-400" : "text-amber-400"}`}>
+                                {isWatchdogActive ? "🛡️ ACTIVE" : "⚠️ MISSING"}
                               </span>
                             </div>
                           </div>
 
                           {/* Control overrides */}
-                          <div className="grid grid-cols-2 gap-3 pt-2">
+                          <div className="grid grid-cols-2 gap-2.5 pt-2">
                             {isActiveSession ? (
                               <button
                                 onClick={() => handleRemoteLock(pc.id)}
                                 disabled={actionLoading === pc.id}
-                                className="col-span-2 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition disabled:opacity-50"
+                                className="col-span-2 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition disabled:opacity-50"
                               >
                                 <Square size={12} fill="white" />
                                 <span>Force Lock</span>
@@ -1659,8 +1691,8 @@ export default function AdminDashboard() {
                             ) : (
                               <button
                                 onClick={() => handleRemoteUnlock(pc.id)}
-                                disabled={actionLoading === pc.id || pc.status === "OFFLINE"}
-                                className="col-span-2 py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:bg-[#1F2937] text-darkBg disabled:text-gray-600 font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition disabled:opacity-50"
+                                disabled={actionLoading === pc.id}
+                                className="col-span-2 py-2 bg-emerald-500 hover:bg-emerald-400 disabled:bg-[#1F2937] text-darkBg disabled:text-gray-600 font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition disabled:opacity-50"
                               >
                                 <Play size={12} fill="currentColor" />
                                 <span>Bypass Unlock</span>
@@ -1673,6 +1705,7 @@ export default function AdminDashboard() {
                   </div>
                 )}
               </div>
+
             </div>
           )}
 

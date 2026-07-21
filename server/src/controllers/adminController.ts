@@ -255,28 +255,7 @@ export async function remoteLock(req: AuthenticatedRequest, res: Response) {
 }
 
 // --- STUDENT/USER MANAGEMENT ---
-export async function getStudents(req: AuthenticatedRequest, res: Response) {
-  try {
-    const users = await prisma.user.findMany({
-      where: { role: "STUDENT" },
-      select: {
-        id: true,
-        enrollmentNumber: true,
-        fullName: true,
-        email: true,
-        semester: true,
-        department: true,
-        section: true,
-        isActive: true,
-        createdAt: true,
-      },
-      orderBy: { enrollmentNumber: "asc" },
-    });
-    return res.json(users);
-  } catch (err: any) {
-    return res.status(500).json({ error: "Failed to load students" });
-  }
-}
+
 
 export async function toggleStudentStatus(req: AuthenticatedRequest, res: Response) {
   const { id } = req.params;

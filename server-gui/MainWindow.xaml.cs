@@ -807,35 +807,39 @@ namespace AlamsServerConsole
             }
         }
 
-        private void TriggerOfflineStudentSeed_Click(object sender, RoutedEventArgs e)
+        private async void TriggerOfflineStudentSeed_Click(object sender, RoutedEventArgs e)
         {
-            AppendLog("[OFFLINE-SEED] Triggering offline student database SQL seed (406 student records)...");
+            AppendLog("[OFFLINE-SEED] Triggering native Node.js & Prisma offline student database SQL seed (406 student records)...");
             try
             {
-                string serverDir = FindServerDirectory();
-                string scriptPath = Path.GetFullPath(Path.Combine(serverDir, "..\\database-setup\\run_seed_students.bat"));
-
-                if (!File.Exists(scriptPath))
+                var response = await _httpClient.PostAsync("http://localhost:5000/api/v1/admin/db/seed", null);
+                if (response.IsSuccessStatusCode)
                 {
-                    AppendLog($"[ERROR] Seed script not found at: {scriptPath}");
-                    return;
+                    string json = await response.Content.ReadAsStringAsync();
+                    AppendLog($"[SUCCESS] Native Student DB Seed Completed: {json}");
                 }
-
-                Process proc = new Process();
-                proc.StartInfo.FileName = "cmd.exe";
-                proc.StartInfo.Arguments = $"/c \"\"{scriptPath}\"\"";
-                proc.StartInfo.WorkingDirectory = Path.GetDirectoryName(scriptPath);
-                proc.StartInfo.UseShellExecute = true;
-                proc.StartInfo.CreateNoWindow = false;
-
-                proc.Start();
-                AppendLog("[SUCCESS] Offline student database seed script launched in console window.");
+                else
+                {
+                    AppendLog("[OFFLINE-SEED] Native API endpoint unavailable. Falling back to batch script launch...");
+                    string serverDir = FindServerDirectory();
+                    string scriptPath = Path.GetFullPath(Path.Combine(serverDir, "..\\database-setup\\run_seed_students.bat"));
+                    if (File.Exists(scriptPath))
+                    {
+                        Process proc = new Process();
+                        proc.StartInfo.FileName = "cmd.exe";
+                        proc.StartInfo.Arguments = $"/c \"\"{scriptPath}\"\"";
+                        proc.StartInfo.WorkingDirectory = Path.GetDirectoryName(scriptPath);
+                        proc.StartInfo.UseShellExecute = true;
+                        proc.Start();
+                    }
+                }
             }
             catch (Exception ex)
             {
                 AppendLog($"[ERROR] Seed trigger failed: {ex.Message}");
             }
         }
+
 
         private async void ForceDbSync_Click(object sender, RoutedEventArgs e)
         {

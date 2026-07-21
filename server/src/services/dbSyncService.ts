@@ -109,6 +109,45 @@ export async function triggerAutomatedDatabaseBackup(): Promise<{ success: boole
   });
 }
 
+export function getAvailableBackups(): Array<{ filename: string; sizeBytes: number; createdAt: string }> {
+  const backupsDir = path.resolve(__dirname, "../../../backups");
+  if (!fs.existsSync(backupsDir)) return [];
+
+  const files = fs.readdirSync(backupsDir).filter(f => f.endsWith(".sql"));
+  return files.map(file => {
+    const filePath = path.join(backupsDir, file);
+    const stats = fs.statSync(filePath);
+    return {
+      filename: file,
+      sizeBytes: stats.size,
+      createdAt: stats.mtime.toISOString(),
+    };
+  }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+export async function restoreDatabaseSnapshot(filename: string): Promise<{ success: boolean; message: string }> {
+  const backupsDir = path.resolve(__dirname, "../../../backups");
+  const backupPath = path.join(backupsDir, path.basename(filename));
+
+  if (!fs.existsSync(backupPath)) {
+    throw new Error(`Snapshot file not found: ${filename}`);
+  }
+
+  const psqlBin = process.env.PSQL_PATH || "psql";
+  const cmd = `"${psqlBin}" -U postgres -d alams -f "${backupPath}"`;
+
+  return new Promise((resolve, reject) => {
+    exec(cmd, { env: { ...process.env, PGPASSWORD: process.env.PGPASSWORD || "postgres" } }, (error) => {
+      if (error) {
+        reject(new Error(`Failed to restore snapshot: ${error.message}`));
+      } else {
+        console.log(`✅ [DB RESTORE] Successfully restored database snapshot: ${filename}`);
+        resolve({ success: true, message: `Database restored from ${filename}!` });
+      }
+    });
+  });
+}
+
 export function startDbSyncWorker() {
   console.log("🔄 [DB SYNC WORKER] Background replication engine started.");
   

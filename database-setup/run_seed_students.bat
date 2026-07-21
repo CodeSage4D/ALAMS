@@ -26,8 +26,13 @@ echo  Found seed file: %SQL_FILE%
 echo  Importing student records into local PostgreSQL database (alams)...
 echo.
 
-set "PG_BIN=C:\Program Files\PostgreSQL\16\bin\psql.exe"
+set "PG_BIN=C:\Program Files\PostgreSQL\18\bin\psql.exe"
+if not exist "%PG_BIN%" set "PG_BIN=C:\Program Files\PostgreSQL\17\bin\psql.exe"
+if not exist "%PG_BIN%" set "PG_BIN=C:\Program Files\PostgreSQL\16\bin\psql.exe"
 if not exist "%PG_BIN%" set "PG_BIN=C:\Program Files\PostgreSQL\15\bin\psql.exe"
+if not exist "%PG_BIN%" set "PG_BIN=C:\Program Files\PostgreSQL\14\bin\psql.exe"
+if not exist "%PG_BIN%" set "PG_BIN=C:\Program Files\PostgreSQL\13\bin\psql.exe"
+if not exist "%PG_BIN%" set "PG_BIN=C:\Program Files\PostgreSQL\12\bin\psql.exe"
 if not exist "%PG_BIN%" set "PG_BIN=psql"
 
 if "%PGPASSWORD%"=="" set "PGPASSWORD=postgres"
@@ -45,14 +50,20 @@ if exist "%SERVER_DIR%" (
     call npx prisma db push --accept-data-loss >nul 2>&1
 )
 
-echo  [3/3] Executing Offline SQL Seed...
-cd /d "%SCRIPT_DIR%"
-"%PG_BIN%" -U postgres -d alams -f "%SQL_FILE%"
+echo  [3/3] Executing Native Node.js & SQL Offline Seed...
+cd /d "%SERVER_DIR%"
+call npx ts-node src/scripts/seedLocalDb.ts
 if %errorlevel% equ 0 (
     echo.
     echo  =====================================================================
-    echo   SUCCESS! All student records imported into local PostgreSQL database.
+    echo   SUCCESS! All 406 student records imported into PostgreSQL database.
     echo  =====================================================================
+    echo.
+) else (
+    cd /d "%SCRIPT_DIR%"
+    "%PG_BIN%" -U postgres -d alams -f "%SQL_FILE%"
+)
+
     echo.
 ) else (
     echo.
