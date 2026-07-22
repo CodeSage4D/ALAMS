@@ -20,8 +20,8 @@ while ($true) {
     while (-not $serverProcess.HasExited) {
         Start-Sleep -Seconds 3
         try {
-            $health = Invoke-RestMethod -Uri "http://localhost:5000/api/v1/admin/diagnostics" -TimeoutSec 3 -ErrorAction Stop
-            if ($health.status -ne "healthy" -and $health.dbConnected -eq $false) {
+            $health = Invoke-RestMethod -Uri "http://localhost:5000/health" -TimeoutSec 3 -ErrorAction Stop
+            if ($health.status -ne "healthy" -or $health.dbStatus -ne "CONNECTED") {
                 Write-Host "[SUPERVISOR WARNING] Server returned unhealthy diagnostic state!" -ForegroundColor Yellow
             }
         }

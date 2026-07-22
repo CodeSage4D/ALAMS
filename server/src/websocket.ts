@@ -1,9 +1,9 @@
 import { Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import prisma from "./prisma";
-import { isIpInSubnet } from "./controllers/adminController";
+import { isIpInSubnet } from "./workstation/workstationController";
 import { evaluateWorkstationBehavior } from "./utils/aiAnalytics";
-import { computeHmac } from "./utils/crypto";
+import { computeHmac } from "./auth/passwordHelper";
 
 // Map of active client computer IDs to their open WebSocket connections
 const connectedClients = new Map<string, WebSocket>();

@@ -2,15 +2,18 @@
 REM =============================================================================
 REM ALAMS - Switch Server Database to Local Offline PostgreSQL
 REM =============================================================================
-echo [ALAMS DATABASE] Swapping datasource configuration to Local loopback server...
+echo [ALAMS DATABASE] Swapping database URL to Local loopback server...
 
 set ENV_PATH=%~dp0..\server\.env
 
-echo DATABASE_URL="postgresql://postgres:Admin@ALAMS2026!@localhost:5432/alams_offline?schema=public" > "%ENV_PATH%"
-echo DIRECT_URL="postgresql://postgres:Admin@ALAMS2026!@localhost:5432/alams_offline?schema=public" >> "%ENV_PATH%"
-echo PORT=5000 >> "%ENV_PATH%"
-echo JWT_SECRET="alams_offline_secured_secret_key_2026" >> "%ENV_PATH%"
+if not exist "%ENV_PATH%" (
+    echo [ERROR] server/.env file does not exist! Please create it first.
+    pause
+    exit /b 1
+)
 
-echo [SUCCESS] Configuration swapped. Server will now connect to Local loopback database.
+powershell -NoProfile -ExecutionPolicy Bypass -Command "(Get-Content '%ENV_PATH%') -replace '^(DATABASE_URL\s*=\s*\").*(\")', '${1}postgresql://postgres:Admin@ALAMS2026!@localhost:5432/alams_offline?schema=public${2}' -replace '^(DIRECT_URL\s*=\s*\").*(\")', '${1}postgresql://postgres:Admin@ALAMS2026!@localhost:5432/alams_offline?schema=public${2}' | Set-Content '%ENV_PATH%'"
+
+echo [SUCCESS] Configuration swapped. Server will connect to Local database.
 echo [INFO] Please restart the ALAMS server process to load the changes.
 pause

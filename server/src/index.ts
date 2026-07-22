@@ -7,74 +7,84 @@ import path from "path";
 // Load configuration
 dotenv.config();
 
-import { signup, login, changePassword, requestPasswordReset, resetPassword } from "./controllers/authController";
-import {
+import { 
+  signup, 
+  login, 
+  changePassword, 
+  requestPasswordReset, 
+  resetPassword,
   getStudents,
-  toggleStudentStatus,
-  getLabs,
-  createLab,
-  getComputers,
-  createComputer,
-  toggleFallback,
-  remoteUnlock,
-  remoteLock,
-  getActiveSessions,
-  getAttendance,
-  getSecurityAlerts,
-  resolveAlert,
-  getPendingComputers,
-  approveComputer,
-  updateComputerStatus,
-  lockAllWorkstations,
-  endAllSessions,
-  startPractical,
-  endPractical,
-  getDiagnostics,
-  queueRemoteCommand,
-  createGpoPolicy,
-  getGpoPolicies,
-  deleteGpoPolicy,
-  importStudents,
-  bulkGeneratePasswords,
-  adminResetStudentPassword,
-  shutdownAllWorkstations,
-  updateProfileAuthConfig,
-  updateComputer,
-  deleteComputer,
-  getComputerHistory,
   createStudent,
+  toggleStudentStatus,
   softDeleteStudent,
   restoreStudent,
   purgeTrashStudent,
   bulkPromoteDemoteStudents,
-  updateLabDetails,
-} from "./controllers/adminController";
+  adminResetStudentPassword,
+  bulkGeneratePasswords,
+  verifyAdminPIN
+} from "./auth/authController";
 
 import {
+  getLabs,
+  createLab,
+  updateLabDetails,
+  getAttendance,
+  getStudentAttendance,
+  startPractical,
+  endPractical
+} from "./attendance/attendanceController";
+
+import {
+  getComputers,
+  createComputer,
+  updateComputer,
+  deleteComputer,
+  getComputerHistory,
+  toggleFallback,
+  getPendingComputers,
+  approveComputer,
+  updateComputerStatus,
+  enrollClient,
+  dispatchTelemetry,
   getQRToken,
+  remoteUnlock,
+  remoteLock,
+  queueRemoteCommand,
+  lockAllWorkstations,
+  endAllSessions,
+  shutdownAllWorkstations,
+  createGpoPolicy,
+  getGpoPolicies,
+  deleteGpoPolicy,
+  updateProfileAuthConfig
+} from "./workstation/workstationController";
+
+import {
+  verifySessionPIN,
+  verifyMobileUnlock,
   verifyLocalPINAuth,
   clientLogout,
-  verifyMobileUnlock,
-  verifySessionPIN,
+  syncOfflineSession,
   watchdogHeartbeat,
   watchdogAlert,
-  getStudentAttendance,
+  getActiveSessions,
   registerAndUnlock,
-  dispatchTelemetry,
-  verifyAdminPIN,
-  enrollClient,
-  syncOfflineSession,
-} from "./controllers/clientController";
-import { getPilotAnalytics, recordFailedLogin } from "./controllers/analyticsController";
+  getSecurityAlerts,
+  resolveAlert
+} from "./session/sessionController";
+
+import { getPilotAnalytics, recordFailedLogin } from "./monitoring/analyticsController";
+import { getHealth, getDiagnostics } from "./monitoring/healthController";
 import { authenticateJWT, authorizeRoles } from "./middleware/auth";
 import { initWebSocketServer, requestDiagnosticsFromClient } from "./websocket";
-import { startUdpBeacon } from "./utils/udpBeacon";
+import { startUdpBeacon } from "./workstation/discoveryService";
 import prisma, { ensureDefaultLabs } from "./prisma";
 
-import { requestOTP, verifyOTP } from "./controllers/otpController";
-
-import { getEmailConfig, updateEmailConfig, testEmailConnection, getEmailDashboardStats } from "./controllers/emailConfigController";
-import { startBackgroundWorkers } from "./services/queueProcessor";
+import { requestOTP, verifyOTP } from "./auth/otpController";
+import { importStudents } from "./import-export/importController";
+import { getEmailConfig, updateEmailConfig, testEmailConnection, getEmailDashboardStats } from "./auth/emailConfigController";
+import { startBackgroundWorkers } from "./workstation/queueProcessor";
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -105,28 +115,7 @@ app.set("trust proxy", 1);
 app.use("/download", express.static(path.join(__dirname, "../../publish")));
 
 // Public API
-app.get("/health", async (req, res) => {
-  try {
-    const activeClientsCount = await prisma.computer.count({ where: { status: "APPROVED" } });
-    const activeSessionsCount = await prisma.session.count({ where: { status: "ACTIVE" } });
-    return res.json({
-      status: "healthy",
-      timestamp: Date.now(),
-      activeClients: activeClientsCount,
-      activeSessions: activeSessionsCount,
-      dbStatus: "CONNECTED"
-    });
-  } catch (err: any) {
-    return res.json({
-      status: "unhealthy",
-      timestamp: Date.now(),
-      activeClients: 0,
-      activeSessions: 0,
-      dbStatus: "DISCONNECTED",
-      error: err.message
-    });
-  }
-});
+app.get("/health", getHealth);
 app.get("/api/v1/health/diagnostics", authenticateJWT, authorizeRoles("ADMIN", "SUPERVISOR"), getDiagnostics);
 
 // Authentication API
@@ -255,7 +244,7 @@ async function warmupDatabase(retries = 10, delayMs = 5000): Promise<boolean> {
   return false;
 }
 
-import { startDbSyncWorker, forceDatabaseSync, getAvailableBackups, restoreDatabaseSnapshot } from "./services/dbSyncService";
+import { startDbSyncWorker, forceDatabaseSync, getAvailableBackups, restoreDatabaseSnapshot } from "./sync/dbSyncService";
 import { runNativeStudentSeed } from "./scripts/seedLocalDb";
 
 // Global Process Crash Guards

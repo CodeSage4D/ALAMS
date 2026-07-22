@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { compareValue } from "./utils/crypto";
+import { compareValue } from "./auth/passwordHelper";
 
 const prisma = new PrismaClient();
 

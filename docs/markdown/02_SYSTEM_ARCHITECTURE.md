@@ -1,4 +1,4 @@
-# ALAMS — System Architecture
+# ALAMS â€” System Architecture
 
 ## Overview
 
@@ -6,54 +6,54 @@ AURXON Lab Access Management System (ALAMS) is a multi-tier enterprise system fo
 
 ## System Components
 
-`
+```
 +-----------------------------------------------------------------+
-¦                        CLIENT LAYER                             ¦
-¦  +------------------+   +--------------+   +----------------+  ¦
-¦  ¦  WPF Lock Client  ¦   ¦  Session     ¦   ¦  Watchdog      ¦  ¦
-¦  ¦  (AlamsClient)    ¦   ¦  Widget      ¦   ¦  Service       ¦  ¦
-¦  ¦  .NET 8 / WPF     ¦   ¦  (Float UI)  ¦   ¦  (Background)  ¦  ¦
-¦  +------------------+   +--------------+   +----------------+  ¦
+Â¦                        CLIENT LAYER                             Â¦
+Â¦  +------------------+   +--------------+   +----------------+  Â¦
+Â¦  Â¦  WPF Lock Client  Â¦   Â¦  Session     Â¦   Â¦  Watchdog      Â¦  Â¦
+Â¦  Â¦  (AlamsClient)    Â¦   Â¦  Widget      Â¦   Â¦  Service       Â¦  Â¦
+Â¦  Â¦  .NET 8 / WPF     Â¦   Â¦  (Float UI)  Â¦   Â¦  (Background)  Â¦  Â¦
+Â¦  +------------------+   +--------------+   +----------------+  Â¦
 +-----------+----------------------+--------------------+---------+
-            ¦  WebSocket + REST    ¦                    ¦ REST
+            Â¦  WebSocket + REST    Â¦                    Â¦ REST
 +-----------+----------------------+--------------------+---------+
-¦           ¦    SERVER LAYER      ¦                    ¦         ¦
-¦  +--------?----------------------?--------------------?------+  ¦
-¦  ¦              Express.js API Server (Node.js)               ¦  ¦
-¦  ¦  +----------+ +----------+ +----------+ +------------+   ¦  ¦
-¦  ¦  ¦  Auth    ¦ ¦  Admin   ¦ ¦  Client  ¦ ¦ Analytics  ¦   ¦  ¦
-¦  ¦  ¦Controller¦ ¦Controller¦ ¦Controller¦ ¦ Controller ¦   ¦  ¦
-¦  ¦  +----------+ +----------+ +----------+ +------------+   ¦  ¦
-¦  ¦         WebSocket Server (ws library)                      ¦  ¦
-¦  +------------------------------------------------------------+  ¦
+Â¦           Â¦    SERVER LAYER (Domain Modular)                  Â¦
+Â¦  +--------?----------------------?--------------------?------+  Â¦
+Â¦  Â¦  [auth]       - Email + Password login, OTP 2FA, gateways  Â¦  Â¦
+Â¦  Â¦  [session]    - Active workstation trackers, bypass PINs   Â¦  Â¦
+Â¦  Â¦  [workstation]- Computer inventory, pairing, remote lock   Â¦  Â¦
+Â¦  Â¦  [attendance] - Attendance logs, lessons, credit hours     Â¦  Â¦
+Â¦  Â¦  [import-exp] - Student Excel template parser & validators Â¦  Â¦
+Â¦  Â¦  [monitoring] - System health, diagnostics alerts, audit   Â¦  Â¦
+Â¦  Â¦  [sync]       - Local-to-Cloud replication services        Â¦  Â¦
+Â¦  Â¦                                                            Â¦  Â¦
+Â¦  Â¦         WebSocket Server (ws library)                      Â¦  Â¦
+Â¦  +------------------------------------------------------------+  Â¦
 +-----------------------------+-----------------------------------+
-                              ¦ Prisma ORM
+                              Â¦ Prisma ORM
 +-----------------------------+-----------------------------------+
-¦         DATABASE LAYER      ¦                                   ¦
-¦  +--------------------------?------------------------------+   ¦
-¦  ¦           Neon PostgreSQL (Cloud Hosted)                 ¦   ¦
-¦  ¦  Users · Labs · Computers · Sessions · Attendance        ¦   ¦
-¦  ¦  Subjects · TimetableSlots · AuditLogs · SecurityAlerts  ¦   ¦
-¦  +----------------------------------------------------------+   ¦
+Â¦         DATABASE LAYER      Â¦                                   Â¦
+Â¦  +--------------------------?------------------------------+   Â¦
+Â¦  Â¦           PostgreSQL Database (Local Offline Loopback)   Â¦   Â¦
+Â¦  Â¦  Users Â· Labs Â· Computers Â· Sessions Â· Attendance        Â¦   Â¦
+Â¦  Â¦  Subjects Â· TimetableSlots Â· AuditLogs Â· SecurityAlerts  Â¦   Â¦
+Â¦  +----------------------------------------------------------+   Â¦
 +-----------------------------------------------------------------+
-`
+```
 
 ## Authentication Flows
 
-### QR + One-Time PIN (Primary)
-1. Student opens mobile browser ? /unlock?token=JWT
-2. Student logs in (enrollment + password)
-3. Server validates ? Generates 6-digit OTP (60s TTL, bound to student + workstation)
-4. Student receives PIN on mobile
-5. Student enters PIN on workstation lock screen
-6. Server validates PIN ? Activates session ? Sends WebSocket unlock to workstation
-7. Explorer shell launched, lock screen hidden
+### Primary Login (Online Mode)
+1. Student enters their registered **College Email** (`student@suas.ac.in`) or **Enrollment Number** and Password on the workstation lock screen.
+2. Workstation submits credentials to the server via the `/api/v1/client/fallback-auth` endpoint.
+3. Server validates credentials against the local PostgreSQL instance, checking user status (`isActive`) and password validity.
+4. On success, an active database session is registered, the WebSocket unlocks the client, and the Windows Explorer shell is spawned.
 
-### PIN Fallback (Offline capable)
-1. Student enters enrollment + PIN directly on workstation
-2. Workstation POSTs to /api/v1/client/fallback-auth
-3. Server bcrypt-validates PIN against hashed DB record
-4. On success ? session created, workstation unlocked
+### PIN Fallback (Resilient Offline Mode)
+1. In case of local LAN network failure, the indicator on the workstation lock screen transitions to **OFFLINE**.
+2. The student checks their offline bypass checkbox and inputs their Enrollment Number and administrator-issued 6-digit offline bypass PIN.
+3. The client verifies the credentials locally against the cached local student credentials database (comparing hashes using BCrypt).
+4. On successful verification, the lock screen hides and allows local access, logging the session to a local transaction journal for automatic syncing once connectivity is restored.
 
 ## Security Architecture
 - JWT signed with JWT_SECRET (28800s TTL = 8 hours)
@@ -66,19 +66,16 @@ AURXON Lab Access Management System (ALAMS) is a multi-tier enterprise system fo
 - Concurrent session rejection (one active session per student)
 
 ## Database Models
-- **User** — STUDENT / ADMIN / SUPERVISOR / FACULTY roles
-- **Profile** — Reusable configuration template (QR lifetime, heartbeat interval)
-- **Lab** — Physical room with subnet and profile assignment
-- **Computer** — Workstation with full WMI hardware + network specs
-- **TimetableSlot** — Weekly schedule linking Lab ? Subject ? Faculty
-- **Session** — Active/Completed/Terminated workstation sessions
-- **Attendance** — Finalized attendance record (Present/Late/Partial/Absent)
-- **SecurityAlert** — Hardware tamper, subnet mismatch, failed login alerts
-- **AuditLog** — Immutable action trail
+- **User** â€” STUDENT / ADMIN / SUPERVISOR / FACULTY roles
+- **Profile** â€” Reusable configuration template (QR lifetime, heartbeat interval)
+- **Lab** â€” Physical room with subnet and profile assignment
+- **Computer** â€” Workstation with full WMI hardware + network specs
+- **TimetableSlot** â€” Weekly schedule linking Lab ? Subject ? Faculty
+- **Session** â€” Active/Completed/Terminated workstation sessions
+- **Attendance** â€” Finalized attendance record (Present/Late/Partial/Absent)
+- **SecurityAlert** â€” Hardware tamper, subnet mismatch, failed login alerts
+- **AuditLog** â€” Immutable action trail
 
-## Network Architecture (Pilot)
-- Server: http://[server-ip]:5000
-- Web Console: http://[server-ip]:3000
-- Mobile Unlock: http://[server-ip]:3000/unlock
-- WS: ws://[server-ip]:5000
-- All workstations communicate on local LAN
+## Network Architecture (Local LAN Offline-First)
+- Server: http://127.0.0.1:5000 (accessible on LAN as http://192.168.128.73:5000)
+- All client workstations communicate locally within the laboratory network.
