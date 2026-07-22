@@ -69,13 +69,16 @@ if exist "%INSTALL_DIR%\AlamsDaemon.exe" (
     echo [ERROR] AlamsDaemon.exe is missing. Cannot register service.
 )
 
+set STUDENT_USER=Student
+if not "%~2"=="" set STUDENT_USER=%~2
+
 REM Run shell enrollment script
 if exist "%~dp0EnrollShell.ps1" (
-    echo [ALAMS CLIENT INSTALL] Executing user shell enrollment...
-    powershell -ExecutionPolicy Bypass -File "%~dp0EnrollShell.ps1" -AlamsClientPath "%INSTALL_DIR%\AlamsClient.exe"
+    echo [ALAMS CLIENT INSTALL] Executing user shell enrollment for user: %STUDENT_USER%
+    powershell -ExecutionPolicy Bypass -File "%~dp0EnrollShell.ps1" -AlamsClientPath "%INSTALL_DIR%\AlamsClient.exe" -StudentUser "%STUDENT_USER%"
 ) else if exist "%~dp0\..\EnrollShell.ps1" (
-    echo [ALAMS CLIENT INSTALL] Executing user shell enrollment...
-    powershell -ExecutionPolicy Bypass -File "%~dp0\..\EnrollShell.ps1" -AlamsClientPath "%INSTALL_DIR%\AlamsClient.exe"
+    echo [ALAMS CLIENT INSTALL] Executing user shell enrollment for user: %STUDENT_USER%
+    powershell -ExecutionPolicy Bypass -File "%~dp0\..\EnrollShell.ps1" -AlamsClientPath "%INSTALL_DIR%\AlamsClient.exe" -StudentUser "%STUDENT_USER%"
 ) else (
     echo [WARN] EnrollShell.ps1 script not found. Shell must be set manually.
 )

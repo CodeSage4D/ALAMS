@@ -54,38 +54,64 @@ if (-not (Test-Path $ConfigPath)) {
 }
 
 # --- Step 3: Check if Watchdog service is installed ---
-$watchdogSvc = Get-Service -Name "AlamsWatchdog" -ErrorAction SilentlyContinue
+$watchdogSvc = Get-Service -Name "AlamsDaemon" -ErrorAction SilentlyContinue
 if (-not $watchdogSvc) {
-    Write-Host "[WARN] AlamsWatchdog service is NOT installed." -ForegroundColor Yellow
-    Write-Host "       Install the MSI first before running this script on student machines." -ForegroundColor Yellow
+    $watchdogSvc = Get-Service -Name "AlamsWatchdog" -ErrorAction SilentlyContinue
+}
+if (-not $watchdogSvc) {
+    Write-Host "[WARN] AlamsDaemon / AlamsWatchdog service is NOT installed." -ForegroundColor Yellow
+    Write-Host "       Install the client first before running this script on student machines." -ForegroundColor Yellow
 } elseif ($watchdogSvc.Status -ne "Running") {
-    Write-Host "[WARN] AlamsWatchdog service is installed but NOT running. Starting it..." -ForegroundColor Yellow
-    Start-Service -Name "AlamsWatchdog"
-    Write-Host "[OK] AlamsWatchdog service started." -ForegroundColor Green
+    Write-Host "[WARN] Service is installed but NOT running. Starting it..." -ForegroundColor Yellow
+    Start-Service -Name $watchdogSvc.Name
+    Write-Host "[OK] Service started." -ForegroundColor Green
 } else {
-    Write-Host "[OK] AlamsWatchdog service is ACTIVE." -ForegroundColor Green
+    Write-Host "[OK] Service is ACTIVE." -ForegroundColor Green
 }
 
-# --- Step 4: Apply HKCU shell override for the target student user ---
-$RegistryPath = "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon"
-
-if (-not (Test-Path $RegistryPath)) {
-    New-Item -Path $RegistryPath -Force | Out-Null
-    Write-Host "[OK] Created Winlogon registry key for current user." -ForegroundColor Green
-}
-
-$currentShell = (Get-ItemProperty -Path $RegistryPath -Name "Shell" -ErrorAction SilentlyContinue).Shell
-if ($currentShell -eq $AlamsClientPath) {
-    Write-Host "[INFO] Shell already set to ALAMS Client. No change needed." -ForegroundColor Cyan
+# --- Step 4: Apply shell override for the target student user ---
+if ($StudentUser -ne "") {
+    $UserHivePath = "C:\Users\$StudentUser\NTUSER.DAT"
+    if (Test-Path $UserHivePath) {
+        Write-Host "[INFO] Loading registry hive for user: $StudentUser" -ForegroundColor Cyan
+        
+        reg load HKU\StudentHive $UserHivePath
+        
+        $RegistryPath = "Registry::HKEY_USERS\StudentHive\Software\Microsoft\Windows NT\CurrentVersion\Winlogon"
+        if (-not (Test-Path $RegistryPath)) {
+            New-Item -Path $RegistryPath -Force | Out-Null
+        }
+        
+        $currentShell = (Get-ItemProperty -Path $RegistryPath -Name "Shell" -ErrorAction SilentlyContinue).Shell
+        Set-ItemProperty -Path $RegistryPath -Name "Shell" -Value $AlamsClientPath -Force
+        Write-Host "[OK] Custom shell enrolled for user $StudentUser -> $AlamsClientPath" -ForegroundColor Green
+        
+        # Backup original shell
+        $BackupPath = "C:\ProgramData\ALAMS\shell_backup_$StudentUser.txt"
+        $originalShell = if ($currentShell) { $currentShell } else { "explorer.exe" }
+        Set-Content -Path $BackupPath -Value $originalShell -Force
+        
+        [gc]::collect()
+        [gc]::WaitForPendingFinalizers()
+        reg unload HKU\StudentHive
+        Write-Host "[OK] Registry hive unloaded successfully." -ForegroundColor Green
+    } else {
+        Write-Host "[ERROR] Could not locate NTUSER.DAT for user: $StudentUser" -ForegroundColor Red
+        exit 1
+    }
 } else {
+    # Default to current user hive
+    $RegistryPath = "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon"
+    if (-not (Test-Path $RegistryPath)) {
+        New-Item -Path $RegistryPath -Force | Out-Null
+    }
+    $currentShell = (Get-ItemProperty -Path $RegistryPath -Name "Shell" -ErrorAction SilentlyContinue).Shell
     Set-ItemProperty -Path $RegistryPath -Name "Shell" -Value $AlamsClientPath -Force
-    Write-Host "[OK] Custom shell enrolled: HKCU Winlogon Shell -> $AlamsClientPath" -ForegroundColor Green
+    Write-Host "[OK] Custom shell enrolled for current user -> $AlamsClientPath" -ForegroundColor Green
     
-    # Backup original shell value for recovery
     $BackupPath = "C:\ProgramData\ALAMS\shell_backup.txt"
     $originalShell = if ($currentShell) { $currentShell } else { "explorer.exe" }
     Set-Content -Path $BackupPath -Value $originalShell -Force
-    Write-Host "[OK] Original shell backed up to: $BackupPath" -ForegroundColor Green
 }
 
 # --- Step 5: Create ProgramData directory if missing ---
