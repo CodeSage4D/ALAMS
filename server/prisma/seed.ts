@@ -121,6 +121,11 @@ async function main() {
       data: {
         enrollmentNumber: s.enrollmentNumber,
         fullName: s.fullName,
+        email: `${s.enrollmentNumber.toLowerCase()}@suas.ac.in`,
+        semester: "3",
+        year: "2",
+        department: "Computer Science",
+        section: "A",
         passwordHash: studentPasswordHash,
         pinHash: studentPinHash,
         role: Role.STUDENT,
